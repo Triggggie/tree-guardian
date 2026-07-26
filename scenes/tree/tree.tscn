@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://d3uxb01hw3ht0"]
+
+[ext_resource type="Script" uid="uid://b3slat4u2avky" path="res://scripts/tree.gd" id="1_cuvwl"]
+
+[node name="Tree" type="Node2D" unique_id=1588258163]
+script = ExtResource("1_cuvwl")
+
+[node name="Trunk" type="Node2D" parent="." unique_id=1750106346]
+
+[node name="AttachmentPoints" type="Node2D" parent="." unique_id=1046488410]
+
+[node name="LeftUpper" type="Marker2D" parent="AttachmentPoints" unique_id=1531166245]
+
+[node name="LeftLower" type="Marker2D" parent="AttachmentPoints" unique_id=1468527652]
+
+[node name="RightUpper" type="Marker2D" parent="AttachmentPoints" unique_id=2090791204]
+
+[node name="RightLower" type="Marker2D" parent="AttachmentPoints" unique_id=1352097778]
+
+[node name="Roots" type="Node2D" parent="." unique_id=210533633]
+
+[node name="Systems" type="Node2D" parent="." unique_id=200228229]
