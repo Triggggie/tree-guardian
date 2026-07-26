@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://d3uxb01hw3ht0"]
 
 [ext_resource type="Script" uid="uid://b3slat4u2avky" path="res://scripts/tree.gd" id="1_cuvwl"]
+[ext_resource type="PackedScene" uid="uid://i3e2ifeg4itl" path="res://scenes/branches/strength_branch.tscn" id="2_mbf7r"]
 
 [node name="Tree" type="Node2D" unique_id=1588258163]
 script = ExtResource("1_cuvwl")
@@ -10,6 +11,9 @@ script = ExtResource("1_cuvwl")
 [node name="AttachmentPoints" type="Node2D" parent="." unique_id=1046488410]
 
 [node name="LeftUpper" type="Marker2D" parent="AttachmentPoints" unique_id=1531166245]
+
+[node name="StrengthBranch" parent="AttachmentPoints/LeftUpper" unique_id=769172115 instance=ExtResource("2_mbf7r")]
+position = Vector2(-20, -170)
 
 [node name="LeftLower" type="Marker2D" parent="AttachmentPoints" unique_id=1468527652]
 
