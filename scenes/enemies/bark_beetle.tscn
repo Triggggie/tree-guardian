@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bq6epklbpqjum"]
+
+[ext_resource type="Script" uid="uid://dcr5grc0qqchi" path="res://scripts/bark_beetle.gd" id="1_oij6s"]
+
+[node name="BarkBeetle" type="CharacterBody2D" unique_id=1053252377]
+script = ExtResource("1_oij6s")
+
+[node name="Visual" type="Node2D" parent="." unique_id=296908097]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226018101]

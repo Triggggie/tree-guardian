@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://d3uxb01hw3ht0" path="res://scenes/tree/tree.tscn" id="1_6x5uh"]
 [ext_resource type="Script" uid="uid://c1cebm5kq3y4s" path="res://scenes/ground.gd" id="1_tt5ry"]
+[ext_resource type="PackedScene" uid="uid://bq6epklbpqjum" path="res://scenes/enemies/bark_beetle.tscn" id="3_wjoj8"]
 
 [node name="MainWorld" type="Node2D" unique_id=487831534]
 
@@ -16,6 +17,9 @@ script = ExtResource("1_tt5ry")
 
 [node name="Tree" parent="Entities" unique_id=1588258163 instance=ExtResource("1_6x5uh")]
 position = Vector2(960, 850)
+
+[node name="BarkBeetle" parent="Entities" unique_id=1053252377 instance=ExtResource("3_wjoj8")]
+position = Vector2(100, 818)
 
 [node name="Effects" type="Node2D" parent="." unique_id=1045736026]
 
