@@ -1,12 +1,16 @@
 [gd_scene format=3 uid="uid://ds2c4y6868ul3"]
 
 [ext_resource type="PackedScene" uid="uid://d3uxb01hw3ht0" path="res://scenes/tree/tree.tscn" id="1_6x5uh"]
+[ext_resource type="Script" uid="uid://c1cebm5kq3y4s" path="res://scenes/ground.gd" id="1_tt5ry"]
 
 [node name="MainWorld" type="Node2D" unique_id=487831534]
 
 [node name="Background" type="Node2D" parent="." unique_id=1838600355]
 
 [node name="World" type="Node2D" parent="." unique_id=1290850012]
+
+[node name="Ground" type="Node2D" parent="World" unique_id=1985133093]
+script = ExtResource("1_tt5ry")
 
 [node name="Entities" type="Node2D" parent="." unique_id=1508930081]
 
