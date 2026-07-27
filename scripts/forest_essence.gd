@@ -4,6 +4,7 @@ extends Node2D
 @export var pickup_delay: float = 0.4
 @export var move_speed: float = 550.0
 @export var collect_distance: float = 24.0
+@export var essence_value: int = 1
 
 var target_tree: Node2D
 var elapsed_time: float = 0.0
@@ -32,9 +33,13 @@ func _process(delta: float) -> void:
 
 
 func collect() -> void:
-	print("Forest Essence collected")
-	queue_free()
+	if (
+		is_instance_valid(target_tree)
+		and target_tree.has_method("add_forest_essence")
+	):
+		target_tree.add_forest_essence(essence_value)
 
+	queue_free()
 
 func _draw() -> void:
 	draw_circle(

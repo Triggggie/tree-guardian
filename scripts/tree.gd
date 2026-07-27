@@ -1,5 +1,8 @@
 extends Node2D
 
+signal forest_essence_changed(new_amount: int)
+
+var forest_essence: int = 0
 
 @export_range(0.0, 0.1, 0.001)
 var idle_scale_amount: float = 0.015
@@ -11,6 +14,10 @@ var idle_time: float = 0.0
 
 func _ready() -> void:
 	add_to_group("tree")
+
+func add_forest_essence(amount: int) -> void:
+	forest_essence += amount
+	forest_essence_changed.emit(forest_essence)
 
 func _process(delta: float) -> void:
 	idle_time += delta * idle_speed
