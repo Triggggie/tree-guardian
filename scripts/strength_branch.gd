@@ -5,6 +5,8 @@ signal level_changed(new_level: int)
 
 
 @export_category("Combat")
+@export_enum("Left", "Right")
+var facing_side: int = 0
 @export var attack_range: float = 260.0
 @export var base_damage: float = 10.0
 @export var damage_per_level: float = 2.0
@@ -61,6 +63,11 @@ func get_current_attack_cooldown() -> float:
 		minimum_attack_cooldown
 	)
 
+func get_facing_direction() -> float:
+	if facing_side == 0:
+		return -1.0
+
+	return 1.0
 
 func update_attack_cooldown() -> void:
 	cooldown_timer.wait_time = get_current_attack_cooldown()
@@ -75,32 +82,45 @@ func _draw() -> void:
 		base_thickness + thickness_per_level * (branch_level - 1)
 	)
 
+	var facing_direction: float = get_facing_direction()
 	var branch_color := Color("6b4423")
 
 	draw_line(
 		Vector2.ZERO,
-		Vector2(-current_length, 0),
+		Vector2(facing_direction * current_length, 0),
 		branch_color,
 		current_thickness,
 		true
 	)
 
 	if branch_level >= evolved_level:
-		draw_thorns(current_length, branch_color)
-		
-func draw_thorns(current_length: float, branch_color: Color) -> void:
+		draw_thorns(
+			current_length,
+			branch_color,
+			facing_direction
+		)
+func draw_thorns(
+	current_length: float,
+	branch_color: Color,
+	facing_direction: float
+) -> void:
 	var distance_from_trunk: float = thorn_spacing
 	var thorn_points_up: bool = true
 
 	while distance_from_trunk < current_length - 15.0:
-		var thorn_base := Vector2(-distance_from_trunk, 0.0)
+		var thorn_x: float = (
+			facing_direction * distance_from_trunk
+		)
+
+		var thorn_base := Vector2(thorn_x, 0.0)
 
 		var thorn_tip_y: float = (
 			-thorn_length if thorn_points_up else thorn_length
 		)
 
 		var thorn_tip := Vector2(
-			-distance_from_trunk - thorn_length * 0.45,
+			thorn_x
+			+ facing_direction * thorn_length * 0.45,
 			thorn_tip_y
 		)
 
@@ -113,9 +133,7 @@ func draw_thorns(current_length: float, branch_color: Color) -> void:
 		)
 
 		thorn_points_up = not thorn_points_up
-		distance_from_trunk += thorn_spacing		
-
-
+		distance_from_trunk += thorn_spacing
 func _on_cooldown_timer_timeout() -> void:
 	current_target = find_nearest_enemy()
 
@@ -128,12 +146,24 @@ func _on_cooldown_timer_timeout() -> void:
 func find_nearest_enemy() -> Node2D:
 	var nearest_enemy: Node2D = null
 	var nearest_distance: float = attack_range
+	var facing_direction: float = get_facing_direction()
 
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(enemy):
 			continue
 
 		if enemy is not Node2D:
+			continue
+
+		var horizontal_difference: float = (
+			enemy.global_position.x - global_position.x
+		)
+
+		var enemy_is_on_correct_side: bool = (
+			horizontal_difference * facing_direction > 0.0
+		)
+
+		if not enemy_is_on_correct_side:
 			continue
 
 		var distance: float = global_position.distance_to(
@@ -146,16 +176,20 @@ func find_nearest_enemy() -> Node2D:
 
 	return nearest_enemy
 
-
 func perform_attack_animation() -> void:
 	if not is_instance_valid(current_target):
 		return
 
 	var target_at_attack: Node2D = current_target
 
+	var signed_attack_angle: float = (
+		get_current_attack_angle_degrees()
+		* -get_facing_direction()
+	)
+
 	var attack_rotation: float = (
 		resting_rotation
-		+ deg_to_rad(get_current_attack_angle_degrees())
+		+ deg_to_rad(signed_attack_angle)
 	)
 
 	var tween: Tween = create_tween()
