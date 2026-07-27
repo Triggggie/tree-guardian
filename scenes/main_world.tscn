@@ -19,10 +19,10 @@ script = ExtResource("1_tt5ry")
 position = Vector2(960, 850)
 
 [node name="BarkBeetle" parent="Entities" unique_id=1053252377 instance=ExtResource("3_wjoj8")]
-position = Vector2(100, 818)
+position = Vector2(300, 818)
 
 [node name="BarkBeetleRight" parent="Entities" unique_id=768106959 instance=ExtResource("3_wjoj8")]
-position = Vector2(1820, 818)
+position = Vector2(1620, 818)
 
 [node name="Effects" type="Node2D" parent="." unique_id=1045736026]
 
