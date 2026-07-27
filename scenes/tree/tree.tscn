@@ -19,6 +19,10 @@ position = Vector2(-20, -170)
 
 [node name="RightUpper" type="Marker2D" parent="AttachmentPoints" unique_id=2090791204]
 
+[node name="StrengthBranch" parent="AttachmentPoints/RightUpper" unique_id=1239668723 instance=ExtResource("2_mbf7r")]
+position = Vector2(20, -170)
+facing_side = 1
+
 [node name="RightLower" type="Marker2D" parent="AttachmentPoints" unique_id=1352097778]
 
 [node name="Roots" type="Node2D" parent="." unique_id=210533633]
