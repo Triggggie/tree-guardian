@@ -136,3 +136,8 @@ enabled = false
 
 [node name="WaveManager" type="Node" parent="." unique_id=300043025]
 script = ExtResource("5_wy0bs")
+base_enemies_per_side = 7
+lane_spacing = 12.0
+lane_center_y_offset = 20.0
+lane_y_jitter = 2.0
+lane_scale_step = 0.02
