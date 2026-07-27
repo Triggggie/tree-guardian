@@ -21,6 +21,11 @@ const BARK_BEETLE_SCENE: PackedScene = preload(
 @export var time_between_waves: float = 2.0
 @export var spawn_spacing: float = 90.0
 
+@export_category("Enemy Scaling")
+@export var base_enemy_health: float = 30.0
+@export var health_increase_per_wave: float = 3.0
+@export var maximum_enemy_health: float = 1000000.0
+
 @onready var entities: Node2D = $"../Entities"
 @onready var left_spawn_point: Marker2D = $"../World/LeftSpawnPoint"
 @onready var right_spawn_point: Marker2D = $"../World/RightSpawnPoint"
@@ -49,7 +54,9 @@ func run_wave_loop() -> void:
 			"Začíná vlna ",
 			current_wave,
 			" | nepřátel na každé straně: ",
-			enemy_count
+			enemy_count,
+			" | HP nepřítele: ",
+			get_current_enemy_health()
 		)
 
 		await spawn_wave(enemy_count)
@@ -78,7 +85,21 @@ func get_current_enemies_per_side() -> int:
 	)
 
 
+func get_current_enemy_health() -> float:
+	var calculated_health: float = (
+		base_enemy_health
+		+ health_increase_per_wave * (current_wave - 1)
+	)
+
+	return min(
+		calculated_health,
+		maximum_enemy_health
+	)
+
+
 func spawn_wave(enemy_count: int) -> void:
+	var enemy_health: float = get_current_enemy_health()
+
 	for index in range(enemy_count):
 		var offset: float = index * spawn_spacing
 
@@ -92,8 +113,8 @@ func spawn_wave(enemy_count: int) -> void:
 			+ Vector2(offset, 0.0)
 		)
 
-		spawn_enemy(left_position)
-		spawn_enemy(right_position)
+		spawn_enemy(left_position, enemy_health)
+		spawn_enemy(right_position, enemy_health)
 
 		if index < enemy_count - 1:
 			await get_tree().create_timer(
@@ -101,10 +122,15 @@ func spawn_wave(enemy_count: int) -> void:
 			).timeout
 
 
-func spawn_enemy(spawn_position: Vector2) -> void:
+func spawn_enemy(
+	spawn_position: Vector2,
+	enemy_health: float
+) -> void:
 	var enemy: Node2D = (
 		BARK_BEETLE_SCENE.instantiate() as Node2D
 	)
+
+	enemy.set("max_health", enemy_health)
 
 	entities.add_child(enemy)
 	enemy.global_position = spawn_position
