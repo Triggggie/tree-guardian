@@ -19,6 +19,11 @@ const FOREST_ESSENCE_SCENE: PackedScene = preload(
 @export var attack_damage: float = 5.0
 @export var attack_cooldown: float = 1.5
 
+@export_category("Damage Feedback")
+@export var hit_flash_duration: float = 0.08
+@export var hit_shake_angle_degrees: float = 8.0
+@export var hit_shake_duration: float = 0.04
+
 @onready var attack_timer: Timer = $AttackTimer
 
 var current_health: float
@@ -26,12 +31,17 @@ var target_tree: Node
 var has_reached_tree: bool = false
 var combat_enabled: bool = true
 
+var resting_rotation: float
+var hit_tween: Tween
+
 
 func _ready() -> void:
 	add_to_group("enemies")
 
 	current_health = max_health
 	target_tree = get_tree().get_first_node_in_group("tree")
+
+	resting_rotation = rotation
 
 	attack_timer.wait_time = attack_cooldown
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
@@ -42,6 +52,7 @@ func _physics_process(_delta: float) -> void:
 		velocity = Vector2.ZERO
 		stop_attacking()
 		return
+
 	if not is_instance_valid(target_tree):
 		velocity = Vector2.ZERO
 		stop_attacking()
@@ -85,6 +96,7 @@ func stop_attacking() -> void:
 func _on_attack_timer_timeout() -> void:
 	if not combat_enabled:
 		return
+
 	if not is_instance_valid(target_tree):
 		stop_attacking()
 		return
@@ -97,6 +109,12 @@ func take_damage(
 	amount: float,
 	damage_source: Node = null
 ) -> void:
+	if not combat_enabled:
+		return
+
+	if amount <= 0.0:
+		return
+
 	current_health -= amount
 
 	print(
@@ -109,6 +127,62 @@ func take_damage(
 
 	if current_health <= 0.0:
 		die(damage_source)
+		return
+
+	play_hit_feedback()
+
+
+func play_hit_feedback() -> void:
+	if is_instance_valid(hit_tween):
+		hit_tween.kill()
+
+	rotation = resting_rotation
+	modulate = Color.WHITE
+
+	var shake_angle: float = deg_to_rad(
+		hit_shake_angle_degrees
+	)
+
+	hit_tween = create_tween()
+
+	hit_tween.set_parallel(true)
+
+	hit_tween.tween_property(
+		self,
+		"modulate",
+		Color(1.0, 0.3, 0.3, 1.0),
+		hit_flash_duration
+	)
+
+	hit_tween.tween_property(
+		self,
+		"rotation",
+		resting_rotation + shake_angle,
+		hit_shake_duration
+	)
+
+	hit_tween.set_parallel(false)
+
+	hit_tween.tween_property(
+		self,
+		"rotation",
+		resting_rotation - shake_angle,
+		hit_shake_duration
+	)
+
+	hit_tween.tween_property(
+		self,
+		"rotation",
+		resting_rotation,
+		hit_shake_duration
+	)
+
+	hit_tween.tween_property(
+		self,
+		"modulate",
+		Color.WHITE,
+		hit_flash_duration
+	)
 
 
 func die(killer: Node = null) -> void:
@@ -127,6 +201,18 @@ func drop_forest_essence() -> void:
 
 	get_parent().add_child(essence)
 	essence.global_position = global_position
+
+
+func stop_combat() -> void:
+	combat_enabled = false
+	velocity = Vector2.ZERO
+	stop_attacking()
+
+	if is_instance_valid(hit_tween):
+		hit_tween.kill()
+
+	rotation = resting_rotation
+	modulate = Color.WHITE
 
 
 func _draw() -> void:
@@ -149,7 +235,3 @@ func _draw() -> void:
 		Color("3a2118"),
 		5.0
 	)
-func stop_combat() -> void:
-	combat_enabled = false
-	velocity = Vector2.ZERO
-	stop_attacking()
