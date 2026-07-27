@@ -1,8 +1,10 @@
 extends Node2D
 
 signal forest_essence_changed(new_amount: int)
+signal age_changed(new_age: int)
 
 var forest_essence: int = 0
+var age: int = 1
 
 @export_range(0.0, 0.1, 0.001)
 var idle_scale_amount: float = 0.015
@@ -43,3 +45,11 @@ func _draw() -> void:
 		130,
 		Color("3f8f4f")
 	)
+func add_age(amount: int) -> void:
+	if amount <= 0:
+		return
+
+	age += amount
+	age_changed.emit(age)
+
+	print("Strom dosáhl věku ", age)
