@@ -10,6 +10,7 @@ const BARK_BEETLE_SCENE: PackedScene = preload(
 @export var enemies_per_side: int = 2
 @export var time_between_spawns: float = 0.35
 @export var time_between_waves: float = 2.0
+@export var spawn_spacing: float = 90.0
 
 @onready var entities: Node2D = $"../Entities"
 @onready var left_spawn_point: Marker2D = $"../World/LeftSpawnPoint"
@@ -41,8 +42,20 @@ func start_next_wave() -> void:
 
 func spawn_wave() -> void:
 	for index in range(enemies_per_side):
-		spawn_enemy(left_spawn_point.global_position)
-		spawn_enemy(right_spawn_point.global_position)
+		var offset: float = index * spawn_spacing
+
+		var left_position: Vector2 = (
+			left_spawn_point.global_position
+			+ Vector2(-offset, 0.0)
+		)
+
+		var right_position: Vector2 = (
+			right_spawn_point.global_position
+			+ Vector2(offset, 0.0)
+		)
+
+		spawn_enemy(left_position)
+		spawn_enemy(right_position)
 
 		if index < enemies_per_side - 1:
 			await get_tree().create_timer(
@@ -51,7 +64,9 @@ func spawn_wave() -> void:
 
 
 func spawn_enemy(spawn_position: Vector2) -> void:
-	var enemy: Node2D = BARK_BEETLE_SCENE.instantiate() as Node2D
+	var enemy: Node2D = (
+		BARK_BEETLE_SCENE.instantiate() as Node2D
+	)
 
 	entities.add_child(enemy)
 	enemy.global_position = spawn_position
