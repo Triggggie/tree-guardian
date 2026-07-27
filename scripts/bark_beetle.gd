@@ -25,6 +25,7 @@ const FOREST_ESSENCE_SCENE: PackedScene = preload(
 @export var hit_shake_duration: float = 0.04
 
 @onready var attack_timer: Timer = $AttackTimer
+@onready var health_bar: ProgressBar = $HealthBar
 
 var current_health: float
 var target_tree: Node
@@ -45,6 +46,11 @@ func _ready() -> void:
 
 	attack_timer.wait_time = attack_cooldown
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
+
+	health_bar.min_value = 0.0
+	health_bar.max_value = max_health
+	health_bar.value = current_health
+	health_bar.hide()
 
 
 func _physics_process(_delta: float) -> void:
@@ -115,7 +121,12 @@ func take_damage(
 	if amount <= 0.0:
 		return
 
-	current_health -= amount
+	current_health = max(
+		current_health - amount,
+		0.0
+	)
+
+	update_health_bar()
 
 	print(
 		name,
@@ -132,6 +143,16 @@ func take_damage(
 	play_hit_feedback()
 
 
+func update_health_bar() -> void:
+	health_bar.max_value = max_health
+	health_bar.value = current_health
+
+	if current_health < max_health:
+		health_bar.show()
+	else:
+		health_bar.hide()
+
+
 func play_hit_feedback() -> void:
 	if is_instance_valid(hit_tween):
 		hit_tween.kill()
@@ -144,7 +165,6 @@ func play_hit_feedback() -> void:
 	)
 
 	hit_tween = create_tween()
-
 	hit_tween.set_parallel(true)
 
 	hit_tween.tween_property(

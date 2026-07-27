@@ -2,6 +2,12 @@
 
 [ext_resource type="Script" uid="uid://dcr5grc0qqchi" path="res://scripts/bark_beetle.gd" id="1_oij6s"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wedkd"]
+bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8jrii"]
+bg_color = Color(0.24705882, 0.68235296, 0.3529412, 1)
+
 [node name="BarkBeetle" type="CharacterBody2D" unique_id=1053252377]
 script = ExtResource("1_oij6s")
 
@@ -11,3 +17,14 @@ script = ExtResource("1_oij6s")
 
 [node name="AttackTimer" type="Timer" parent="." unique_id=1894351484]
 wait_time = 1.5
+
+[node name="HealthBar" type="ProgressBar" parent="." unique_id=1791347527]
+offset_left = -35.0
+offset_top = -58.0
+offset_right = 35.0
+offset_bottom = -50.0
+theme_override_styles/background = SubResource("StyleBoxFlat_wedkd")
+theme_override_styles/fill = SubResource("StyleBoxFlat_8jrii")
+max_value = 30.0
+value = 30.0
+show_percentage = false
