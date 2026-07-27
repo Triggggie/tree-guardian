@@ -6,6 +6,10 @@ signal wave_changed(
 	enemies_per_side: int
 )
 
+signal wave_message_changed(
+	message: String
+)
+
 
 const BARK_BEETLE_SCENE: PackedScene = preload(
 	"res://scenes/enemies/bark_beetle.tscn"
@@ -17,20 +21,22 @@ const BARK_BEETLE_SCENE: PackedScene = preload(
 @export var waves_per_enemy_increase: int = 3
 @export var maximum_enemies_per_side: int = 30
 @export var time_between_spawns: float = 0.25
-@export var time_between_waves: float = 2.0
+
+# Jak dlouho zůstane viditelný text WAVE COMPLETE.
+@export var wave_complete_message_duration: float = 0.7
+
+# Krátká pauza po zmizení textu před další vlnou.
+@export var time_between_waves: float = 0.5
+
 @export var spawn_spacing: float = 75.0
+
 
 @export_category("Crowd Formation")
 @export_range(1, 9, 1)
 var lane_count: int = 5
 
-# Pruhy jsou schválně blízko u sebe,
-# aby brouci stále působili, že běží po zemi.
 @export var lane_spacing: float = 8.0
-
-# Posune celý dav mírně dolů oproti Marker2D.
 @export var lane_center_y_offset: float = 16.0
-
 @export var lane_y_jitter: float = 2.5
 
 @export var minimum_speed_multiplier: float = 0.85
@@ -39,10 +45,12 @@ var lane_count: int = 5
 @export var maximum_depth_jitter: float = 10.0
 @export var lane_scale_step: float = 0.025
 
+
 @export_category("Enemy Scaling")
 @export var base_enemy_health: float = 30.0
 @export var health_increase_per_wave: float = 3.0
 @export var maximum_enemy_health: float = 1000000.0
+
 
 @onready var entities: Node2D = $"../Entities"
 
@@ -57,6 +65,7 @@ var lane_count: int = 5
 @onready var tree_node: Node = (
 	get_tree().get_first_node_in_group("tree")
 )
+
 
 var current_wave: int = 0
 var game_over: bool = false
@@ -113,12 +122,14 @@ func run_wave_loop() -> void:
 
 		complete_wave()
 
-		await get_tree().create_timer(
-			time_between_waves
-		).timeout
+		await show_wave_complete_message()
 
 		if game_over:
 			return
+
+		await get_tree().create_timer(
+			time_between_waves
+		).timeout
 
 
 func get_current_enemies_per_side() -> int:
@@ -298,7 +309,10 @@ func spawn_enemy(
 		as Node2D
 	)
 
-	enemy.set("max_health", enemy_health)
+	enemy.set(
+		"max_health",
+		enemy_health
+	)
 
 	entities.add_child(enemy)
 	enemy.global_position = spawn_position
@@ -351,11 +365,29 @@ func complete_wave() -> void:
 		tree_node.add_age(1)
 
 
+func show_wave_complete_message() -> void:
+	if game_over:
+		return
+
+	wave_message_changed.emit(
+		"WAVE %d COMPLETE"
+		% current_wave
+	)
+
+	await get_tree().create_timer(
+		wave_complete_message_duration
+	).timeout
+
+	wave_message_changed.emit("")
+
+
 func _on_tree_died() -> void:
 	if game_over:
 		return
 
 	game_over = true
+
+	wave_message_changed.emit("")
 
 	get_tree().call_group(
 		"strength_branch",
