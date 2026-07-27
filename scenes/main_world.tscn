@@ -50,8 +50,8 @@ script = ExtResource("4_bdp8l")
 [node name="BranchInfoLabel" type="Label" parent="UI" unique_id=108012457]
 offset_left = 30.0
 offset_top = 90.0
-offset_right = 350.0
-offset_bottom = 210.0
+offset_right = 390.0
+offset_bottom = 390.0
 text = "Strength Branch
 Level 1
 XP 0 / 2
