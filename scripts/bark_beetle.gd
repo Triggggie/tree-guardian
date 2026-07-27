@@ -16,8 +16,8 @@ const FOREST_ESSENCE_SCENE: PackedScene = preload(
 @export var xp_reward: int = 1
 
 @export_category("Attack")
-@export var attack_damage: float = 20.0
-@export var attack_cooldown: float = 0.5
+@export var attack_damage: float = 5.0
+@export var attack_cooldown: float = 1.5
 
 @onready var attack_timer: Timer = $AttackTimer
 
