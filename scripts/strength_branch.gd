@@ -11,6 +11,10 @@ signal level_changed(new_level: int)
 @export var attack_angle_degrees: float = 18.0
 @export var attack_duration: float = 0.12
 
+@export var base_attack_cooldown: float = 1.5
+@export var cooldown_reduction_per_level: float = 0.15
+@export var minimum_attack_cooldown: float = 0.45
+
 @export_category("Progression")
 @export var xp_required_per_level: int = 2
 
@@ -34,8 +38,26 @@ func _ready() -> void:
 	resting_rotation = rotation
 	cooldown_timer.timeout.connect(_on_cooldown_timer_timeout)
 
+	update_attack_cooldown()
+
 	if cooldown_timer.is_stopped():
 		cooldown_timer.start()
+
+
+func get_current_attack_cooldown() -> float:
+	var calculated_cooldown: float = (
+		base_attack_cooldown
+		- cooldown_reduction_per_level * (branch_level - 1)
+	)
+
+	return max(
+		calculated_cooldown,
+		minimum_attack_cooldown
+	)
+
+
+func update_attack_cooldown() -> void:
+	cooldown_timer.wait_time = get_current_attack_cooldown()
 
 
 func _draw() -> void:
@@ -154,6 +176,8 @@ func add_xp(amount: int) -> void:
 
 func level_up() -> void:
 	branch_level += 1
+
+	update_attack_cooldown()
 	queue_redraw()
 	level_changed.emit(branch_level)
 
@@ -161,5 +185,8 @@ func level_up() -> void:
 		"Strength Branch dosáhla levelu ",
 		branch_level,
 		" | Damage: ",
-		get_current_damage()
+		get_current_damage(),
+		" | Cooldown: ",
+		get_current_attack_cooldown(),
+		" s"
 	)

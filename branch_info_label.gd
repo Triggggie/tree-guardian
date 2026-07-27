@@ -37,5 +37,6 @@ func update_label() -> void:
 			strength_branch.current_xp,
 			strength_branch.xp_required_per_level
 		]
-		+ "Damage %.0f" % strength_branch.get_current_damage()
+		+ "Damage %.0f\n" % strength_branch.get_current_damage()
+		+ "Cooldown %.2f s" % strength_branch.get_current_attack_cooldown()
 	)
