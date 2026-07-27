@@ -1,13 +1,22 @@
 extends Node
 
 
+signal wave_changed(
+	new_wave: int,
+	enemies_per_side: int
+)
+
+
 const BARK_BEETLE_SCENE: PackedScene = preload(
 	"res://scenes/enemies/bark_beetle.tscn"
 )
 
 
 @export_category("Wave")
-@export var enemies_per_side: int = 2
+@export var base_enemies_per_side: int = 2
+@export var waves_per_enemy_increase: int = 3
+@export var maximum_enemies_per_side: int = 10
+
 @export var time_between_spawns: float = 0.35
 @export var time_between_waves: float = 2.0
 @export var spawn_spacing: float = 90.0
@@ -18,30 +27,59 @@ const BARK_BEETLE_SCENE: PackedScene = preload(
 @onready var tree_node: Node = get_tree().get_first_node_in_group("tree")
 
 var current_wave: int = 0
-var wave_running: bool = false
 
 
 func _ready() -> void:
-	start_next_wave()
+	add_to_group("wave_manager")
+	run_wave_loop()
 
 
-func start_next_wave() -> void:
-	if wave_running:
-		return
+func run_wave_loop() -> void:
+	while true:
+		current_wave += 1
 
-	wave_running = true
-	current_wave += 1
+		var enemy_count: int = get_current_enemies_per_side()
 
-	print("Začíná vlna ", current_wave)
+		wave_changed.emit(
+			current_wave,
+			enemy_count
+		)
 
-	await spawn_wave()
-	await wait_until_all_enemies_are_dead()
+		print(
+			"Začíná vlna ",
+			current_wave,
+			" | nepřátel na každé straně: ",
+			enemy_count
+		)
 
-	complete_wave()
+		await spawn_wave(enemy_count)
+		await wait_until_all_enemies_are_dead()
+
+		complete_wave()
+
+		await get_tree().create_timer(
+			time_between_waves
+		).timeout
 
 
-func spawn_wave() -> void:
-	for index in range(enemies_per_side):
+func get_current_enemies_per_side() -> int:
+	var safe_interval: int = max(
+		waves_per_enemy_increase,
+		1
+	)
+
+	var additional_enemies: int = (
+		(current_wave - 1) / safe_interval
+	)
+
+	return min(
+		base_enemies_per_side + additional_enemies,
+		maximum_enemies_per_side
+	)
+
+
+func spawn_wave(enemy_count: int) -> void:
+	for index in range(enemy_count):
 		var offset: float = index * spawn_spacing
 
 		var left_position: Vector2 = (
@@ -57,7 +95,7 @@ func spawn_wave() -> void:
 		spawn_enemy(left_position)
 		spawn_enemy(right_position)
 
-		if index < enemies_per_side - 1:
+		if index < enemy_count - 1:
 			await get_tree().create_timer(
 				time_between_spawns
 			).timeout
@@ -78,8 +116,6 @@ func wait_until_all_enemies_are_dead() -> void:
 
 
 func complete_wave() -> void:
-	wave_running = false
-
 	print("Vlna ", current_wave, " dokončena")
 
 	if (
@@ -87,6 +123,3 @@ func complete_wave() -> void:
 		and tree_node.has_method("add_age")
 	):
 		tree_node.add_age(1)
-
-	await get_tree().create_timer(time_between_waves).timeout
-	start_next_wave()
