@@ -8,6 +8,7 @@ const FOREST_ESSENCE_SCENE: PackedScene = preload(
 @export var target_x: float = 960.0
 @export var stopping_distance: float = 130.0
 @export var max_health: float = 30.0
+@export var xp_reward: int = 1
 
 var current_health: float
 
@@ -30,7 +31,7 @@ func _physics_process(_delta: float) -> void:
 	move_and_slide()
 
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, damage_source: Node = null) -> void:
 	current_health -= amount
 
 	print(
@@ -42,10 +43,13 @@ func take_damage(amount: float) -> void:
 	)
 
 	if current_health <= 0.0:
-		die()
+		die(damage_source)
 
 
-func die() -> void:
+func die(killer: Node = null) -> void:
+	if is_instance_valid(killer) and killer.has_method("add_xp"):
+		killer.add_xp(xp_reward)
+
 	drop_forest_essence()
 	remove_from_group("enemies")
 	queue_free()
