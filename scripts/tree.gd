@@ -9,6 +9,8 @@ var idle_speed: float = 1.2
 
 var idle_time: float = 0.0
 
+func _ready() -> void:
+	add_to_group("tree")
 
 func _process(delta: float) -> void:
 	idle_time += delta * idle_speed

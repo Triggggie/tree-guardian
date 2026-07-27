@@ -1,5 +1,8 @@
 extends CharacterBody2D
 
+const FOREST_ESSENCE_SCENE: PackedScene = preload(
+	"res://scenes/drops/forest_essence.tscn"
+)
 
 @export var move_speed: float = 120.0
 @export var target_x: float = 960.0
@@ -43,8 +46,16 @@ func take_damage(amount: float) -> void:
 
 
 func die() -> void:
+	drop_forest_essence()
 	remove_from_group("enemies")
 	queue_free()
+
+
+func drop_forest_essence() -> void:
+	var essence: Node2D = FOREST_ESSENCE_SCENE.instantiate() as Node2D
+
+	get_parent().add_child(essence)
+	essence.global_position = global_position
 
 
 func _draw() -> void:

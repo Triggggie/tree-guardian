@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cuxmw11l8x4mi"]
+
+[ext_resource type="Script" uid="uid://c8c3ls2ow0n25" path="res://scripts/forest_essence.gd" id="1_atagu"]
+
+[node name="ForestEssence" type="Node2D" unique_id=1658619779]
+script = ExtResource("1_atagu")
