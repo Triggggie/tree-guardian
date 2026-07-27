@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://c1cebm5kq3y4s" path="res://scripts/ground.gd" id="1_tt5ry"]
 [ext_resource type="PackedScene" uid="uid://bq6epklbpqjum" path="res://scenes/enemies/bark_beetle.tscn" id="3_wjoj8"]
 [ext_resource type="Script" uid="uid://d0y22yvotgvj" path="res://scripts/essence_label.gd" id="4_bdp8l"]
+[ext_resource type="Script" uid="uid://cshm6xwe5aw2w" path="res://branch_info_label.gd" id="5_jj0au"]
 
 [node name="MainWorld" type="Node2D" unique_id=487831534]
 
@@ -36,6 +37,17 @@ offset_right = 330.0
 offset_bottom = 80.0
 text = "Forest Essence: 0"
 script = ExtResource("4_bdp8l")
+
+[node name="BranchInfoLabel" type="Label" parent="UI" unique_id=108012457]
+offset_left = 30.0
+offset_top = 90.0
+offset_right = 350.0
+offset_bottom = 210.0
+text = "Strength Branch
+Level 1
+XP 0 / 2
+Damage 10"
+script = ExtResource("5_jj0au")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false

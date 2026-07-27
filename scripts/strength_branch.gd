@@ -29,6 +29,8 @@ var current_target: Node2D
 
 
 func _ready() -> void:
+	add_to_group("strength_branch")
+
 	resting_rotation = rotation
 	cooldown_timer.timeout.connect(_on_cooldown_timer_timeout)
 
