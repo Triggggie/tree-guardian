@@ -24,6 +24,12 @@ signal level_changed(new_level: int)
 @export var base_thickness: float = 24.0
 @export var thickness_per_level: float = 3.0
 
+@export_category("Milestone Evolution")
+@export var evolved_level: int = 3
+@export var evolved_attack_angle_degrees: float = 30.0
+@export var thorn_length: float = 20.0
+@export var thorn_spacing: float = 38.0
+
 @onready var cooldown_timer: Timer = $CooldownTimer
 
 var branch_level: int = 1
@@ -69,13 +75,45 @@ func _draw() -> void:
 		base_thickness + thickness_per_level * (branch_level - 1)
 	)
 
+	var branch_color := Color("6b4423")
+
 	draw_line(
 		Vector2.ZERO,
 		Vector2(-current_length, 0),
-		Color("6b4423"),
+		branch_color,
 		current_thickness,
 		true
 	)
+
+	if branch_level >= evolved_level:
+		draw_thorns(current_length, branch_color)
+		
+func draw_thorns(current_length: float, branch_color: Color) -> void:
+	var distance_from_trunk: float = thorn_spacing
+	var thorn_points_up: bool = true
+
+	while distance_from_trunk < current_length - 15.0:
+		var thorn_base := Vector2(-distance_from_trunk, 0.0)
+
+		var thorn_tip_y: float = (
+			-thorn_length if thorn_points_up else thorn_length
+		)
+
+		var thorn_tip := Vector2(
+			-distance_from_trunk - thorn_length * 0.45,
+			thorn_tip_y
+		)
+
+		draw_line(
+			thorn_base,
+			thorn_tip,
+			branch_color,
+			6.0,
+			true
+		)
+
+		thorn_points_up = not thorn_points_up
+		distance_from_trunk += thorn_spacing		
 
 
 func _on_cooldown_timer_timeout() -> void:
@@ -116,7 +154,8 @@ func perform_attack_animation() -> void:
 	var target_at_attack: Node2D = current_target
 
 	var attack_rotation: float = (
-		resting_rotation + deg_to_rad(attack_angle_degrees)
+		resting_rotation
+		+ deg_to_rad(get_current_attack_angle_degrees())
 	)
 
 	var tween: Tween = create_tween()
@@ -149,10 +188,14 @@ func perform_attack_animation() -> void:
 		attack_duration
 	)
 
-
 func get_current_damage() -> float:
 	return base_damage + damage_per_level * (branch_level - 1)
 
+func get_current_attack_angle_degrees() -> float:
+	if branch_level >= evolved_level:
+		return evolved_attack_angle_degrees
+
+	return attack_angle_degrees
 
 func add_xp(amount: int) -> void:
 	if amount <= 0:

@@ -23,8 +23,17 @@ position = Vector2(960, 850)
 [node name="BarkBeetle" parent="Entities" unique_id=1053252377 instance=ExtResource("3_wjoj8")]
 position = Vector2(300, 818)
 
+[node name="BarkBeetle2" parent="Entities" unique_id=1330871674 instance=ExtResource("3_wjoj8")]
+position = Vector2(20, 818)
+
+[node name="BarkBeetle3" parent="Entities" unique_id=1393126216 instance=ExtResource("3_wjoj8")]
+position = Vector2(200, 818)
+
 [node name="BarkBeetleRight" parent="Entities" unique_id=768106959 instance=ExtResource("3_wjoj8")]
 position = Vector2(1620, 818)
+
+[node name="BarkBeetleRight2" parent="Entities" unique_id=466012984 instance=ExtResource("3_wjoj8")]
+position = Vector2(1900, 818)
 
 [node name="Effects" type="Node2D" parent="." unique_id=1045736026]
 
