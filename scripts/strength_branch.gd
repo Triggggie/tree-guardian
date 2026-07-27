@@ -38,7 +38,7 @@ var branch_level: int = 1
 var current_xp: int = 0
 var resting_rotation: float
 var current_target: Node2D
-
+var combat_enabled: bool = true
 
 func _ready() -> void:
 	add_to_group("strength_branch")
@@ -135,6 +135,9 @@ func draw_thorns(
 		thorn_points_up = not thorn_points_up
 		distance_from_trunk += thorn_spacing
 func _on_cooldown_timer_timeout() -> void:
+	if not combat_enabled:
+		return
+
 	current_target = find_nearest_enemy()
 
 	if current_target == null:
@@ -176,6 +179,19 @@ func find_nearest_enemy() -> Node2D:
 
 	return nearest_enemy
 
+func stop_combat() -> void:
+	combat_enabled = false
+	current_target = null
+	cooldown_timer.stop()
+
+	var active_tween: Tween = create_tween()
+	active_tween.tween_property(
+		self,
+		"rotation",
+		resting_rotation,
+		0.1
+	)
+	
 func perform_attack_animation() -> void:
 	if not is_instance_valid(current_target):
 		return
@@ -205,6 +221,9 @@ func perform_attack_animation() -> void:
 
 	tween.tween_callback(
 		func() -> void:
+			if not combat_enabled:
+				return
+
 			if (
 				is_instance_valid(target_at_attack)
 				and target_at_attack.has_method("take_damage")

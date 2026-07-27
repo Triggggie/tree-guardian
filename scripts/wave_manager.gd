@@ -16,7 +16,6 @@ const BARK_BEETLE_SCENE: PackedScene = preload(
 @export var base_enemies_per_side: int = 2
 @export var waves_per_enemy_increase: int = 3
 @export var maximum_enemies_per_side: int = 10
-
 @export var time_between_spawns: float = 0.35
 @export var time_between_waves: float = 2.0
 @export var spawn_spacing: float = 90.0
@@ -32,15 +31,26 @@ const BARK_BEETLE_SCENE: PackedScene = preload(
 @onready var tree_node: Node = get_tree().get_first_node_in_group("tree")
 
 var current_wave: int = 0
+var game_over: bool = false
 
 
 func _ready() -> void:
 	add_to_group("wave_manager")
+
+	if (
+		is_instance_valid(tree_node)
+		and tree_node.has_signal("died")
+	):
+		tree_node.died.connect(_on_tree_died)
+
 	run_wave_loop()
 
 
 func run_wave_loop() -> void:
 	while true:
+		if game_over:
+			return
+
 		current_wave += 1
 
 		var enemy_count: int = get_current_enemies_per_side()
@@ -60,13 +70,23 @@ func run_wave_loop() -> void:
 		)
 
 		await spawn_wave(enemy_count)
+
+		if game_over:
+			return
+
 		await wait_until_all_enemies_are_dead()
+
+		if game_over:
+			return
 
 		complete_wave()
 
 		await get_tree().create_timer(
 			time_between_waves
 		).timeout
+
+		if game_over:
+			return
 
 
 func get_current_enemies_per_side() -> int:
@@ -101,6 +121,9 @@ func spawn_wave(enemy_count: int) -> void:
 	var enemy_health: float = get_current_enemy_health()
 
 	for index in range(enemy_count):
+		if game_over:
+			return
+
 		var offset: float = index * spawn_spacing
 
 		var left_position: Vector2 = (
@@ -126,6 +149,9 @@ func spawn_enemy(
 	spawn_position: Vector2,
 	enemy_health: float
 ) -> void:
+	if game_over:
+		return
+
 	var enemy: Node2D = (
 		BARK_BEETLE_SCENE.instantiate() as Node2D
 	)
@@ -138,10 +164,16 @@ func spawn_enemy(
 
 func wait_until_all_enemies_are_dead() -> void:
 	while not get_tree().get_nodes_in_group("enemies").is_empty():
+		if game_over:
+			return
+
 		await get_tree().process_frame
 
 
 func complete_wave() -> void:
+	if game_over:
+		return
+
 	print("Vlna ", current_wave, " dokončena")
 
 	if (
@@ -149,3 +181,22 @@ func complete_wave() -> void:
 		and tree_node.has_method("add_age")
 	):
 		tree_node.add_age(1)
+
+
+func _on_tree_died() -> void:
+	if game_over:
+		return
+
+	game_over = true
+
+	get_tree().call_group(
+		"strength_branch",
+		"stop_combat"
+	)
+
+	get_tree().call_group(
+		"enemies",
+		"stop_combat"
+	)
+
+	print("WaveManager zastaven – strom zemřel")

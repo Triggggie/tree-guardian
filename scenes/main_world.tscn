@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://cshm6xwe5aw2w" path="res://scripts/branch_info_label.gd" id="5_jj0au"]
 [ext_resource type="Script" uid="uid://bru5glfcxu62f" path="res://scripts/wave_manager.gd" id="5_wy0bs"]
 [ext_resource type="Script" uid="uid://bm136sm58fk77" path="res://scripts/wave_label.gd" id="6_emumq"]
+[ext_resource type="Script" uid="uid://dgw3st57bcnrx" path="res://scripts/health_label.gd" id="7_5irk3"]
 
 [node name="MainWorld" type="Node2D" unique_id=487831534]
 
@@ -66,6 +67,14 @@ offset_right = 1590.0
 offset_bottom = 93.0
 text = "Wave: 1"
 script = ExtResource("6_emumq")
+
+[node name="HealthLabel" type="Label" parent="UI" unique_id=644200206]
+offset_left = 1550.0
+offset_top = 130.0
+offset_right = 1590.0
+offset_bottom = 153.0
+text = "Tree HP: 100 / 100"
+script = ExtResource("7_5irk3")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false

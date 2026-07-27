@@ -8,3 +8,6 @@ script = ExtResource("1_oij6s")
 [node name="Visual" type="Node2D" parent="." unique_id=296908097]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226018101]
+
+[node name="AttackTimer" type="Timer" parent="." unique_id=1894351484]
+wait_time = 1.5

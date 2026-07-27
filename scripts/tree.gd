@@ -2,9 +2,17 @@ extends Node2D
 
 signal forest_essence_changed(new_amount: int)
 signal age_changed(new_age: int)
+signal health_changed(
+	current_health: float,
+	maximum_health: float
+)
 
+signal died
 var forest_essence: int = 0
 var age: int = 1
+
+@export_category("Health")
+@export var max_health: float = 100.0
 
 @export_range(0.0, 0.1, 0.001)
 var idle_scale_amount: float = 0.015
@@ -13,9 +21,14 @@ var idle_scale_amount: float = 0.015
 var idle_speed: float = 1.2
 
 var idle_time: float = 0.0
+var current_health: float
+var is_dead: bool = false
 
 func _ready() -> void:
 	add_to_group("tree")
+
+	current_health = max_health
+	health_changed.emit(current_health, max_health)
 
 func add_forest_essence(amount: int) -> void:
 	forest_essence += amount
@@ -53,3 +66,42 @@ func add_age(amount: int) -> void:
 	age_changed.emit(age)
 
 	print("Strom dosáhl věku ", age)
+
+func take_damage(amount: float) -> void:
+	if is_dead:
+		return
+
+	if amount <= 0.0:
+		return
+
+	current_health = max(
+		current_health - amount,
+		0.0
+	)
+
+	health_changed.emit(
+		current_health,
+		max_health
+	)
+
+	print(
+		"Strom dostal ",
+		amount,
+		" poškození | HP: ",
+		current_health,
+		"/",
+		max_health
+	)
+
+	if current_health <= 0.0:
+		die()
+
+
+func die() -> void:
+	if is_dead:
+		return
+
+	is_dead = true
+	died.emit()
+
+	print("Strom zemřel")
