@@ -17,17 +17,16 @@ const BARK_BEETLE_SCENE: PackedScene = preload(
 
 
 @export_category("Wave")
+@export_range(1, 1000, 1)
+var waves_per_stage: int = 100
+
 @export var base_enemies_per_side: int = 2
 @export var waves_per_enemy_increase: int = 3
 @export var maximum_enemies_per_side: int = 30
 @export var time_between_spawns: float = 0.25
 
-# Jak dlouho zůstane viditelný text WAVE COMPLETE.
 @export var wave_complete_message_duration: float = 0.7
-
-# Krátká pauza po zmizení textu před další vlnou.
 @export var time_between_waves: float = 0.5
-
 @export var spawn_spacing: float = 75.0
 
 
@@ -62,13 +61,25 @@ var lane_count: int = 5
 	$"../World/RightSpawnPoint"
 )
 
-@onready var tree_node: Node = (
-	get_tree().get_first_node_in_group("tree")
+@onready var game_over_panel: Panel = (
+	$"../UI/GameOverPanel"
 )
 
 
+var tree_node: Node2D
+
+# Interní celkové číslo vlny.
+# Například:
+# Stage 1 = 1–100
+# Stage 2 = 101–200
+# Stage 3 = 201–300
 var current_wave: int = 0
-var game_over: bool = false
+
+var tree_defeated: bool = false
+
+# Každý nový běh vln dostane jiné ID.
+# Staré asynchronní čekání se tím bezpečně zneplatní.
+var wave_cycle_id: int = 0
 
 
 func _ready() -> void:
@@ -76,21 +87,59 @@ func _ready() -> void:
 
 	randomize()
 
+	tree_node = (
+		get_tree().get_first_node_in_group("tree")
+		as Node2D
+	)
+
 	if (
 		is_instance_valid(tree_node)
 		and tree_node.has_signal("died")
 	):
-		tree_node.died.connect(_on_tree_died)
+		tree_node.died.connect(
+			_on_tree_died
+		)
 
-	run_wave_loop()
+	if (
+		is_instance_valid(game_over_panel)
+		and game_over_panel.has_signal(
+			"retry_requested"
+		)
+	):
+		game_over_panel.retry_requested.connect(
+			_on_retry_requested
+		)
+
+	start_wave_cycle(false)
 
 
-func run_wave_loop() -> void:
-	while true:
-		if game_over:
+func start_wave_cycle(
+	retry_current_wave: bool
+) -> void:
+	wave_cycle_id += 1
+
+	var new_cycle_id: int = wave_cycle_id
+
+	run_wave_loop(
+		new_cycle_id,
+		retry_current_wave
+	)
+
+
+func run_wave_loop(
+	cycle_id: int,
+	retry_current_wave: bool
+) -> void:
+	var repeat_wave: bool = retry_current_wave
+
+	while cycle_id == wave_cycle_id:
+		if tree_defeated:
 			return
 
-		current_wave += 1
+		if not repeat_wave:
+			current_wave += 1
+
+		repeat_wave = false
 
 		var enemy_count: int = (
 			get_current_enemies_per_side()
@@ -102,7 +151,13 @@ func run_wave_loop() -> void:
 		)
 
 		print(
-			"Začíná vlna ",
+			"Začíná Stage ",
+			get_current_stage_number(),
+			" | Wave ",
+			get_current_wave_in_stage(),
+			"/",
+			get_safe_waves_per_stage(),
+			" | globální vlna ",
 			current_wave,
 			" | nepřátel na každé straně: ",
 			enemy_count,
@@ -110,26 +165,88 @@ func run_wave_loop() -> void:
 			get_current_enemy_health()
 		)
 
-		await spawn_wave(enemy_count)
+		await spawn_wave(
+			enemy_count,
+			cycle_id
+		)
 
-		if game_over:
+		if not is_cycle_active(cycle_id):
 			return
 
-		await wait_until_all_enemies_are_dead()
+		await wait_until_all_enemies_are_dead(
+			cycle_id
+		)
 
-		if game_over:
+		if not is_cycle_active(cycle_id):
 			return
 
 		complete_wave()
 
-		await show_wave_complete_message()
+		await show_wave_complete_message(
+			cycle_id
+		)
 
-		if game_over:
+		if not is_cycle_active(cycle_id):
 			return
 
 		await get_tree().create_timer(
 			time_between_waves
 		).timeout
+
+		if not is_cycle_active(cycle_id):
+			return
+
+
+func is_cycle_active(cycle_id: int) -> bool:
+	return (
+		cycle_id == wave_cycle_id
+		and not tree_defeated
+	)
+
+
+func get_safe_waves_per_stage() -> int:
+	return max(
+		waves_per_stage,
+		1
+	)
+
+
+func get_current_stage_number() -> int:
+	var safe_current_wave: int = max(
+		current_wave,
+		1
+	)
+
+	return int(
+		floor(
+			float(safe_current_wave - 1)
+			/ float(get_safe_waves_per_stage())
+		)
+	) + 1
+
+
+func get_current_wave_in_stage() -> int:
+	var safe_current_wave: int = max(
+		current_wave,
+		1
+	)
+
+	return (
+		(safe_current_wave - 1)
+		% get_safe_waves_per_stage()
+	) + 1
+
+
+func get_current_stage_start_wave() -> int:
+	var current_stage: int = (
+		get_current_stage_number()
+	)
+
+	return (
+		(current_stage - 1)
+		* get_safe_waves_per_stage()
+		+ 1
+	)
 
 
 func get_current_enemies_per_side() -> int:
@@ -139,8 +256,10 @@ func get_current_enemies_per_side() -> int:
 	)
 
 	var additional_enemies: int = int(
-		(current_wave - 1)
-		/ safe_interval
+		floor(
+			float(current_wave - 1)
+			/ float(safe_interval)
+		)
 	)
 
 	return min(
@@ -163,7 +282,10 @@ func get_current_enemy_health() -> float:
 	)
 
 
-func spawn_wave(enemy_count: int) -> void:
+func spawn_wave(
+	enemy_count: int,
+	cycle_id: int
+) -> void:
 	var enemy_health: float = (
 		get_current_enemy_health()
 	)
@@ -181,7 +303,7 @@ func spawn_wave(enemy_count: int) -> void:
 		right_lane_counts.append(0)
 
 	for index in range(enemy_count):
-		if game_over:
+		if not is_cycle_active(cycle_id):
 			return
 
 		var left_lane: int = randi_range(
@@ -301,7 +423,7 @@ func spawn_enemy(
 	queue_order: int,
 	total_lanes: int
 ) -> void:
-	if game_over:
+	if tree_defeated:
 		return
 
 	var enemy: Node2D = (
@@ -338,23 +460,27 @@ func spawn_enemy(
 	)
 
 
-func wait_until_all_enemies_are_dead() -> void:
+func wait_until_all_enemies_are_dead(
+	cycle_id: int
+) -> void:
 	while not get_tree().get_nodes_in_group(
 		"enemies"
 	).is_empty():
-		if game_over:
+		if not is_cycle_active(cycle_id):
 			return
 
 		await get_tree().process_frame
 
 
 func complete_wave() -> void:
-	if game_over:
+	if tree_defeated:
 		return
 
 	print(
-		"Vlna ",
-		current_wave,
+		"Stage ",
+		get_current_stage_number(),
+		" | Wave ",
+		get_current_wave_in_stage(),
 		" dokončena"
 	)
 
@@ -365,27 +491,35 @@ func complete_wave() -> void:
 		tree_node.add_age(1)
 
 
-func show_wave_complete_message() -> void:
-	if game_over:
+func show_wave_complete_message(
+	cycle_id: int
+) -> void:
+	if not is_cycle_active(cycle_id):
 		return
 
 	wave_message_changed.emit(
 		"WAVE %d COMPLETE"
-		% current_wave
+		% get_current_wave_in_stage()
 	)
 
 	await get_tree().create_timer(
 		wave_complete_message_duration
 	).timeout
 
+	if cycle_id != wave_cycle_id:
+		return
+
 	wave_message_changed.emit("")
 
 
 func _on_tree_died() -> void:
-	if game_over:
+	if tree_defeated:
 		return
 
-	game_over = true
+	tree_defeated = true
+
+	# Okamžitě zneplatníme aktuální vlnový cyklus.
+	wave_cycle_id += 1
 
 	wave_message_changed.emit("")
 
@@ -399,6 +533,74 @@ func _on_tree_died() -> void:
 		"stop_combat"
 	)
 
+	remove_remaining_enemies()
+
 	print(
-		"WaveManager zastaven – strom zemřel"
+		"Strom zemřel ve Stage ",
+		get_current_stage_number(),
+		" | Wave ",
+		get_current_wave_in_stage(),
+		" – po oživení začne Stage znovu"
 	)
+
+
+func remove_remaining_enemies() -> void:
+	var enemies: Array[Node] = (
+		get_tree().get_nodes_in_group("enemies")
+	)
+
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+
+		enemy.remove_from_group("enemies")
+		enemy.queue_free()
+
+
+func _on_retry_requested() -> void:
+	if not tree_defeated:
+		return
+
+	var failed_stage: int = (
+		get_current_stage_number()
+	)
+
+	var failed_wave_in_stage: int = (
+		get_current_wave_in_stage()
+	)
+
+	var stage_start_wave: int = (
+		get_current_stage_start_wave()
+	)
+
+	remove_remaining_enemies()
+
+	if (
+		is_instance_valid(tree_node)
+		and tree_node.has_method("revive")
+	):
+		tree_node.revive()
+
+	get_tree().call_group(
+		"strength_branch",
+		"resume_combat"
+	)
+
+	# Cyklus při spuštění automaticky přičte +1.
+	# Proto nastavíme globální vlnu na číslo
+	# těsně před začátkem aktuální Stage.
+	current_wave = stage_start_wave - 1
+
+	tree_defeated = false
+
+	print(
+		"Strom byl oživen | selhání ve Stage ",
+		failed_stage,
+		" | Wave ",
+		failed_wave_in_stage,
+		" | Stage ",
+		failed_stage,
+		" začíná znovu od Wave 1"
+	)
+
+	start_wave_cycle(false)
