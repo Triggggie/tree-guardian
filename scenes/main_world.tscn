@@ -39,7 +39,6 @@ position = Vector2(1840, 818)
 
 [node name="Tree" parent="Entities" unique_id=1588258163 instance=ExtResource("1_6x5uh")]
 position = Vector2(960, 850)
-essence_gain_per_upgrade = 1.0
 
 [node name="Effects" type="Node2D" parent="." unique_id=1045736026]
 
