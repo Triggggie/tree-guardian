@@ -106,18 +106,13 @@ func _ready() -> void:
 
 	resting_rotation = rotation
 
-	tree_node = (
-		get_tree().get_first_node_in_group("tree")
-		as Node2D
-	)
+	find_tree_node()
 
-	if (
-		is_instance_valid(tree_node)
-		and tree_node.has_signal("growth_changed")
-	):
-		tree_node.growth_changed.connect(
-			_on_tree_growth_changed
-		)
+	if is_instance_valid(tree_node):
+		if tree_node.has_signal("growth_changed"):
+			tree_node.growth_changed.connect(
+				_on_tree_growth_changed
+			)
 
 	cooldown_timer.timeout.connect(
 		_on_cooldown_timer_timeout
@@ -128,6 +123,28 @@ func _ready() -> void:
 
 	if cooldown_timer.is_stopped():
 		cooldown_timer.start()
+
+
+func find_tree_node() -> void:
+	tree_node = null
+
+	var current_node: Node = get_parent()
+
+	while current_node != null:
+		if current_node is Node2D:
+			if current_node.has_method("spend_forest_essence"):
+				if current_node.has_method("get_tree_growth_factor"):
+					tree_node = current_node as Node2D
+					return
+
+		current_node = current_node.get_parent()
+
+	var grouped_tree: Node = (
+		get_tree().get_first_node_in_group("tree")
+	)
+
+	if grouped_tree is Node2D:
+		tree_node = grouped_tree as Node2D
 
 
 func get_facing_direction() -> float:
@@ -300,12 +317,24 @@ func can_upgrade_stat(
 
 
 func try_spend_essence(amount: int) -> bool:
+	if amount <= 0:
+		return false
+
 	if not is_instance_valid(tree_node):
+		find_tree_node()
+
+	if not is_instance_valid(tree_node):
+		push_warning(
+			"StrengthBranch: Tree node was not found."
+		)
 		return false
 
 	if not tree_node.has_method(
 		"spend_forest_essence"
 	):
+		push_warning(
+			"StrengthBranch: Tree does not implement spend_forest_essence()."
+		)
 		return false
 
 	return tree_node.spend_forest_essence(

@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://c7o4hjqdlustk" path="res://scripts/game_over_panel.gd" id="8_wj2hs"]
 [ext_resource type="Script" uid="uid://cm1hp5r1nupd8" path="res://scripts/health_bar.gd" id="9_oa7qk"]
 [ext_resource type="Script" uid="uid://bork7wfdehi0k" path="res://scripts/wave_message_label.gd" id="10_bokwj"]
+[ext_resource type="Script" uid="uid://b54clhb610ogx" path="res://scripts/branch_upgrade_panel.gd" id="11_avgj4"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
@@ -138,6 +139,39 @@ offset_bottom = 270.0
 horizontal_alignment = 1
 vertical_alignment = 1
 script = ExtResource("10_bokwj")
+
+[node name="BranchUpgradePanel" type="Panel" parent="UI" unique_id=596717638]
+offset_left = 1490.0
+offset_top = 260.0
+offset_right = 1850.0
+offset_bottom = 590.0
+script = ExtResource("11_avgj4")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/BranchUpgradePanel" unique_id=1610668744]
+custom_minimum_size = Vector2(330, 290)
+layout_mode = 0
+offset_left = 15.0
+offset_top = 15.0
+offset_right = 315.0
+offset_bottom = 345.0
+
+[node name="BranchNameLabel" type="Label" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=319389972]
+layout_mode = 2
+
+[node name="BranchStatsLabel" type="Label" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=352436122]
+layout_mode = 2
+
+[node name="BranchSelectButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=445675022]
+layout_mode = 2
+
+[node name="DamageButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1364386985]
+layout_mode = 2
+
+[node name="AttackSpeedButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=453625647]
+layout_mode = 2
+
+[node name="RangeButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1906190749]
+layout_mode = 2
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false
