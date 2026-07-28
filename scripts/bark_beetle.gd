@@ -18,6 +18,7 @@ const FOREST_ESSENCE_SCENE: PackedScene = preload(
 @export_category("Health")
 @export var max_health: float = 30.0
 @export var xp_reward: int = 1
+@export var forest_essence_reward: int = 1
 
 @export_category("Attack")
 @export var attack_damage: float = 5.0
@@ -385,7 +386,14 @@ func die(killer: Node = null) -> void:
 	):
 		killer.add_xp(xp_reward)
 
-	drop_forest_essence()
+	var actual_essence_reward: int = (
+		get_actual_essence_reward()
+	)
+
+	drop_forest_essence(
+		actual_essence_reward
+	)
+
 	play_death_feedback()
 
 
@@ -415,15 +423,49 @@ func play_death_feedback() -> void:
 	death_tween.tween_callback(queue_free)
 
 
-func drop_forest_essence() -> void:
-	var essence: Node2D = (
-		FOREST_ESSENCE_SCENE.instantiate()
-		as Node2D
+func get_actual_essence_reward() -> int:
+	if not is_instance_valid(target_tree):
+		return max(
+			forest_essence_reward,
+			1
+		)
+
+	if target_tree.has_method(
+		"calculate_forest_essence_reward"
+	):
+		return target_tree.calculate_forest_essence_reward(
+			forest_essence_reward
+		)
+
+	return max(
+		forest_essence_reward,
+		1
 	)
 
-	get_parent().add_child(essence)
-	essence.global_position = global_position
 
+func drop_forest_essence(
+	drop_count: int
+) -> void:
+	if drop_count <= 0:
+		return
+
+	for drop_index in range(drop_count):
+		var essence: Node2D = (
+			FOREST_ESSENCE_SCENE.instantiate()
+			as Node2D
+		)
+
+		get_parent().add_child(essence)
+
+		var drop_offset := Vector2(
+			randf_range(-28.0, 28.0),
+			randf_range(-24.0, 8.0)
+		)
+
+		essence.global_position = (
+			global_position
+			+ drop_offset
+		)
 
 func stop_combat() -> void:
 	if is_dying:

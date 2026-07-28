@@ -153,7 +153,6 @@ func connect_selected_branch_signals() -> void:
 				upgrade_callable
 			)
 
-
 func update_panel() -> void:
 	if not is_instance_valid(selected_branch):
 		branch_name_label.text = "NO BRANCH"
@@ -163,7 +162,6 @@ func update_panel() -> void:
 		damage_button.disabled = true
 		attack_speed_button.disabled = true
 		range_button.disabled = true
-
 		return
 
 	branch_select_button.disabled = (
@@ -191,6 +189,11 @@ func update_panel() -> void:
 		selected_branch.get_current_attack_cooldown()
 	)
 
+	var attack_speed: float = 0.0
+
+	if cooldown > 0.0:
+		attack_speed = 1.0 / cooldown
+
 	var attack_range: float = (
 		selected_branch.get_current_attack_range()
 	)
@@ -199,20 +202,19 @@ func update_panel() -> void:
 		"Forest Essence: %d\n"
 		+ "Branch Level: %d\n"
 		+ "Damage: %.1f\n"
-		+ "Cooldown: %.2f s\n"
+		+ "Attack Speed: %.2f /s\n"
 		+ "Range: %.1f"
 	) % [
 		essence_amount,
 		selected_branch.branch_level,
 		damage,
-		cooldown,
+		attack_speed,
 		attack_range
 	]
 
 	update_damage_button(essence_amount)
 	update_attack_speed_button(essence_amount)
 	update_range_button(essence_amount)
-
 
 func get_branch_side_name() -> String:
 	if not is_instance_valid(selected_branch):
@@ -271,7 +273,6 @@ func update_damage_button(
 		essence_amount < cost
 	)
 
-
 func update_attack_speed_button(
 	essence_amount: int
 ) -> void:
@@ -298,10 +299,36 @@ func update_attack_speed_button(
 		.get_attack_speed_upgrade_cost()
 	)
 
+	var current_cooldown: float = (
+		selected_branch.get_current_attack_cooldown()
+	)
+
+	var next_cooldown: float = max(
+		selected_branch.base_attack_cooldown
+		- (current_level + 1)
+		* selected_branch.cooldown_reduction_per_upgrade,
+		selected_branch.minimum_attack_cooldown
+	)
+
+	var current_attack_speed: float = 0.0
+	var next_attack_speed: float = 0.0
+
+	if current_cooldown > 0.0:
+		current_attack_speed = (
+			1.0 / current_cooldown
+		)
+
+	if next_cooldown > 0.0:
+		next_attack_speed = (
+			1.0 / next_cooldown
+		)
+
 	attack_speed_button.text = (
-		"ATTACK SPEED Lv.%d → %d Essence"
+		"ATTACK SPEED Lv.%d | %.2f → %.2f /s | %d Essence"
 		% [
 			current_level,
+			current_attack_speed,
+			next_attack_speed,
 			cost
 		]
 	)
@@ -309,8 +336,7 @@ func update_attack_speed_button(
 	attack_speed_button.disabled = (
 		essence_amount < cost
 	)
-
-
+	
 func update_range_button(
 	essence_amount: int
 ) -> void:
@@ -318,9 +344,11 @@ func update_range_button(
 		selected_branch.range_upgrade_level
 	)
 
-	var maximum_level: int = (
+	var maximum_level: int = min(
 		selected_branch
-		.get_maximum_essence_upgrade_level()
+		.get_maximum_essence_upgrade_level(),
+		selected_branch
+		.get_maximum_range_upgrade_level()
 	)
 
 	if current_level >= maximum_level:
@@ -336,10 +364,28 @@ func update_range_button(
 		selected_branch.get_range_upgrade_cost()
 	)
 
+	var current_range: float = (
+		selected_branch.get_current_attack_range()
+	)
+
+	var next_range_bonus: float = min(
+		(current_level + 1)
+		* selected_branch.range_per_upgrade,
+		selected_branch.maximum_range_bonus
+	)
+
+	var next_range: float = (
+		selected_branch.get_current_length()
+		+ selected_branch.base_range_padding
+		+ next_range_bonus
+	)
+
 	range_button.text = (
-		"RANGE Lv.%d → %d Essence"
+		"RANGE Lv.%d | %.0f → %.0f | %d Essence"
 		% [
 			current_level,
+			current_range,
+			next_range,
 			cost
 		]
 	)
@@ -347,7 +393,6 @@ func update_range_button(
 	range_button.disabled = (
 		essence_amount < cost
 	)
-
 
 func _on_branch_select_button_pressed() -> void:
 	select_branch(

@@ -4,6 +4,10 @@ extends Node2D
 signal forest_essence_changed(new_amount: int)
 signal age_changed(new_age: int)
 signal growth_changed(growth_factor: float)
+signal tree_upgrade_changed(
+	upgrade_id: StringName,
+	new_level: int
+)
 
 signal health_changed(
 	current_health: float,
@@ -16,6 +20,27 @@ signal revived
 
 @export_category("Health")
 @export var max_health: float = 100.0
+
+
+@export_category("Essence Upgrades")
+@export_range(1, 50, 1)
+var base_tree_upgrade_limit: int = 3
+
+@export_range(1, 100, 1)
+var age_per_additional_upgrade_level: int = 5
+
+@export_range(1.01, 5.0, 0.01)
+var tree_upgrade_cost_growth: float = 1.40
+
+@export var max_health_per_upgrade: float = 20.0
+@export var max_health_upgrade_base_cost: int = 15
+
+@export var health_regeneration_per_upgrade: float = 0.50
+@export var health_regeneration_upgrade_base_cost: int = 20
+
+@export_range(0.01, 1.0, 0.01)
+var essence_gain_per_upgrade: float = 0.10
+@export var essence_gain_upgrade_base_cost: int = 25
 
 
 @export_category("Tree Growth")
@@ -71,6 +96,15 @@ var idle_speed: float = 1.2
 var forest_essence: int = 0
 var age: int = 1
 
+var max_health_upgrade_level: int = 0
+var health_regeneration_upgrade_level: int = 0
+var essence_gain_upgrade_level: int = 0
+
+# Uchovává desetinnou část bonusové Essence.
+# Například +10 % z odměny 1 Essence se projeví
+# jednou dodatečnou Essence přibližně po deseti odměnách.
+var essence_fraction_buffer: float = 0.0
+
 var idle_time: float = 0.0
 var current_health: float
 var is_dead: bool = false
@@ -110,6 +144,8 @@ func _process(delta: float) -> void:
 		1.0 + breath,
 		1.0 - breath * 0.35
 	)
+
+	process_health_regeneration(delta)
 
 
 func _draw() -> void:
@@ -388,6 +424,254 @@ func update_tree_growth() -> void:
 	)
 
 
+func get_maximum_tree_upgrade_level() -> int:
+	var safe_age_interval: int = max(
+		age_per_additional_upgrade_level,
+		1
+	)
+
+	var additional_levels: int = int(
+		floor(
+			float(max(age - 1, 0))
+			/ float(safe_age_interval)
+		)
+	)
+
+	return max(
+		base_tree_upgrade_limit + additional_levels,
+		1
+	)
+
+
+func get_tree_upgrade_cost(
+	base_cost: int,
+	current_upgrade_level: int
+) -> int:
+	var calculated_cost: float = (
+		float(base_cost)
+		* pow(
+			tree_upgrade_cost_growth,
+			current_upgrade_level
+		)
+	)
+
+	return max(
+		int(round(calculated_cost)),
+		1
+	)
+
+
+func get_max_health_upgrade_cost() -> int:
+	return get_tree_upgrade_cost(
+		max_health_upgrade_base_cost,
+		max_health_upgrade_level
+	)
+
+
+func get_health_regeneration_upgrade_cost() -> int:
+	return get_tree_upgrade_cost(
+		health_regeneration_upgrade_base_cost,
+		health_regeneration_upgrade_level
+	)
+
+
+func get_essence_gain_upgrade_cost() -> int:
+	return get_tree_upgrade_cost(
+		essence_gain_upgrade_base_cost,
+		essence_gain_upgrade_level
+	)
+
+
+func can_upgrade_tree_stat(
+	current_upgrade_level: int
+) -> bool:
+	return (
+		current_upgrade_level
+		< get_maximum_tree_upgrade_level()
+	)
+
+
+func get_current_health_regeneration() -> float:
+	return (
+		health_regeneration_upgrade_level
+		* health_regeneration_per_upgrade
+	)
+
+
+func get_current_essence_multiplier() -> float:
+	return (
+		1.0
+		+ essence_gain_upgrade_level
+		* essence_gain_per_upgrade
+	)
+
+
+func purchase_max_health_upgrade() -> bool:
+	if not can_upgrade_tree_stat(
+		max_health_upgrade_level
+	):
+		return false
+
+	var cost: int = get_max_health_upgrade_cost()
+
+	if not spend_forest_essence(cost):
+		return false
+
+	max_health_upgrade_level += 1
+	max_health += max_health_per_upgrade
+	current_health = min(
+		current_health + max_health_per_upgrade,
+		max_health
+	)
+
+	tree_upgrade_changed.emit(
+		&"max_health",
+		max_health_upgrade_level
+	)
+
+	health_changed.emit(
+		current_health,
+		max_health
+	)
+
+	print_tree_upgrade_result(
+		"Maximum HP",
+		max_health_upgrade_level,
+		cost
+	)
+
+	return true
+
+
+func purchase_health_regeneration_upgrade() -> bool:
+	if not can_upgrade_tree_stat(
+		health_regeneration_upgrade_level
+	):
+		return false
+
+	var cost: int = (
+		get_health_regeneration_upgrade_cost()
+	)
+
+	if not spend_forest_essence(cost):
+		return false
+
+	health_regeneration_upgrade_level += 1
+
+	tree_upgrade_changed.emit(
+		&"health_regeneration",
+		health_regeneration_upgrade_level
+	)
+
+	print_tree_upgrade_result(
+		"HP Regeneration",
+		health_regeneration_upgrade_level,
+		cost
+	)
+
+	return true
+
+
+func purchase_essence_gain_upgrade() -> bool:
+	if not can_upgrade_tree_stat(
+		essence_gain_upgrade_level
+	):
+		return false
+
+	var cost: int = get_essence_gain_upgrade_cost()
+
+	if not spend_forest_essence(cost):
+		return false
+
+	essence_gain_upgrade_level += 1
+
+	tree_upgrade_changed.emit(
+		&"essence_gain",
+		essence_gain_upgrade_level
+	)
+
+	print_tree_upgrade_result(
+		"Essence Gain",
+		essence_gain_upgrade_level,
+		cost
+	)
+
+	return true
+
+
+func print_tree_upgrade_result(
+	upgrade_name: String,
+	new_upgrade_level: int,
+	cost: int
+) -> void:
+	print(
+		upgrade_name,
+		" upgraded to Level ",
+		new_upgrade_level,
+		" | Cost: ",
+		cost,
+		" | Max HP: ",
+		max_health,
+		" | HP Regen: ",
+		get_current_health_regeneration(),
+		"/s | Essence Gain: x",
+		get_current_essence_multiplier()
+	)
+
+
+func process_health_regeneration(delta: float) -> void:
+	if is_dead:
+		return
+
+	if current_health >= max_health:
+		return
+
+	var regeneration_per_second: float = (
+		get_current_health_regeneration()
+	)
+
+	if regeneration_per_second <= 0.0:
+		return
+
+	current_health = min(
+		current_health
+		+ regeneration_per_second * delta,
+		max_health
+	)
+
+	health_changed.emit(
+		current_health,
+		max_health
+	)
+
+
+func calculate_forest_essence_reward(
+	base_amount: int
+) -> int:
+	if base_amount <= 0:
+		return 0
+
+	var exact_reward: float = (
+		float(base_amount)
+		* get_current_essence_multiplier()
+		+ essence_fraction_buffer
+	)
+
+	var rewarded_essence: int = int(
+		floor(exact_reward)
+	)
+
+	essence_fraction_buffer = (
+		exact_reward
+		- float(rewarded_essence)
+	)
+
+	return max(
+		rewarded_essence,
+		1
+	)
+
+
 func add_forest_essence(amount: int) -> void:
 	if amount <= 0:
 		return
@@ -397,7 +681,6 @@ func add_forest_essence(amount: int) -> void:
 	forest_essence_changed.emit(
 		forest_essence
 	)
-
 
 func add_age(amount: int) -> void:
 	if amount <= 0:

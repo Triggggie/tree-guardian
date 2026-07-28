@@ -23,12 +23,13 @@ signal upgrade_changed(
 @export_enum("Left", "Right")
 var facing_side: int = 0
 
+# Přirozený dosah vychází z aktuální vizuální délky větve.
+# Padding zajišťuje, že i mladá větev dosáhne na brouka u stromu.
+@export var base_range_padding: float = 100.0
+
 @export var base_damage: float = 10.0
 @export var attack_angle_degrees: float = 18.0
 @export var attack_duration: float = 0.12
-
-@export var minimum_attack_range: float = 175.0
-@export var attack_range_bonus: float = 65.0
 
 @export var base_attack_cooldown: float = 1.5
 @export var minimum_attack_cooldown: float = 0.45
@@ -44,7 +45,8 @@ var upgrade_levels_per_branch_level: int = 3
 @export var cooldown_reduction_per_upgrade: float = 0.08
 @export var attack_speed_upgrade_base_cost: int = 10
 
-@export var range_per_upgrade: float = 12.0
+@export var range_per_upgrade: float = 15.0
+@export var maximum_range_bonus: float = 150.0
 @export var range_upgrade_base_cost: int = 7
 
 @export_range(1.01, 5.0, 0.01)
@@ -238,19 +240,19 @@ func get_current_attack_cooldown() -> float:
 	)
 
 
+func get_current_range_bonus() -> float:
+	return min(
+		range_upgrade_level * range_per_upgrade,
+		maximum_range_bonus
+	)
+
+
 func get_current_attack_range() -> float:
-	var visual_reach: float = (
+	return (
 		get_current_length()
-		+ attack_range_bonus
-		+ range_upgrade_level
-		* range_per_upgrade
+		+ base_range_padding
+		+ get_current_range_bonus()
 	)
-
-	return max(
-		visual_reach,
-		minimum_attack_range
-	)
-
 
 func get_available_talent_points() -> int:
 	return available_talent_points
@@ -401,6 +403,12 @@ func purchase_attack_speed_upgrade() -> bool:
 
 
 func purchase_range_upgrade() -> bool:
+	if (
+		range_upgrade_level
+		>= get_maximum_range_upgrade_level()
+	):
+		return false
+
 	if not can_upgrade_stat(
 		range_upgrade_level
 	):
@@ -425,7 +433,6 @@ func purchase_range_upgrade() -> bool:
 	)
 
 	return true
-
 
 func print_upgrade_result(
 	upgrade_name: String,
@@ -861,3 +868,18 @@ func resume_combat() -> void:
 
 	if cooldown_timer.is_stopped():
 		cooldown_timer.start()
+		
+
+func get_maximum_range_upgrade_level() -> int:
+	if range_per_upgrade <= 0.0:
+		return 0
+
+	return max(
+		int(
+			floor(
+				maximum_range_bonus
+				/ range_per_upgrade
+			)
+		),
+		0
+	)
