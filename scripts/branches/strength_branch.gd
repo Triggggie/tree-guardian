@@ -1,5 +1,9 @@
 extends CombatBranch
 
+const TALENT_SWEEPING_STRIKE: StringName = &"sweeping_strike"
+const TALENT_REBUFF: StringName = &"rebuff"
+const TALENT_MARKED_PREY: StringName = &"marked_prey"
+
 @export_category("Combat")
 @export var base_range_padding: float = 100.0
 @export var base_damage: float = 10.0
@@ -553,3 +557,85 @@ func purchase_upgrade(
 			return purchase_range_upgrade()
 
 	return false
+
+func get_talent_ids() -> Array[StringName]:
+	return [
+		TALENT_SWEEPING_STRIKE,
+		TALENT_REBUFF,
+		TALENT_MARKED_PREY
+	]
+
+
+func get_talent_display_name(
+	talent_id: StringName
+) -> String:
+	match talent_id:
+		TALENT_SWEEPING_STRIKE:
+			return "Sweeping Strike"
+
+		TALENT_REBUFF:
+			return "Rebuff"
+
+		TALENT_MARKED_PREY:
+			return "Marked Prey"
+
+	return "Unknown Talent"
+
+
+func get_talent_description(
+	talent_id: StringName
+) -> String:
+	match talent_id:
+		TALENT_SWEEPING_STRIKE:
+			return (
+				"Basic attacks also hit a second "
+				+ "nearby enemy for 60% damage."
+			)
+
+		TALENT_REBUFF:
+			return (
+				"Each hit pushes the enemy "
+				+ "slightly away from the tree."
+			)
+
+		TALENT_MARKED_PREY:
+			return (
+				"Repeated attacks against the same "
+				+ "enemy build Marked Prey stacks."
+			)
+
+	return ""
+
+
+func get_talent_branch_name(
+	talent_id: StringName
+) -> String:
+	match talent_id:
+		TALENT_SWEEPING_STRIKE:
+			return "Crusher"
+
+		TALENT_REBUFF:
+			return "Warden"
+
+		TALENT_MARKED_PREY:
+			return "Duelist"
+
+	return ""
+
+
+func get_talent_required_level(
+	talent_id: StringName
+) -> int:
+	if talent_id in get_talent_ids():
+		return 2
+
+	return 1
+
+
+func get_talent_cost(
+	talent_id: StringName
+) -> int:
+	if talent_id in get_talent_ids():
+		return 1
+
+	return 0

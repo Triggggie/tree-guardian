@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://d3uxb01hw3ht0" path="res://scenes/tree/tree.tscn" id="1_6x5uh"]
 [ext_resource type="Script" uid="uid://c1cebm5kq3y4s" path="res://scripts/ground.gd" id="1_tt5ry"]
+[ext_resource type="Script" uid="uid://corqledfgijps" path="res://scripts/ui.gd" id="3_urbfd"]
 [ext_resource type="Script" uid="uid://d0y22yvotgvj" path="res://scripts/essence_label.gd" id="4_bdp8l"]
 [ext_resource type="Script" uid="uid://bfkmixthkt7s7" path="res://scripts/age_label.gd" id="5_emumq"]
 [ext_resource type="Script" uid="uid://cshm6xwe5aw2w" path="res://scripts/branch_info_label.gd" id="5_jj0au"]
@@ -43,6 +44,7 @@ position = Vector2(960, 850)
 [node name="Effects" type="Node2D" parent="." unique_id=1045736026]
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=598616581]
+script = ExtResource("3_urbfd")
 
 [node name="EssenceLabel" type="Label" parent="UI" unique_id=739548118]
 offset_left = 30.0
@@ -143,9 +145,9 @@ script = ExtResource("10_bokwj")
 
 [node name="BranchUpgradePanel" type="Panel" parent="UI" unique_id=596717638]
 offset_left = 1410.0
-offset_top = 220.0
+offset_top = 285.0
 offset_right = 1850.0
-offset_bottom = 550.0
+offset_bottom = 985.0
 script = ExtResource("11_avgj4")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="UI/BranchUpgradePanel" unique_id=1610668744]
@@ -153,7 +155,7 @@ layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 428.0
-offset_bottom = 318.0
+offset_bottom = 688.0
 
 [node name="BranchNameLabel" type="Label" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=319389972]
 layout_mode = 2
@@ -161,9 +163,58 @@ layout_mode = 2
 [node name="BranchStatsLabel" type="Label" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=352436122]
 layout_mode = 2
 
-[node name="BranchSelectButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=445675022]
-custom_minimum_size = Vector2(0, 34)
+[node name="BranchSlotButtons" type="HBoxContainer" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1458473864]
 layout_mode = 2
+
+[node name="Slot1Button" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchSlotButtons" unique_id=1656000729]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Slot2Button" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchSlotButtons" unique_id=1216681477]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Slot3Button" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchSlotButtons" unique_id=1290076102]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Slot4Button" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchSlotButtons" unique_id=1384372718]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Slot5Button" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchSlotButtons" unique_id=707782473]
+layout_mode = 2
+
+[node name="BranchModeTabs" type="HBoxContainer" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1239448736]
+layout_mode = 2
+
+[node name="UpgradesTabButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchModeTabs" unique_id=349362428]
+layout_mode = 2
+
+[node name="TalentsTabButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchModeTabs" unique_id=447345457]
+layout_mode = 2
+
+[node name="TalentInfoLabel" type="Label" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=144982122]
+visible = false
+layout_mode = 2
+
+[node name="CrusherTalentButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1379963825]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+text = "SWEEPING STRIKE"
+autowrap_mode = 3
+
+[node name="WardenTalentButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=962004013]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+text = "REBUFF"
+autowrap_mode = 3
+
+[node name="DuelistTalentButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1413144976]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+text = "MARKED PREY"
+autowrap_mode = 3
 
 [node name="DamageButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1364386985]
 custom_minimum_size = Vector2(0, 34)
@@ -179,9 +230,9 @@ layout_mode = 2
 
 [node name="TreeUpgradePanel" type="Panel" parent="UI" unique_id=1382964172]
 offset_left = 1410.0
-offset_top = 610.0
+offset_top = 285.0
 offset_right = 1850.0
-offset_bottom = 950.0
+offset_bottom = 885.0
 script = ExtResource("12_sr1c3")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="UI/TreeUpgradePanel" unique_id=1447516474]
@@ -190,7 +241,7 @@ layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 428.0
-offset_bottom = 328.0
+offset_bottom = 588.0
 
 [node name="TitleLabel" type="Label" parent="UI/TreeUpgradePanel/VBoxContainer" unique_id=1830355213]
 layout_mode = 2
@@ -209,6 +260,22 @@ layout_mode = 2
 [node name="EssenceGainButton" type="Button" parent="UI/TreeUpgradePanel/VBoxContainer" unique_id=1944836776]
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
+
+[node name="UpgradeTabs" type="HBoxContainer" parent="UI" unique_id=437601378]
+offset_left = 1410.0
+offset_top = 230.0
+offset_right = 1850.0
+offset_bottom = 280.0
+
+[node name="BranchTabButton" type="Button" parent="UI/UpgradeTabs" unique_id=1906692838]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "BRANCHES"
+
+[node name="TreeTabButton" type="Button" parent="UI/UpgradeTabs" unique_id=1884237489]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "TREE"
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false

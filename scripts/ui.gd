@@ -1,0 +1,46 @@
+extends CanvasLayer
+
+
+@onready var branch_tab_button: Button = (
+	$UpgradeTabs/BranchTabButton
+)
+
+@onready var tree_tab_button: Button = (
+	$UpgradeTabs/TreeTabButton
+)
+
+@onready var branch_upgrade_panel: Panel = (
+	$BranchUpgradePanel
+)
+
+@onready var tree_upgrade_panel: Panel = (
+	$TreeUpgradePanel
+)
+
+
+func _ready() -> void:
+	branch_tab_button.pressed.connect(
+		show_branch_upgrades
+	)
+
+	tree_tab_button.pressed.connect(
+		show_tree_upgrades
+	)
+
+	show_branch_upgrades()
+
+
+func show_branch_upgrades() -> void:
+	branch_upgrade_panel.visible = true
+	tree_upgrade_panel.visible = false
+
+	branch_tab_button.disabled = true
+	tree_tab_button.disabled = false
+
+
+func show_tree_upgrades() -> void:
+	branch_upgrade_panel.visible = false
+	tree_upgrade_panel.visible = true
+
+	branch_tab_button.disabled = false
+	tree_tab_button.disabled = true
