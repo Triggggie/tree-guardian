@@ -12,6 +12,11 @@ const FOREST_ESSENCE_SCENE: PackedScene = preload(
 @export var arrival_distance: float = 5.0
 @export var lane_change_speed: float = 240.0
 
+@export_category("Control Effects")
+
+@export_range(0.0, 1.0, 0.05)
+var knockback_resistance: float = 0.0
+
 @export_category("Crowd Formation")
 @export var column_spacing: float = 70.0
 
@@ -302,6 +307,39 @@ func take_damage(
 
 	play_hit_feedback()
 
+func apply_knockback(
+	distance: float
+) -> void:
+	if is_dying:
+		return
+
+	if not combat_enabled:
+		return
+
+	if distance <= 0.0:
+		return
+
+	var resistance: float = clamp(
+		knockback_resistance,
+		0.0,
+		1.0
+	)
+
+	var actual_distance: float = (
+		distance
+		* (1.0 - resistance)
+	)
+
+	if actual_distance <= 0.0:
+		return
+
+	stop_attacking()
+	velocity = Vector2.ZERO
+
+	global_position.x += (
+		formation_side
+		* actual_distance
+	)
 
 func update_health_bar() -> void:
 	health_bar.max_value = max_health

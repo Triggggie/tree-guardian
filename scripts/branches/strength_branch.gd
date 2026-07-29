@@ -21,6 +21,23 @@ const TALENT_MARKED_PREY: StringName = &"marked_prey"
 @export var maximum_range_bonus: float = 150.0
 @export var range_upgrade_base_cost: int = 7
 
+@export_category("Talent Balance")
+
+@export_range(0.0, 2.0, 0.05)
+var sweeping_strike_damage_multiplier: float = 0.60
+
+@export_range(10.0, 500.0, 5.0)
+var sweeping_strike_search_radius: float = 120.0
+
+@export_range(0.0, 200.0, 5.0)
+var rebuff_distance: float = 35.0
+
+@export_range(0.0, 1.0, 0.01)
+var marked_prey_damage_per_stack: float = 0.10
+
+@export_range(1, 20, 1)
+var marked_prey_maximum_stacks: int = 5
+
 @export_category("Visual Growth")
 @export_range(2, 50, 1)
 var mature_branch_level: int = 10
@@ -41,6 +58,8 @@ var attack_speed_upgrade_level: int = 0
 var range_upgrade_level: int = 0
 var resting_rotation: float
 var current_target: Node2D
+var marked_prey_target_id: int = 0
+var marked_prey_stacks: int = 0
 
 func _ready() -> void:
 	branch_display_name = "Strength Branch"
@@ -310,34 +329,276 @@ func find_nearest_enemy() -> Node2D:
 func perform_attack_animation() -> void:
 	if not combat_enabled:
 		return
+
 	if not is_instance_valid(current_target):
 		return
-	var target_instance_id: int = current_target.get_instance_id()
+
+	var target_instance_id: int = (
+		current_target.get_instance_id()
+	)
+
 	var signed_attack_angle: float = (
-		attack_angle_degrees * -get_facing_direction()
+		attack_angle_degrees
+		* -get_facing_direction()
 	)
+
 	var attack_rotation: float = (
-		resting_rotation + deg_to_rad(signed_attack_angle)
+		resting_rotation
+		+ deg_to_rad(signed_attack_angle)
 	)
+
 	var tween: Tween = create_tween()
-	tween.set_trans(Tween.TRANS_QUAD)
-	tween.set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "rotation", attack_rotation, attack_duration)
+
+	tween.set_trans(
+		Tween.TRANS_QUAD
+	)
+
+	tween.set_ease(
+		Tween.EASE_OUT
+	)
+
+	tween.tween_property(
+		self,
+		"rotation",
+		attack_rotation,
+		attack_duration
+	)
+
 	tween.tween_callback(
 		func() -> void:
 			if not combat_enabled:
 				return
-			var target_object: Object = instance_from_id(target_instance_id)
-			if not is_instance_valid(target_object):
+
+			var target_object: Object = (
+				instance_from_id(
+					target_instance_id
+				)
+			)
+
+			if not is_instance_valid(
+				target_object
+			):
 				return
+
 			if target_object is not Node2D:
 				return
-			var target_node := target_object as Node2D
-			if not target_node.has_method("take_damage"):
-				return
-			target_node.take_damage(get_current_damage(), self)
+
+			var primary_target := (
+				target_object as Node2D
+			)
+
+			perform_strength_hit(
+				primary_target
+			)
 	)
-	tween.tween_property(self, "rotation", resting_rotation, attack_duration)
+
+	tween.tween_property(
+		self,
+		"rotation",
+		resting_rotation,
+		attack_duration
+	)
+	
+func perform_strength_hit(
+	primary_target: Node2D
+	) -> void:
+	if not is_instance_valid(
+		primary_target
+	):
+		return
+
+	if not primary_target.has_method(
+		"take_damage"
+	):
+		return
+
+	var secondary_target: Node2D = null
+
+	if has_talent(
+		TALENT_SWEEPING_STRIKE
+	):
+		secondary_target = (
+			find_sweeping_strike_target(
+				primary_target
+			)
+		)
+
+	var primary_damage: float = (
+		get_marked_prey_damage(
+		primary_target
+	)
+)
+
+	primary_target.take_damage(
+	primary_damage,
+	self
+)
+	
+	apply_rebuff_to_target(
+	primary_target
+	)
+
+	if not is_instance_valid(
+		secondary_target
+	):
+		return
+
+	if not secondary_target.has_method(
+		"take_damage"
+	):
+		return
+
+	var secondary_damage: float = (
+		get_current_damage()
+		* sweeping_strike_damage_multiplier
+	)
+
+	secondary_target.take_damage(
+		secondary_damage,
+		self
+	)
+
+	apply_rebuff_to_target(
+	secondary_target
+)
+
+func get_marked_prey_damage(
+	target: Node2D
+) -> float:
+	var base_attack_damage: float = (
+		get_current_damage()
+	)
+
+	if not has_talent(
+		TALENT_MARKED_PREY
+	):
+		reset_marked_prey()
+		return base_attack_damage
+
+	if not is_instance_valid(target):
+		reset_marked_prey()
+		return base_attack_damage
+
+	var target_id: int = (
+		target.get_instance_id()
+	)
+
+	if marked_prey_target_id != target_id:
+		marked_prey_target_id = target_id
+		marked_prey_stacks = 0
+	else:
+		marked_prey_stacks = min(
+			marked_prey_stacks + 1,
+			marked_prey_maximum_stacks
+		)
+
+	var damage_multiplier: float = (
+		1.0
+		+ marked_prey_stacks
+		* marked_prey_damage_per_stack
+	)
+
+	return (
+		base_attack_damage
+		* damage_multiplier
+	)
+
+
+func reset_marked_prey() -> void:
+	marked_prey_target_id = 0
+	marked_prey_stacks = 0
+
+func apply_rebuff_to_target(
+	target: Node2D
+) -> void:
+	if not has_talent(
+		TALENT_REBUFF
+	):
+		return
+
+	if not is_instance_valid(target):
+		return
+
+	if not target.has_method(
+		"apply_knockback"
+	):
+		return
+
+	target.apply_knockback(
+		rebuff_distance
+	)
+
+
+func find_sweeping_strike_target(
+	primary_target: Node2D
+) -> Node2D:
+	var best_target: Node2D = null
+
+	var closest_distance: float = (
+		sweeping_strike_search_radius
+	)
+
+	var facing_direction: float = (
+		get_facing_direction()
+	)
+
+	for enemy in get_tree().get_nodes_in_group(
+		"enemies"
+	):
+		if not is_instance_valid(enemy):
+			continue
+
+		if enemy is not Node2D:
+			continue
+
+		var enemy_node := enemy as Node2D
+
+		if enemy_node == primary_target:
+			continue
+
+		var horizontal_difference: float = (
+			enemy_node.global_position.x
+			- global_position.x
+		)
+
+		var is_on_correct_side: bool = (
+			horizontal_difference
+			* facing_direction
+			> 0.0
+		)
+
+		if not is_on_correct_side:
+			continue
+
+		var distance_from_branch: float = abs(
+			horizontal_difference
+		)
+
+		if (
+			distance_from_branch
+			> get_current_attack_range()
+		):
+			continue
+
+		var distance_from_primary: float = (
+			enemy_node.global_position.distance_to(
+				primary_target.global_position
+			)
+		)
+
+		if (
+			distance_from_primary
+			>= closest_distance
+		):
+			continue
+
+		closest_distance = (
+			distance_from_primary
+		)
+
+		best_target = enemy_node
+
+	return best_target
 
 func on_branch_level_changed() -> void:
 	queue_redraw()
@@ -354,6 +615,7 @@ func on_branch_level_changed() -> void:
 func stop_combat() -> void:
 	super.stop_combat()
 	current_target = null
+	reset_marked_prey()
 	cooldown_timer.stop()
 	var active_tween: Tween = create_tween()
 	active_tween.tween_property(self, "rotation", resting_rotation, 0.1)
@@ -361,6 +623,7 @@ func stop_combat() -> void:
 func resume_combat() -> void:
 	super.resume_combat()
 	current_target = null
+	reset_marked_prey()
 	rotation = resting_rotation
 	update_attack_cooldown()
 	if cooldown_timer.is_stopped():
