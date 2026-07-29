@@ -17,6 +17,15 @@ signal health_changed(
 signal died
 signal revived
 
+signal healing_over_time_applied(
+	effect_id: StringName,
+	duration: float
+)
+
+signal healing_over_time_ended(
+	effect_id: StringName
+)
+
 
 @export_category("Health")
 @export var max_health: float = 100.0
@@ -115,6 +124,11 @@ var damage_tween: Tween
 # Původní pozice markerů z editoru.
 var attachment_base_positions: Dictionary = {}
 
+# Aktivní léčivé efekty v čase.
+# Klíčem je effect_id, takže opětovná aplikace stejného efektu
+# pouze obnoví jeho trvání a nevytvoří další stack.
+var healing_over_time_effects: Dictionary = {}
+
 
 func _ready() -> void:
 	add_to_group("tree")
@@ -146,6 +160,7 @@ func _process(delta: float) -> void:
 	)
 
 	process_health_regeneration(delta)
+	process_healing_over_time(delta)
 
 
 func _draw() -> void:
@@ -633,15 +648,188 @@ func process_health_regeneration(delta: float) -> void:
 	if regeneration_per_second <= 0.0:
 		return
 
-	current_health = min(
-		current_health
-		+ regeneration_per_second * delta,
-		max_health
+	heal(
+		regeneration_per_second * delta
 	)
 
-	health_changed.emit(
-		current_health,
-		max_health
+
+func apply_healing_over_time(
+	effect_id: StringName,
+	healing_per_tick: float,
+	tick_interval: float,
+	duration: float,
+	source: Node = null,
+	print_ticks: bool = false
+) -> bool:
+	if is_dead:
+		return false
+
+	if effect_id == &"":
+		return false
+
+	if healing_per_tick <= 0.0:
+		return false
+
+	if tick_interval <= 0.0:
+		return false
+
+	if duration <= 0.0:
+		return false
+
+	var source_reference: WeakRef = null
+
+	if is_instance_valid(source):
+		source_reference = weakref(source)
+
+	if healing_over_time_effects.has(effect_id):
+		var existing_effect: Dictionary = (
+			healing_over_time_effects[effect_id]
+		)
+
+		var existing_time_until_tick: float = (
+			float(
+				existing_effect.get(
+					"time_until_tick",
+					tick_interval
+				)
+			)
+		)
+
+		healing_over_time_effects[effect_id] = {
+			"healing_per_tick": healing_per_tick,
+			"tick_interval": tick_interval,
+			"remaining_duration": duration,
+			"time_until_tick": min(
+				existing_time_until_tick,
+				tick_interval
+			),
+			"source": source_reference,
+			"print_ticks": print_ticks
+		}
+	else:
+		healing_over_time_effects[effect_id] = {
+			"healing_per_tick": healing_per_tick,
+			"tick_interval": tick_interval,
+			"remaining_duration": duration,
+			"time_until_tick": tick_interval,
+			"source": source_reference,
+			"print_ticks": print_ticks
+		}
+
+	healing_over_time_applied.emit(
+		effect_id,
+		duration
+	)
+
+	return true
+
+
+func process_healing_over_time(delta: float) -> void:
+	if is_dead:
+		return
+
+	if healing_over_time_effects.is_empty():
+		return
+
+	var effect_ids: Array = (
+		healing_over_time_effects.keys()
+	)
+
+	for effect_key in effect_ids:
+		var effect_id: StringName = (
+			StringName(effect_key)
+		)
+
+		if not healing_over_time_effects.has(
+			effect_id
+		):
+			continue
+
+		var effect: Dictionary = (
+			healing_over_time_effects[effect_id]
+		)
+
+		var remaining_duration: float = (
+			float(effect["remaining_duration"])
+			- delta
+		)
+
+		var time_until_tick: float = (
+			float(effect["time_until_tick"])
+			- delta
+		)
+
+		var tick_interval: float = float(
+			effect["tick_interval"]
+		)
+
+		while time_until_tick <= 0.0:
+			var source_node: Node = null
+			var source_reference: WeakRef = (
+				effect.get("source") as WeakRef
+			)
+
+			if source_reference != null:
+				var referenced_source: Object = (
+					source_reference.get_ref()
+				)
+
+				if referenced_source is Node:
+					source_node = (
+						referenced_source as Node
+					)
+
+			heal(
+				float(effect["healing_per_tick"]),
+				source_node,
+				bool(effect["print_ticks"])
+			)
+
+			time_until_tick += tick_interval
+
+		effect["remaining_duration"] = (
+			remaining_duration
+		)
+
+		effect["time_until_tick"] = (
+			time_until_tick
+		)
+
+		if remaining_duration <= 0.0:
+			healing_over_time_effects.erase(
+				effect_id
+			)
+
+			healing_over_time_ended.emit(
+				effect_id
+			)
+		else:
+			healing_over_time_effects[effect_id] = (
+				effect
+			)
+
+
+func clear_healing_over_time_effects() -> void:
+	if healing_over_time_effects.is_empty():
+		return
+
+	var effect_ids: Array = (
+		healing_over_time_effects.keys()
+	)
+
+	healing_over_time_effects.clear()
+
+	for effect_key in effect_ids:
+		healing_over_time_ended.emit(
+			StringName(effect_key)
+		)
+
+
+func has_healing_over_time_effect(
+	effect_id: StringName
+) -> bool:
+	return healing_over_time_effects.has(
+		effect_id
 	)
 
 
@@ -698,6 +886,59 @@ func add_age(amount: int) -> void:
 		" | Growth factor: ",
 		get_tree_growth_factor()
 	)
+
+
+func heal(
+	amount: float,
+	source: Node = null,
+	print_result: bool = false
+) -> float:
+	if is_dead:
+		return 0.0
+
+	if amount <= 0.0:
+		return 0.0
+
+	if current_health >= max_health:
+		return 0.0
+
+	var health_before: float = current_health
+
+	current_health = min(
+		current_health + amount,
+		max_health
+	)
+
+	var actual_healing: float = (
+		current_health - health_before
+	)
+
+	if actual_healing <= 0.0:
+		return 0.0
+
+	health_changed.emit(
+		current_health,
+		max_health
+	)
+
+	if print_result:
+		var source_name: String = "Unknown"
+
+		if is_instance_valid(source):
+			source_name = source.name
+
+		print(
+			"Strom byl vyléčen o ",
+			actual_healing,
+			" HP | Zdroj: ",
+			source_name,
+			" | HP: ",
+			current_health,
+			"/",
+			max_health
+		)
+
+	return actual_healing
 
 
 func take_damage(amount: float) -> void:
@@ -792,6 +1033,8 @@ func die() -> void:
 
 	is_dead = true
 	current_health = 0.0
+
+	clear_healing_over_time_effects()
 
 	if is_instance_valid(damage_tween):
 		damage_tween.kill()

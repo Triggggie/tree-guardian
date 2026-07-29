@@ -88,14 +88,26 @@ func try_spend_essence(amount: int) -> bool:
 func add_xp(amount: int) -> void:
 	if amount <= 0:
 		return
+
 	current_xp += amount
-	print(branch_display_name, " gained ", amount, " XP | XP: ", current_xp, "/", xp_required_per_level)
+
+	print(
+		branch_display_name,
+		" gained ",
+		amount,
+		" XP | XP: ",
+		current_xp,
+		"/",
+		xp_required_per_level
+	)
+
 	while current_xp >= xp_required_per_level:
 		current_xp -= xp_required_per_level
 		level_up()
-		xp_changed.emit(
-	current_xp,
-	xp_required_per_level
+
+	xp_changed.emit(
+		current_xp,
+		xp_required_per_level
 	)
 
 func level_up() -> void:

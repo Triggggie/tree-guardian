@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b3slat4u2avky" path="res://scripts/tree.gd" id="1_cuvwl"]
 [ext_resource type="PackedScene" uid="uid://i3e2ifeg4itl" path="res://scenes/branches/strength_branch.tscn" id="2_mbf7r"]
+[ext_resource type="Script" uid="uid://bvjms6ou6782c" path="res://scripts/branches/blossom_branch.gd" id="3_2bbdv"]
 
 [node name="Tree" type="Node2D" unique_id=1588258163]
 script = ExtResource("1_cuvwl")
@@ -19,8 +20,24 @@ position = Vector2(-20, -170)
 
 [node name="RightUpper" type="Marker2D" parent="AttachmentPoints" unique_id=2090791204]
 
-[node name="StrengthBranch" parent="AttachmentPoints/RightUpper" unique_id=1239668723 instance=ExtResource("2_mbf7r")]
+[node name="BlossomBranch" parent="AttachmentPoints/RightUpper" unique_id=1239668723 instance=ExtResource("2_mbf7r")]
 position = Vector2(20, -170)
+script = ExtResource("3_2bbdv")
+healing_per_tick = 3.0
+healing_tick_interval = 2.0
+healing_effect_duration = 6.0
+effect_refresh_interval = 6.0
+base_ranged_damage = 10.0
+ranged_attack_interval = 0.7
+ranged_attack_range = 650.0
+bud_length = 34.0
+mature_length = 155.0
+bud_thickness = 8.0
+mature_thickness = 22.0
+first_flower_level = 1
+maximum_flowers = 7
+flower_radius = 8.0
+flower_center_radius = 3.0
 facing_side = 1
 
 [node name="RightLower" type="Marker2D" parent="AttachmentPoints" unique_id=1352097778]
