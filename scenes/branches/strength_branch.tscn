@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://i3e2ifeg4itl"]
 
-[ext_resource type="Script" uid="uid://bdg6ucrh3dr0u" path="res://scripts/strength_branch.gd" id="1_se3xx"]
+[ext_resource type="Script" uid="uid://bdg6ucrh3dr0u" path="res://scripts/branches/strength_branch.gd" id="1_se3xx"]
 
 [node name="StrengthBranch" type="Node2D" unique_id=769172115]
 script = ExtResource("1_se3xx")

@@ -6,7 +6,7 @@ var strength_branches: Array[Node] = []
 
 func _ready() -> void:
 	strength_branches = get_tree().get_nodes_in_group(
-		"strength_branch"
+		"combat_branch"
 	)
 
 	if strength_branches.is_empty():
