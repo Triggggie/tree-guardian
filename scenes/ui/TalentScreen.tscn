@@ -1,0 +1,148 @@
+[gd_scene format=3 uid="uid://c7t6jb4idtkrd"]
+
+[ext_resource type="Script" uid="uid://dcwncn8cpihsb" path="res://scripts/ui/talent_screen.gd" id="1_onlaj"]
+
+[node name="TalentScreen" type="Control" unique_id=1619679837]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_onlaj")
+
+[node name="DimBackground" type="ColorRect" parent="." unique_id=1226725237]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7019608)
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1262800846]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 70
+theme_override_constants/margin_top = 55
+theme_override_constants/margin_right = 70
+theme_override_constants/margin_bottom = 55
+
+[node name="MainPanel" type="PanelContainer" parent="MarginContainer" unique_id=1781232815]
+layout_mode = 2
+
+[node name="MainVBox" type="VBoxContainer" parent="MarginContainer/MainPanel" unique_id=1927139459]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TopBar" type="HBoxContainer" parent="MarginContainer/MainPanel/MainVBox" unique_id=1256612576]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/TopBar" unique_id=1787045310]
+layout_mode = 2
+text = "TALENTS"
+
+[node name="TopSpacer" type="Control" parent="MarginContainer/MainPanel/MainVBox/TopBar" unique_id=2009944815]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TalentPointsLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/TopBar" unique_id=1703783751]
+layout_mode = 2
+text = "Talent Points: 0"
+
+[node name="CloseButton" type="Button" parent="MarginContainer/MainPanel/MainVBox/TopBar" unique_id=1774238916]
+layout_mode = 2
+text = "CLOSE"
+
+[node name="ContentHBox" type="HBoxContainer" parent="MarginContainer/MainPanel/MainVBox" unique_id=1659396566]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="BranchSelectorPanel" type="PanelContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox" unique_id=348216820]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+
+[node name="BranchSelectorVBox" type="VBoxContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/BranchSelectorPanel" unique_id=1954397431]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BranchesLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/BranchSelectorPanel/BranchSelectorVBox" unique_id=527132059]
+layout_mode = 2
+text = "BRANCHES"
+
+[node name="StrengthBranchButton" type="Button" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/BranchSelectorPanel/BranchSelectorVBox" unique_id=1099527227]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+text = "STRENGTH"
+
+[node name="BlossomBranchButton" type="Button" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/BranchSelectorPanel/BranchSelectorVBox" unique_id=391756538]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+text = "BLOSSOM"
+
+[node name="TalentTreePanel" type="PanelContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox" unique_id=1890119823]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TalentTreeArea" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel" unique_id=1190735391]
+layout_mode = 2
+
+[node name="TalentTreeLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeArea" unique_id=455983290]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 121.0
+offset_bottom = 43.0
+text = "TALENT TREE"
+
+[node name="TalentNodes" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeArea" unique_id=81686820]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TalentDetailPanel" type="PanelContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox" unique_id=102623018]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+
+[node name="TalentDetailVBox" type="VBoxContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel" unique_id=793537056]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TalentDetailsLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=546569050]
+layout_mode = 2
+text = "TALENT DETAILS"
+
+[node name="SelectedTalentNameLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=105638732]
+layout_mode = 2
+text = "SELECT A TALENT"
+
+[node name="SelectedTalentBranchLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=1207316322]
+layout_mode = 2
+
+[node name="TalentDescriptionLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=1028171536]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+text = "Select a talent node to view its description."
+autowrap_mode = 3
+
+[node name="TalentRequirementsLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=860392315]
+layout_mode = 2
+
+[node name="DetailSpacer" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=430230521]
+layout_mode = 2
+
+[node name="PurchaseTalentButton" type="Button" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=955988451]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+disabled = true
+text = "SELECT A TALENT"

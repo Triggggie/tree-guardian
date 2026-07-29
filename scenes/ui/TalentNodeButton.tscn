@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://cqkhscahngsyf"]
+
+[ext_resource type="Script" uid="uid://ixng1rguv2rt" path="res://scripts/ui/talent_node_button.gd" id="1_ajhta"]
+
+[node name="TalentNodeButton" type="Button" unique_id=1911111379]
+offset_right = 170.0
+offset_bottom = 80.0
+text = "TALENT"
+autowrap_mode = 3
+script = ExtResource("1_ajhta")

@@ -9,12 +9,20 @@ extends CanvasLayer
 	$UpgradeTabs/TreeTabButton
 )
 
+@onready var talents_button: Button = (
+	$TalentsButton
+)
+
 @onready var branch_upgrade_panel: Panel = (
 	$BranchUpgradePanel
 )
 
 @onready var tree_upgrade_panel: Panel = (
 	$TreeUpgradePanel
+)
+
+@onready var talent_screen: Control = (
+	$TalentScreen
 )
 
 
@@ -25,6 +33,10 @@ func _ready() -> void:
 
 	tree_tab_button.pressed.connect(
 		show_tree_upgrades
+	)
+
+	talents_button.pressed.connect(
+		open_talent_screen
 	)
 
 	show_branch_upgrades()
@@ -44,3 +56,10 @@ func show_tree_upgrades() -> void:
 
 	branch_tab_button.disabled = false
 	tree_tab_button.disabled = true
+
+
+func open_talent_screen() -> void:
+	if talent_screen.has_method(
+		"open_screen"
+	):
+		talent_screen.open_screen()
