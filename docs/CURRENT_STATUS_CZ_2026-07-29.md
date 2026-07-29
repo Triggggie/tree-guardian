@@ -1,6 +1,6 @@
 # Tree Guardian — Aktuální stav projektu
 
-_Poslední aktualizace: 28. července 2026_
+_Poslední aktualizace: 29. července 2026_
 
 ## Přehled projektu
 
@@ -219,7 +219,35 @@ Dospělá větev s maximálním bonusem: 185 + 100 + 150 = Range 435
 
 Strength Branches získávají Talent Points na levelech 2, 4, 7, 10 a 14.
 
-Talent Points jsou uložené samostatně pro každou větev. Finální UI talentového stromu a funkční talenty zatím nejsou implementované.
+Talent Points jsou uložené samostatně pro každou větev. První tři Strength talenty jsou funkční jako technický prototyp. Finální talentový strom a jeho vizuální pavouk zatím nejsou implementované.
+
+### Funkční Strength talenty
+
+#### Sweeping Strike — Crusher
+
+- Základní útok zasáhne také druhého blízkého nepřítele.
+- Současná testovací hodnota sekundárního zásahu: `60 % Damage`.
+- Sekundární cíl musí být na správné straně stromu, v dosahu větve a poblíž hlavního cíle.
+- Sekundární zabití správně připisuje XP Strength Branch.
+
+#### Rebuff — Warden
+
+- Každý zásah odhodí nepřítele směrem od stromu.
+- Současná testovací vzdálenost: `35 px`.
+- Nepřítel přestane útočit, musí dojít zpět na svůj attack checkpoint a poté znovu spustí celý attack cooldown.
+- Bark Beetle má připravenou obecnou metodu `apply_knockback()` a nastavitelnou `knockback_resistance`.
+- Rebuff se aplikuje také na sekundární cíl zasažený Sweeping Strike.
+
+#### Marked Prey — Duelist
+
+- Strength Branch sleduje hlavní napadený cíl.
+- První zásah do nového cíle udělí základní Damage.
+- Každý další zásah do stejného cíle přidá jeden stack.
+- Současná testovací hodnota: `+10 % Damage za stack`, maximálně `5 stacků`.
+- Při změně cíle, zastavení boje nebo respawnu se stacky resetují.
+- Sekundární zásah Sweeping Strike Marked Prey stacky nevytváří.
+
+Všechny hodnoty jsou prototypové a jsou oddělené od samotné logiky, aby se daly později dlouhodobě balancovat.
 
 ## Nepřítel Bark Beetle
 
@@ -240,6 +268,8 @@ Bark Beetle aktuálně podporuje:
 - XP odměnu pro větev
 - Ukončení boje po smrti stromu
 - Pseudo-3D vykreslování podle pozice Y
+- Obecné odhození pomocí `apply_knockback()`
+- Nastavitelnou odolnost proti knockbacku pro budoucí těžké nepřátele a bossy
 
 ```text
 Rychlost pohybu: 120
@@ -303,11 +333,25 @@ Běžná smrt zachovává Věk, Forest Essence, XP a levely větví, Talent Poin
 
 ## Současné UI
 
-Implementované UI zahrnuje Forest Essence, informace o větvích, Věk stromu, informace o vlně, počet nepřátel, HP stromu, ukazatel zdraví, zprávu o dokončení vlny, Game Over panel, odpočet do respawnu, Retry, panel upgradů větví a panel upgradů stromu.
+Implementované UI zahrnuje Forest Essence, informace o větvích, Věk stromu, informace o vlně, počet nepřátel, HP stromu, ukazatel zdraví, zprávu o dokončení vlny, Game Over panel, odpočet do respawnu, Retry, panel upgradů větví, panel upgradů stromu a dočasný prototyp nákupu prvních tří Strength talentů.
 
 Panely zobrazují aktuální a následující hodnoty, ceny, deaktivovaný stav při nedostatku Essence a `MAX` při dosažení současného limitu.
 
 UI stále používá pevné pozice a je prototypové. Před mobilní podporou nebo vydáním se má přestavět pomocí responzivních containerů a anchors.
+### Rozhodnutý další směr UI
+
+Hlavní bojová obrazovka má zůstat co nejčistší.
+
+- Na hlavní ploše zůstane kompaktní seznam nasazených větví.
+- U každé nasazené větve se zobrazí pouze její hlavní metrika, například `Damage` nebo `HPS`.
+- Essence upgrady stromu a větví zůstanou dostupné z hlavní plochy nebo rychlého panelu.
+- Podrobné statistiky jako Damage, Attack Speed, Range, DPS, HPS a levely upgradů budou přesunuty do samostatného listu `STATS`.
+- Talenty dostanou samostatnou velkou kartu `TALENTS`.
+- V kartě TALENTS hráč vybere nasazenou větev a zobrazí se její vlastní talentový pavouk.
+- Součástí obrazovky bude detail vybraného talentu, jeho cena, požadovaný level, návaznosti a zakoupený stav.
+- Současná tři talentová tlačítka jsou jen technický prototyp a nebudou finálním layoutem.
+- Návrh talentů ani jejich číselné hodnoty zatím nejsou definitivní.
+
 
 ## Vizuální stav
 
@@ -332,7 +376,7 @@ Plánovaný směr:
 - Offline progress
 - Obrazovka výběru větví
 - Další archetypy větví
-- Kompletní UI talentového stromu a funkční talenty
+- Finální UI talentového stromu a kompletní talentové pavouky všech větví
 - Elitní nepřátelé a bossové
 - Stavové efekty
 - Zvuky a hudba
@@ -344,18 +388,18 @@ Plánovaný směr:
 
 ## Doporučená další fáze vývoje
 
-1. Provést delší test stability.
-2. Projít a vyčistit současné skripty.
-3. Ověřit smrt, respawn a zachování upgradů během více Stage.
-4. Přidat jeden skutečně odlišný druhý typ větve.
-5. Přidat jeden nový archetyp nepřítele.
-6. Začít první funkční prototyp talentového stromu.
-7. Přidat jednoduché zvukové efekty.
-8. Začít nahrazovat dočasnou grafiku.
+1. Vytvořit samostatnou kartu `TALENTS`.
+2. Přidat výběr nasazené větve a první skutečný pavouk Strength talentů.
+3. Přesunout podrobné statistiky do samostatného listu `STATS`.
+4. Zjednodušit hlavní bojovou obrazovku na kompaktní seznam větví a jejich hlavních metrik.
+5. Provést delší test kombinací Sweeping Strike, Rebuff a Marked Prey.
+6. Projít a vyčistit současné skripty po dokončení UI milníku.
+7. Přidat jeden nový archetyp nepřítele.
+8. Pokračovat dalším odlišným archetypem větve.
 
 ## Okamžitý další úkol
 
-Přidat jeden skutečně odlišný archetyp větve jako malý vertikální prototyp. Měl by přinést jasnou roli, například plošné poškození, poškození v čase, zpomalování, projektily, podporu, léčení nebo vyvolané jednotky.
+Vytvořit samostatnou velkou kartu `TALENTS`, ve které lze vybrat nasazenou větev a zobrazit její talentový pavouk. První verze bude používat tři již funkční Strength talenty a připraví strukturu pro jejich budoucí rozšíření.
 
 ## Současný stav milníku
 
@@ -372,6 +416,9 @@ Přidat jeden skutečně odlišný archetyp větve jako malý vertikální proto
 - Forest Essence, více orbů a Essence Gain
 - Věk stromu, zpětná vazba při zásahu a ukazatele zdraví
 - Interakce s upgrady větví a stromu
+- Obecný systém nákupu talentů, požadavků na level a Talent Points
+- Funkční Strength talenty Sweeping Strike, Rebuff a Marked Prey
+- Knockback rozhraní nepřítele s nastavitelnou odolností
 - Upgrady Damage, Attack Speed a Range
 - Range podle délky větve s maximálním Essence bonusem
 - Upgrady maximálního HP, regenerace HP a Essence Gain
@@ -379,9 +426,12 @@ Přidat jeden skutečně odlišný archetyp větve jako malý vertikální proto
 
 ### Probíhá
 
+- Návrh samostatné obrazovky TALENTS
+- Návrh talentového pavouku Strength Branch
+- Návrh samostatného listu STATS
+- Zjednodušování hlavní bojové obrazovky
 - Vylepšování soubojů
 - Balancování
-- Vylepšování rozložení UI
 - Čištění skriptů
 - Dokumentace
 
@@ -390,7 +440,7 @@ Přidat jeden skutečně odlišný archetyp větve jako malý vertikální proto
 - Prestige
 - Garden
 - Další větve a nepřátelé
-- Funkční talentové stromy
+- Finální talentové pavouky a úplné talentové stromy
 - Bossové
 - Ukládání a offline progress
 - Zvuk a finální grafika
