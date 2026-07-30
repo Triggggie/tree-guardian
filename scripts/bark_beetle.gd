@@ -110,6 +110,20 @@ func setup_crowd_formation(
 
 	apply_crowd_depth()
 
+func is_targetable() -> bool:
+	return (
+		is_inside_tree()
+		and not is_queued_for_deletion()
+		and formation_initialized
+		and combat_enabled
+		and not is_dying
+		and current_health > 0.0
+		and is_in_group("enemies")
+	)
+
+
+func get_lane_index() -> int:
+	return lane_index
 
 func apply_crowd_depth() -> void:
 	scale = Vector2.ONE * crowd_scale_multiplier
