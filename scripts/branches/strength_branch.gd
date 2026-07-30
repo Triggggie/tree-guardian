@@ -431,7 +431,8 @@ func perform_attack_animation() -> void:
 	if not combat_enabled:
 		return
 
-	if not is_instance_valid(current_target):
+	if not is_valid_attack_target(current_target):
+		current_target = null
 		return
 
 	var target_instance_id: int = (
@@ -481,11 +482,20 @@ func perform_attack_animation() -> void:
 			):
 				return
 
-			if target_object is not Node2D:
+			if target_object is not Node:
+				return
+
+			var target_node := (
+				target_object as Node
+			)
+
+			if not is_valid_attack_target(
+				target_node
+			):
 				return
 
 			var primary_target := (
-				target_object as Node2D
+				target_node as Node2D
 			)
 
 			perform_strength_hit(
@@ -502,14 +512,9 @@ func perform_attack_animation() -> void:
 	
 func perform_strength_hit(
 	primary_target: Node2D
-	) -> void:
-	if not is_instance_valid(
+) -> void:
+	if not is_valid_attack_target(
 		primary_target
-	):
-		return
-
-	if not primary_target.has_method(
-		"take_damage"
 	):
 		return
 
