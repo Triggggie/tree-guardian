@@ -2,6 +2,9 @@
 
 [ext_resource type="Script" uid="uid://dcr5grc0qqchi" path="res://scripts/bark_beetle.gd" id="1_oij6s"]
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_oij6s"]
+radius = 32.0
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wedkd"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
 
@@ -9,11 +12,14 @@ bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
 bg_color = Color(0.24705882, 0.68235296, 0.3529412, 1)
 
 [node name="BarkBeetle" type="CharacterBody2D" unique_id=1053252377]
+collision_layer = 3
+collision_mask = 0
 script = ExtResource("1_oij6s")
 
 [node name="Visual" type="Node2D" parent="." unique_id=296908097]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226018101]
+shape = SubResource("CircleShape2D_oij6s")
 
 [node name="AttackTimer" type="Timer" parent="." unique_id=1894351484]
 wait_time = 1.5

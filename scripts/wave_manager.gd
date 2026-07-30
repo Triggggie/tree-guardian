@@ -298,22 +298,42 @@ func spawn_wave(
 	var left_lane_counts: Array[int] = []
 	var right_lane_counts: Array[int] = []
 
+	var left_lane_order: Array[int] = []
+	var right_lane_order: Array[int] = []
+
 	for lane in range(safe_lane_count):
 		left_lane_counts.append(0)
 		right_lane_counts.append(0)
+
+		left_lane_order.append(lane)
+		right_lane_order.append(lane)
+
+	left_lane_order.shuffle()
+	right_lane_order.shuffle()
 
 	for index in range(enemy_count):
 		if not is_cycle_active(cycle_id):
 			return
 
-		var left_lane: int = randi_range(
-			0,
-			safe_lane_count - 1
+		# Každá nová řada znovu náhodně promíchá lane,
+		# ale v rámci jedné řady použije každou lane jen jednou.
+		if (
+			index > 0
+			and index % safe_lane_count == 0
+		):
+			left_lane_order.shuffle()
+			right_lane_order.shuffle()
+
+		var lane_order_index: int = (
+			index % safe_lane_count
 		)
 
-		var right_lane: int = randi_range(
-			0,
-			safe_lane_count - 1
+		var left_lane: int = (
+			left_lane_order[lane_order_index]
+		)
+
+		var right_lane: int = (
+			right_lane_order[lane_order_index]
 		)
 
 		var left_queue_order: int = (
@@ -375,7 +395,6 @@ func spawn_wave(
 			await get_tree().create_timer(
 				time_between_spawns
 			).timeout
-
 
 func get_lane_y(
 	base_y: float,
