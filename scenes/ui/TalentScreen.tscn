@@ -77,6 +77,9 @@ theme_override_constants/separation = 12
 layout_mode = 2
 text = "BRANCHES"
 
+[node name="BranchButtonsContainer" type="VBoxContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/BranchSelectorPanel/BranchSelectorVBox" unique_id=1848333654]
+layout_mode = 2
+
 [node name="StrengthBranchButton" type="Button" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/BranchSelectorPanel/BranchSelectorVBox" unique_id=1099527227]
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2

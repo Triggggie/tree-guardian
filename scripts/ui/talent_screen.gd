@@ -5,9 +5,6 @@ const TALENT_NODE_BUTTON_SCENE: PackedScene = preload(
 	"res://scenes/ui/TalentNodeButton.tscn"
 )
 
-const STRENGTH_BRANCH_ID: StringName = &"strength_branch"
-const BLOSSOM_BRANCH_ID: StringName = &"blossom_branch"
-
 
 @onready var talent_points_label: Label = (
 	$MarginContainer/MainPanel/MainVBox/TopBar
@@ -19,13 +16,19 @@ const BLOSSOM_BRANCH_ID: StringName = &"blossom_branch"
 	/CloseButton
 )
 
-@onready var strength_branch_button: Button = (
+@onready var branch_buttons_container: VBoxContainer = (
+	$MarginContainer/MainPanel/MainVBox/ContentHBox
+	/BranchSelectorPanel/BranchSelectorVBox
+	/BranchButtonsContainer
+)
+
+@onready var old_strength_branch_button: Button = (
 	$MarginContainer/MainPanel/MainVBox/ContentHBox
 	/BranchSelectorPanel/BranchSelectorVBox
 	/StrengthBranchButton
 )
 
-@onready var blossom_branch_button: Button = (
+@onready var old_blossom_branch_button: Button = (
 	$MarginContainer/MainPanel/MainVBox/ContentHBox
 	/BranchSelectorPanel/BranchSelectorVBox
 	/BlossomBranchButton
@@ -74,10 +77,10 @@ const BLOSSOM_BRANCH_ID: StringName = &"blossom_branch"
 )
 
 
-var strength_branch
-var blossom_branch
-var selected_branch
+var available_branches: Array[Node] = []
+var branch_buttons_by_instance_id: Dictionary = {}
 
+var selected_branch
 var selected_talent_id: StringName = &""
 
 
@@ -86,25 +89,20 @@ func _ready() -> void:
 		close_screen
 	)
 
-	strength_branch_button.pressed.connect(
-		select_strength_branch
-	)
-
-	blossom_branch_button.pressed.connect(
-		select_blossom_branch
-	)
-
 	purchase_talent_button.pressed.connect(
 		purchase_selected_talent
 	)
 
+	old_strength_branch_button.visible = false
+	old_blossom_branch_button.visible = false
+
 	find_available_branches()
 	connect_branch_signals()
 
-	if is_instance_valid(strength_branch):
-		select_branch(strength_branch)
-	elif is_instance_valid(blossom_branch):
-		select_branch(blossom_branch)
+	if not available_branches.is_empty():
+		select_branch(
+			available_branches[0]
+		)
 	else:
 		update_empty_state()
 
@@ -112,12 +110,14 @@ func _ready() -> void:
 
 
 func find_available_branches() -> void:
-	strength_branch = null
-	blossom_branch = null
+	available_branches.clear()
 
 	for branch_node in get_tree().get_nodes_in_group(
 		"combat_branch"
 	):
+		if not is_instance_valid(branch_node):
+			continue
+
 		if not branch_node.has_method(
 			"get_branch_display_name"
 		):
@@ -128,32 +128,123 @@ func find_available_branches() -> void:
 		):
 			continue
 
-		var branch = branch_node
+		var slot_index: int = (
+			get_branch_slot_index(branch_node)
+		)
 
-		match branch.branch_id:
-			STRENGTH_BRANCH_ID:
-				if not is_instance_valid(
-					strength_branch
-				):
-					strength_branch = branch
+		if slot_index < 1:
+			push_warning(
+				"%s has invalid slot_index %d."
+				% [
+					branch_node.name,
+					slot_index
+				]
+			)
+			continue
 
-			BLOSSOM_BRANCH_ID:
-				if not is_instance_valid(
-					blossom_branch
-				):
-					blossom_branch = branch
+		available_branches.append(
+			branch_node
+		)
 
-	update_branch_button_availability()
+	available_branches.sort_custom(
+		sort_branches_by_slot
+	)
+
+	rebuild_branch_buttons()
+
+
+func sort_branches_by_slot(
+	first_branch: Node,
+	second_branch: Node
+) -> bool:
+	return (
+		get_branch_slot_index(first_branch)
+		< get_branch_slot_index(second_branch)
+	)
+
+
+func get_branch_slot_index(
+	branch: Node
+) -> int:
+	if not is_instance_valid(branch):
+		return -1
+
+	var slot_value = branch.get(
+		"slot_index"
+	)
+
+	if slot_value == null:
+		return -1
+
+	return int(slot_value)
+
+
+func rebuild_branch_buttons() -> void:
+	for child in branch_buttons_container.get_children():
+		child.free()
+
+	branch_buttons_by_instance_id.clear()
+
+	for branch in available_branches:
+		create_branch_button(branch)
+
+	update_selected_branch_buttons()
+
+
+func create_branch_button(
+	branch: Node
+) -> void:
+	if not is_instance_valid(branch):
+		return
+
+	var branch_button := Button.new()
+
+	branch_button.custom_minimum_size = Vector2(
+		0.0,
+		60.0
+	)
+
+	branch_button.text = (
+		"SLOT %d — %s"
+		% [
+			get_branch_slot_index(branch),
+			get_branch_short_name(branch)
+		]
+	)
+
+	branch_button.pressed.connect(
+		select_branch.bind(branch)
+	)
+
+	branch_buttons_container.add_child(
+		branch_button
+	)
+
+	branch_buttons_by_instance_id[
+		branch.get_instance_id()
+	] = branch_button
+
+
+func get_branch_short_name(
+	branch: Node
+) -> String:
+	if not is_instance_valid(branch):
+		return "UNKNOWN"
+
+	var display_name: String = (
+		branch.get_branch_display_name()
+	)
+
+	return (
+		display_name
+		.replace(" Branch", "")
+		.to_upper()
+	)
 
 
 func connect_branch_signals() -> void:
-	connect_single_branch_signals(
-		strength_branch
-	)
-
-	connect_single_branch_signals(
-		blossom_branch
-	)
+	for branch in available_branches:
+		connect_single_branch_signals(branch)
 
 
 func connect_single_branch_signals(
@@ -177,44 +268,13 @@ func connect_single_branch_signals(
 		)
 
 
-func update_branch_button_availability() -> void:
-	if is_instance_valid(strength_branch):
-		strength_branch_button.text = "STRENGTH"
-		strength_branch_button.disabled = false
-	else:
-		strength_branch_button.text = (
-			"STRENGTH — NOT EQUIPPED"
-		)
-		strength_branch_button.disabled = true
-
-	if is_instance_valid(blossom_branch):
-		blossom_branch_button.text = "BLOSSOM"
-		blossom_branch_button.disabled = false
-	else:
-		blossom_branch_button.text = (
-			"BLOSSOM — NOT EQUIPPED"
-		)
-		blossom_branch_button.disabled = true
-
-
-func select_strength_branch() -> void:
-	if not is_instance_valid(strength_branch):
-		return
-
-	select_branch(strength_branch)
-
-
-func select_blossom_branch() -> void:
-	if not is_instance_valid(blossom_branch):
-		return
-
-	select_branch(blossom_branch)
-
-
 func select_branch(
 	branch
 ) -> void:
 	if not is_instance_valid(branch):
+		return
+
+	if not available_branches.has(branch):
 		return
 
 	selected_branch = branch
@@ -226,15 +286,31 @@ func select_branch(
 
 
 func update_selected_branch_buttons() -> void:
-	strength_branch_button.disabled = (
-		not is_instance_valid(strength_branch)
-		or selected_branch == strength_branch
-	)
+	for branch in available_branches:
+		if not is_instance_valid(branch):
+			continue
 
-	blossom_branch_button.disabled = (
-		not is_instance_valid(blossom_branch)
-		or selected_branch == blossom_branch
-	)
+		var branch_instance_id: int = (
+			branch.get_instance_id()
+		)
+
+		if not branch_buttons_by_instance_id.has(
+			branch_instance_id
+		):
+			continue
+
+		var branch_button: Button = (
+			branch_buttons_by_instance_id[
+				branch_instance_id
+			]
+		)
+
+		if not is_instance_valid(branch_button):
+			continue
+
+		branch_button.disabled = (
+			branch == selected_branch
+		)
 
 
 func update_talent_points_label() -> void:
@@ -245,10 +321,16 @@ func update_talent_points_label() -> void:
 		return
 
 	talent_points_label.text = (
-		"%s  |  Talent Points: %d"
+		"SLOT %d — %s  |  Talent Points: %d"
 		% [
-			selected_branch.get_branch_display_name(),
-			selected_branch.get_available_talent_points()
+			get_branch_slot_index(
+				selected_branch
+			),
+			get_branch_short_name(
+				selected_branch
+			),
+			selected_branch
+				.get_available_talent_points()
 		]
 	)
 
@@ -273,10 +355,15 @@ func rebuild_talent_tree() -> void:
 		return
 
 	talent_tree_label.text = (
-		"%s TALENT TREE"
-		% selected_branch
-			.get_branch_display_name()
-			.to_upper()
+		"SLOT %d — %s TALENT TREE"
+		% [
+			get_branch_slot_index(
+				selected_branch
+			),
+			get_branch_short_name(
+				selected_branch
+			)
+		]
 	)
 
 	for talent_index in range(
@@ -546,11 +633,9 @@ func update_empty_state() -> void:
 		"No equipped branches"
 	)
 
-	strength_branch_button.disabled = true
-	blossom_branch_button.disabled = true
-
 	clear_talent_nodes()
 	reset_talent_details()
+	update_selected_branch_buttons()
 
 	talent_tree_label.text = (
 		"NO BRANCH SELECTED"
@@ -581,11 +666,16 @@ func open_screen() -> void:
 	find_available_branches()
 	connect_branch_signals()
 
-	if not is_instance_valid(selected_branch):
-		if is_instance_valid(strength_branch):
-			select_branch(strength_branch)
-		elif is_instance_valid(blossom_branch):
-			select_branch(blossom_branch)
+	if (
+		not is_instance_valid(selected_branch)
+		or not available_branches.has(
+			selected_branch
+		)
+	):
+		if not available_branches.is_empty():
+			select_branch(
+				available_branches[0]
+			)
 		else:
 			update_empty_state()
 	else:
