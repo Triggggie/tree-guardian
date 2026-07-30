@@ -22,6 +22,11 @@ var description: String = ""
 @export var branch_scene: PackedScene
 
 
+@export_category("Targeting")
+
+@export var targeting_profile: TargetingProfile
+
+
 @export_category("Progression")
 
 @export var upgrades: Array[UpgradeDefinition] = []
@@ -64,6 +69,12 @@ func is_valid_definition() -> bool:
 		return false
 
 	if branch_scene == null:
+		return false
+
+	if targeting_profile == null:
+		return false
+
+	if not targeting_profile.is_valid_definition():
 		return false
 
 	var upgrades_by_id: Dictionary = {}
