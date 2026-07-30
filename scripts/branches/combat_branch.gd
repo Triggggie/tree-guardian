@@ -196,11 +196,22 @@ func try_spend_essence(
 	)
 
 
+func get_safe_xp_required_per_level() -> int:
+	return max(
+		xp_required_per_level,
+		1
+	)
+
+
 func add_xp(
 	amount: int
 ) -> void:
 	if amount <= 0:
 		return
+
+	var safe_xp_required: int = (
+		get_safe_xp_required_per_level()
+	)
 
 	current_xp += amount
 
@@ -211,16 +222,16 @@ func add_xp(
 		" XP | XP: ",
 		current_xp,
 		"/",
-		xp_required_per_level
+		safe_xp_required
 	)
 
-	while current_xp >= xp_required_per_level:
-		current_xp -= xp_required_per_level
+	while current_xp >= safe_xp_required:
+		current_xp -= safe_xp_required
 		level_up()
 
 	xp_changed.emit(
 		current_xp,
-		xp_required_per_level
+		safe_xp_required
 	)
 
 
@@ -542,7 +553,7 @@ func get_progress_summary_lines() -> Array[String]:
 		"XP %d / %d"
 		% [
 			current_xp,
-			xp_required_per_level
+			get_safe_xp_required_per_level()
 		],
 
 		"Talent Points %d"
