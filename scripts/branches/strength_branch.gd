@@ -544,13 +544,8 @@ func perform_strength_hit(
 	primary_target
 	)
 
-	if not is_instance_valid(
+	if not is_valid_attack_target(
 		secondary_target
-	):
-		return
-
-	if not secondary_target.has_method(
-		"take_damage"
 	):
 		return
 
@@ -622,7 +617,9 @@ func apply_rebuff_to_target(
 	):
 		return
 
-	if not is_instance_valid(target):
+	if not is_valid_attack_target(
+		target
+	):
 		return
 
 	if not target.has_method(
@@ -638,53 +635,40 @@ func apply_rebuff_to_target(
 func find_sweeping_strike_target(
 	primary_target: Node2D
 ) -> Node2D:
+	if not is_valid_attack_target(
+		primary_target
+	):
+		return null
+
 	var best_target: Node2D = null
+	var best_lane_difference: int = 999
 
 	var closest_distance: float = (
 		sweeping_strike_search_radius
+		+ 0.001
 	)
 
-	var facing_direction: float = (
-		get_facing_direction()
-	)
+	var primary_lane_index: int = -1
+
+	if primary_target.has_method(
+		"get_lane_index"
+	):
+		primary_lane_index = int(
+			primary_target.call(
+				"get_lane_index"
+			)
+		)
 
 	for enemy in get_tree().get_nodes_in_group(
 		"enemies"
 	):
-		if not is_instance_valid(enemy):
+		if enemy == primary_target:
 			continue
 
-		if enemy is not Node2D:
+		if not is_valid_attack_target(enemy):
 			continue
 
 		var enemy_node := enemy as Node2D
-
-		if enemy_node == primary_target:
-			continue
-
-		var horizontal_difference: float = (
-			enemy_node.global_position.x
-			- global_position.x
-		)
-
-		var is_on_correct_side: bool = (
-			horizontal_difference
-			* facing_direction
-			> 0.0
-		)
-
-		if not is_on_correct_side:
-			continue
-
-		var distance_from_branch: float = abs(
-			horizontal_difference
-		)
-
-		if (
-			distance_from_branch
-			> get_current_attack_range()
-		):
-			continue
 
 		var distance_from_primary: float = (
 			enemy_node.global_position.distance_to(
@@ -694,14 +678,45 @@ func find_sweeping_strike_target(
 
 		if (
 			distance_from_primary
+			> sweeping_strike_search_radius
+		):
+			continue
+
+		var lane_difference: int = 999
+
+		if (
+			primary_lane_index >= 0
+			and enemy.has_method(
+				"get_lane_index"
+			)
+		):
+			var enemy_lane_index: int = int(
+				enemy.call(
+					"get_lane_index"
+				)
+			)
+
+			lane_difference = abs(
+				enemy_lane_index
+				- primary_lane_index
+			)
+
+		if (
+			lane_difference
+			> best_lane_difference
+		):
+			continue
+
+		if (
+			lane_difference
+			== best_lane_difference
+			and distance_from_primary
 			>= closest_distance
 		):
 			continue
 
-		closest_distance = (
-			distance_from_primary
-		)
-
+		best_lane_difference = lane_difference
+		closest_distance = distance_from_primary
 		best_target = enemy_node
 
 	return best_target
