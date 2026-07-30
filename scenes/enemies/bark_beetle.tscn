@@ -12,7 +12,7 @@ bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
 bg_color = Color(0.24705882, 0.68235296, 0.3529412, 1)
 
 [node name="BarkBeetle" type="CharacterBody2D" unique_id=1053252377]
-collision_layer = 3
+collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_oij6s")
 
