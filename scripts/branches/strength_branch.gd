@@ -12,6 +12,14 @@ const TALENT_MARKED_PREY: StringName = &"marked_prey"
 @export var base_attack_cooldown: float = 1.5
 @export var minimum_attack_cooldown: float = 0.45
 
+@export_category("Targeting")
+
+@export_range(0, 8, 1)
+var target_lane_index: int = 3
+
+@export_range(0, 4, 1)
+var target_lane_span: int = 1
+
 @export_category("Essence Upgrades")
 @export var damage_per_upgrade: float = 2.0
 @export var damage_upgrade_base_cost: int = 8
@@ -295,6 +303,65 @@ func draw_natural_shoots(
 func _on_tree_growth_changed(_growth_factor: float) -> void:
 	queue_redraw()
 
+func is_valid_attack_target(target: Node) -> bool:
+	if not is_instance_valid(target):
+		return false
+
+	if target is not Node2D:
+		return false
+
+	if not target.is_in_group("enemies"):
+		return false
+
+	if not target.has_method("take_damage"):
+		return false
+
+	if not target.has_method("is_targetable"):
+		return false
+
+	if not bool(target.call("is_targetable")):
+		return false
+
+	var target_node := target as Node2D
+
+	var horizontal_difference: float = (
+		target_node.global_position.x
+		- global_position.x
+	)
+
+	if (
+		horizontal_difference
+		* get_facing_direction()
+		<= 0.0
+	):
+		return false
+
+	var horizontal_distance: float = abs(
+		horizontal_difference
+	)
+
+	if horizontal_distance > get_current_attack_range():
+		return false
+
+	return true
+
+func is_target_in_preferred_lane(target: Node) -> bool:
+	if not is_instance_valid(target):
+		return false
+
+	if not target.has_method("get_lane_index"):
+		return false
+
+	var enemy_lane_index: int = int(
+		target.call("get_lane_index")
+	)
+
+	var lane_difference: int = abs(
+		enemy_lane_index - target_lane_index
+	)
+
+	return lane_difference <= target_lane_span
+
 func _on_cooldown_timer_timeout() -> void:
 	if not combat_enabled:
 		return
@@ -304,26 +371,60 @@ func _on_cooldown_timer_timeout() -> void:
 	perform_attack_animation()
 
 func find_nearest_enemy() -> Node2D:
+	var preferred_enemy: Node2D = (
+		find_nearest_enemy_with_lane_requirement(
+			true
+		)
+	)
+
+	if preferred_enemy != null:
+		return preferred_enemy
+
+	return find_nearest_enemy_with_lane_requirement(
+		false
+	)
+
+
+func find_nearest_enemy_with_lane_requirement(
+	require_preferred_lane: bool
+) -> Node2D:
 	var nearest_enemy: Node2D = null
-	var nearest_horizontal_distance: float = get_current_attack_range()
-	var facing_direction: float = get_facing_direction()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if not is_instance_valid(enemy):
+
+	var nearest_horizontal_distance: float = (
+		get_current_attack_range() + 0.001
+	)
+
+	for enemy in get_tree().get_nodes_in_group(
+		"enemies"
+	):
+		if not is_valid_attack_target(enemy):
 			continue
-		if enemy is not Node2D:
+
+		if (
+			require_preferred_lane
+			and not is_target_in_preferred_lane(enemy)
+		):
 			continue
-		var horizontal_difference: float = (
-			enemy.global_position.x - global_position.x
+
+		var enemy_node := enemy as Node2D
+
+		var horizontal_distance: float = abs(
+			enemy_node.global_position.x
+			- global_position.x
 		)
-		var enemy_is_on_correct_side: bool = (
-			horizontal_difference * facing_direction > 0.0
-		)
-		if not enemy_is_on_correct_side:
+
+		if (
+			horizontal_distance
+			>= nearest_horizontal_distance
+		):
 			continue
-		var horizontal_distance: float = abs(horizontal_difference)
-		if horizontal_distance < nearest_horizontal_distance:
-			nearest_horizontal_distance = horizontal_distance
-			nearest_enemy = enemy
+
+		nearest_horizontal_distance = (
+			horizontal_distance
+		)
+
+		nearest_enemy = enemy_node
+
 	return nearest_enemy
 
 func perform_attack_animation() -> void:
