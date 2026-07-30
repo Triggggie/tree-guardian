@@ -54,7 +54,7 @@ var essence_gain_per_upgrade: float = 0.10
 
 @export_category("Tree Growth")
 # Věk, při kterém strom dosáhne konečné fyzické velikosti.
-@export_range(1, 500, 1)
+@export_range(2, 500, 1)
 var maturity_age: int = 40
 
 # Rozměry mladého stromku.
@@ -289,7 +289,7 @@ func draw_age_details(
 func get_growth_progress() -> float:
 	var safe_maturity_age: int = max(
 		maturity_age,
-		1
+		2
 	)
 
 	var raw_progress: float = clamp(
