@@ -4,11 +4,6 @@ extends Panel
 const BRANCH_SLOT_COUNT: int = 5
 const CROWN_SLOT_ARRAY_INDEX: int = 4
 
-enum PanelMode {
-	UPGRADES,
-	TALENTS
-}
-
 
 @onready var branch_name_label: Label = (
 	$VBoxContainer/BranchNameLabel
@@ -25,30 +20,6 @@ enum PanelMode {
 	$VBoxContainer/BranchSlotButtons/Slot4Button,
 	$VBoxContainer/BranchSlotButtons/Slot5Button
 ]
-
-@onready var upgrades_tab_button: Button = (
-	$VBoxContainer/BranchModeTabs/UpgradesTabButton
-)
-
-@onready var talents_tab_button: Button = (
-	$VBoxContainer/BranchModeTabs/TalentsTabButton
-)
-
-@onready var talent_info_label: Label = (
-	$VBoxContainer/TalentInfoLabel
-)
-
-@onready var crusher_talent_button: Button = (
-	$VBoxContainer/CrusherTalentButton
-)
-
-@onready var warden_talent_button: Button = (
-	$VBoxContainer/WardenTalentButton
-)
-
-@onready var duelist_talent_button: Button = (
-	$VBoxContainer/DuelistTalentButton
-)
 
 @onready var damage_button: Button = (
 	$VBoxContainer/DamageButton
@@ -74,14 +45,9 @@ var branches_by_slot: Array[Node] = [
 ]
 
 var upgrade_buttons: Array[Button] = []
-var talent_buttons: Array[Button] = []
 
 var selected_slot_array_index: int = -1
 var selected_branch: Node
-
-var current_panel_mode: PanelMode = (
-	PanelMode.UPGRADES
-)
 
 
 func _ready() -> void:
@@ -89,31 +55,18 @@ func _ready() -> void:
 		get_tree().get_first_node_in_group("tree")
 	)
 
-	upgrades_tab_button.text = "UPGRADES"
-	talents_tab_button.text = "TALENTS"
-
 	upgrade_buttons = [
 		damage_button,
 		attack_speed_button,
 		range_button
 	]
 
-	talent_buttons = [
-		crusher_talent_button,
-		warden_talent_button,
-		duelist_talent_button
-	]
-
 	connect_slot_buttons()
 	connect_upgrade_buttons()
-	connect_talent_buttons()
-	connect_mode_tabs()
 	connect_tree_signals()
 
 	find_available_branches()
 	select_first_available_branch()
-
-	show_upgrades_mode()
 
 
 func connect_slot_buttons() -> void:
@@ -146,31 +99,6 @@ func connect_upgrade_buttons() -> void:
 				button_index
 			)
 		)
-
-
-func connect_talent_buttons() -> void:
-	for button_index in range(
-		talent_buttons.size()
-	):
-		var talent_button: Button = (
-			talent_buttons[button_index]
-		)
-
-		talent_button.pressed.connect(
-			_on_talent_button_pressed.bind(
-				button_index
-			)
-		)
-
-
-func connect_mode_tabs() -> void:
-	upgrades_tab_button.pressed.connect(
-		show_upgrades_mode
-	)
-
-	talents_tab_button.pressed.connect(
-		show_talents_mode
-	)
 
 
 func connect_tree_signals() -> void:
@@ -214,7 +142,8 @@ func find_available_branches() -> void:
 
 		if (
 			slot_array_index < 0
-			or slot_array_index >= BRANCH_SLOT_COUNT
+			or slot_array_index
+			>= BRANCH_SLOT_COUNT
 		):
 			push_warning(
 				"%s has invalid slot_index %d. "
@@ -338,18 +267,6 @@ func connect_selected_branch_signals() -> void:
 		"_on_branch_upgrade_changed"
 	)
 
-	connect_signal_if_needed(
-		selected_branch,
-		"talent_points_changed",
-		"_on_talent_points_changed"
-	)
-
-	connect_signal_if_needed(
-		selected_branch,
-		"talent_changed",
-		"_on_branch_talent_changed"
-	)
-
 
 func connect_signal_if_needed(
 	source_node: Node,
@@ -378,24 +295,6 @@ func connect_signal_if_needed(
 	signal_object.connect(callback)
 
 
-func show_upgrades_mode() -> void:
-	current_panel_mode = PanelMode.UPGRADES
-
-	upgrades_tab_button.disabled = true
-	talents_tab_button.disabled = false
-
-	update_panel()
-
-
-func show_talents_mode() -> void:
-	current_panel_mode = PanelMode.TALENTS
-
-	upgrades_tab_button.disabled = false
-	talents_tab_button.disabled = true
-
-	update_panel()
-
-
 func update_panel() -> void:
 	update_branch_slot_buttons()
 
@@ -405,13 +304,7 @@ func update_panel() -> void:
 		branch_name_label.text = "NO BRANCH"
 		branch_stats_label.text = ""
 
-		talent_info_label.visible = false
-
 		for button in upgrade_buttons:
-			button.visible = false
-			button.disabled = true
-
-		for button in talent_buttons:
 			button.visible = false
 			button.disabled = true
 
@@ -419,133 +312,11 @@ func update_panel() -> void:
 
 	update_branch_name()
 	update_branch_statistics()
-	update_mode_content()
-
-
-func update_mode_content() -> void:
-	match current_panel_mode:
-		PanelMode.UPGRADES:
-			show_upgrade_content()
-
-		PanelMode.TALENTS:
-			show_talent_content()
-
-
-func show_upgrade_content() -> void:
-	talent_info_label.visible = false
-
-	for button in talent_buttons:
-		button.visible = false
-		button.disabled = true
 
 	for button in upgrade_buttons:
 		button.visible = true
 
 	update_upgrade_buttons()
-
-
-func show_talent_content() -> void:
-	for button in upgrade_buttons:
-		button.visible = false
-		button.disabled = true
-
-	talent_info_label.visible = true
-
-	var talent_points: int = 0
-
-	if selected_branch.has_method(
-		"get_available_talent_points"
-	):
-		talent_points = int(
-			selected_branch
-			.get_available_talent_points()
-		)
-
-	talent_info_label.text = (
-		"TALENT POINTS: %d"
-		% talent_points
-	)
-
-	update_talent_buttons()
-
-
-func update_talent_buttons() -> void:
-	var talent_ids: Array = []
-
-	if selected_branch.has_method(
-		"get_talent_ids"
-	):
-		talent_ids = (
-			selected_branch.get_talent_ids()
-		)
-
-	for button_index in range(
-		talent_buttons.size()
-	):
-		var button: Button = (
-			talent_buttons[button_index]
-		)
-
-		if button_index >= talent_ids.size():
-			button.visible = false
-			button.disabled = true
-			continue
-
-		button.visible = true
-
-		var talent_id: StringName = (
-			talent_ids[button_index]
-		)
-
-		update_talent_button(
-			button,
-			talent_id
-		)
-
-
-func update_talent_button(
-	button: Button,
-	talent_id: StringName
-) -> void:
-	var branch_name: String = str(
-		selected_branch.get_talent_branch_name(
-			talent_id
-		)
-	)
-
-	var display_name: String = str(
-		selected_branch.get_talent_display_name(
-			talent_id
-		)
-	)
-
-	var description: String = str(
-		selected_branch.get_talent_description(
-			talent_id
-		)
-	)
-
-	var status_text: String = str(
-		selected_branch.get_talent_status_text(
-			talent_id
-		)
-	)
-
-	button.text = (
-		"%s — %s\n%s\n[%s]"
-		% [
-			branch_name.to_upper(),
-			display_name.to_upper(),
-			description,
-			status_text
-		]
-	)
-
-	button.disabled = not bool(
-		selected_branch.can_purchase_talent(
-			talent_id
-		)
-	)
 
 
 func update_branch_slot_buttons() -> void:
@@ -852,43 +623,6 @@ func _on_upgrade_button_pressed(
 	update_panel()
 
 
-func _on_talent_button_pressed(
-	button_index: int
-) -> void:
-	if not is_instance_valid(
-		selected_branch
-	):
-		return
-
-	if not selected_branch.has_method(
-		"get_talent_ids"
-	):
-		return
-
-	var talent_ids: Array = (
-		selected_branch.get_talent_ids()
-	)
-
-	if (
-		button_index < 0
-		or button_index >= talent_ids.size()
-	):
-		return
-
-	var talent_id: StringName = (
-		talent_ids[button_index]
-	)
-
-	if selected_branch.has_method(
-		"purchase_talent"
-	):
-		selected_branch.purchase_talent(
-			talent_id
-		)
-
-	update_panel()
-
-
 func _on_forest_essence_changed(
 	_new_amount: int
 ) -> void:
@@ -911,19 +645,5 @@ func _on_branch_xp_changed(
 func _on_branch_upgrade_changed(
 	_upgrade_id: StringName,
 	_new_level: int
-) -> void:
-	update_panel()
-
-
-func _on_talent_points_changed(
-	_available_points: int,
-	_total_points_earned: int
-) -> void:
-	update_panel()
-
-
-func _on_branch_talent_changed(
-	_talent_id: StringName,
-	_is_purchased: bool
 ) -> void:
 	update_panel()

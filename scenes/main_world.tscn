@@ -186,37 +186,6 @@ size_flags_horizontal = 3
 [node name="Slot5Button" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchSlotButtons" unique_id=707782473]
 layout_mode = 2
 
-[node name="BranchModeTabs" type="HBoxContainer" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1239448736]
-layout_mode = 2
-
-[node name="UpgradesTabButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchModeTabs" unique_id=349362428]
-layout_mode = 2
-
-[node name="TalentsTabButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer/BranchModeTabs" unique_id=447345457]
-layout_mode = 2
-
-[node name="TalentInfoLabel" type="Label" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=144982122]
-visible = false
-layout_mode = 2
-
-[node name="CrusherTalentButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1379963825]
-custom_minimum_size = Vector2(0, 75)
-layout_mode = 2
-text = "SWEEPING STRIKE"
-autowrap_mode = 3
-
-[node name="WardenTalentButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=962004013]
-custom_minimum_size = Vector2(0, 75)
-layout_mode = 2
-text = "REBUFF"
-autowrap_mode = 3
-
-[node name="DuelistTalentButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1413144976]
-custom_minimum_size = Vector2(0, 75)
-layout_mode = 2
-text = "MARKED PREY"
-autowrap_mode = 3
-
 [node name="DamageButton" type="Button" parent="UI/BranchUpgradePanel/VBoxContainer" unique_id=1364386985]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
