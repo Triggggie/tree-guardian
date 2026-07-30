@@ -25,6 +25,33 @@ func setup(
 	queue_redraw()
 
 
+func is_target_valid() -> bool:
+	if not is_instance_valid(target):
+		return false
+
+	if not target.is_inside_tree():
+		return false
+
+	if target.is_queued_for_deletion():
+		return false
+
+	if not target.is_in_group("enemies"):
+		return false
+
+	if not target.has_method("take_damage"):
+		return false
+
+	if not target.has_method("is_targetable"):
+		return false
+
+	if not bool(
+		target.call("is_targetable")
+	):
+		return false
+
+	return true
+
+
 func _process(delta: float) -> void:
 	lifetime_remaining -= delta
 
@@ -32,7 +59,7 @@ func _process(delta: float) -> void:
 		queue_free()
 		return
 
-	if not is_instance_valid(target):
+	if not is_target_valid():
 		queue_free()
 		return
 
@@ -58,15 +85,14 @@ func _process(delta: float) -> void:
 
 
 func hit_target() -> void:
-	if not is_instance_valid(target):
+	if not is_target_valid():
 		queue_free()
 		return
 
-	if target.has_method("take_damage"):
-		target.take_damage(
-			damage,
-			damage_source
-		)
+	target.take_damage(
+		damage,
+		damage_source
+	)
 
 	queue_free()
 
