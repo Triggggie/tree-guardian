@@ -495,11 +495,7 @@ func update_talent_node_state(
 		]
 	)
 
-	talent_button.disabled = (
-		selected_branch.has_talent(
-			talent_id
-		)
-	)
+	talent_button.disabled = false
 
 
 func select_talent(
