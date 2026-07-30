@@ -151,6 +151,48 @@ func get_current_petal_damage() -> float:
 		* petal_damage_per_upgrade
 	)
 
+func is_valid_ranged_target(
+	target: Node
+) -> bool:
+	if not is_instance_valid(target):
+		return false
+
+	if target is not Node2D:
+		return false
+
+	var target_node := target as Node2D
+
+	if not target_node.is_inside_tree():
+		return false
+
+	if target_node.is_queued_for_deletion():
+		return false
+
+	if not target_node.is_in_group("enemies"):
+		return false
+
+	if not target_node.has_method("take_damage"):
+		return false
+
+	if not target_node.has_method("is_targetable"):
+		return false
+
+	if not bool(
+		target_node.call("is_targetable")
+	):
+		return false
+
+	var distance_from_branch: float = (
+		global_position.distance_to(
+			target_node.global_position
+		)
+	)
+
+	if distance_from_branch > ranged_attack_range:
+		return false
+
+	return true
+
 
 func process_ranged_attack(delta: float) -> void:
 	attack_time_remaining -= delta
@@ -160,7 +202,7 @@ func process_ranged_attack(delta: float) -> void:
 
 	var target: Node2D = find_best_ranged_target()
 
-	if is_instance_valid(target):
+	if is_valid_ranged_target(target):
 		perform_ranged_attack(target)
 
 	attack_time_remaining = max(
@@ -176,7 +218,7 @@ func find_best_ranged_target() -> Node2D:
 		)
 	)
 
-	if is_instance_valid(own_side_target):
+	if is_valid_ranged_target(own_side_target):
 		return own_side_target
 
 	var opposite_side: int = 1
@@ -192,16 +234,16 @@ func find_best_ranged_target() -> Node2D:
 func find_best_target_on_side(
 	target_side: int
 ) -> Node2D:
+	if not is_instance_valid(tree_node):
+		return null
+
 	var best_target: Node2D = null
 	var best_tree_distance: float = INF
 
 	for enemy in get_tree().get_nodes_in_group(
 		"enemies"
 	):
-		if not is_instance_valid(enemy):
-			continue
-
-		if enemy is not Node2D:
+		if not is_valid_ranged_target(enemy):
 			continue
 
 		var enemy_node := enemy as Node2D
@@ -219,15 +261,6 @@ func find_best_target_on_side(
 		if enemy_side != target_side:
 			continue
 
-		var distance_from_branch: float = (
-			global_position.distance_to(
-				enemy_node.global_position
-			)
-		)
-
-		if distance_from_branch > ranged_attack_range:
-			continue
-
 		var distance_from_tree: float = abs(
 			horizontal_difference
 		)
@@ -242,7 +275,7 @@ func find_best_target_on_side(
 func perform_ranged_attack(
 	target: Node2D
 ) -> void:
-	if not is_instance_valid(target):
+	if not is_valid_ranged_target(target):
 		return
 
 	var projectile := BlossomProjectile.new()
@@ -262,6 +295,7 @@ func perform_ranged_attack(
 	)
 
 	play_ranged_attack_feedback()
+
 
 
 func get_projectile_spawn_position() -> Vector2:
