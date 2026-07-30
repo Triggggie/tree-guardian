@@ -524,7 +524,7 @@ func _on_tree_died() -> void:
 	wave_message_changed.emit("")
 
 	get_tree().call_group(
-		"strength_branch",
+		"combat_branch",
 		"stop_combat"
 	)
 
@@ -582,7 +582,7 @@ func _on_retry_requested() -> void:
 		tree_node.revive()
 
 	get_tree().call_group(
-		"strength_branch",
+		"combat_branch",
 		"resume_combat"
 	)
 
