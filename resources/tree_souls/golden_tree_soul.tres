@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TreeSoulDefinition" format=3 uid="uid://dxmx7nora4lk8"]
+
+[ext_resource type="Script" uid="uid://da2kata1shmj5" path="res://scripts/definitions/tree_soul_bonus_definition.gd" id="1_lhu7q"]
+[ext_resource type="Script" uid="uid://bkilv1ae3o77" path="res://scripts/definitions/tree_soul_definition.gd" id="2_d3fmx"]
+
+[sub_resource type="Resource" id="Resource_stn5k"]
+script = ExtResource("1_lhu7q")
+modifier_id = &"essence_gain"
+base_value = 0.03
+value_per_rank = 0.0025
+metadata/_custom_type_script = "uid://da2kata1shmj5"
+
+[resource]
+script = ExtResource("2_d3fmx")
+tree_soul_id = &"golden_tree_soul"
+display_name = "Golden Soul"
+description = "Increases all Essence gained during the run."
+soul_color = Color(1, 0.84313726, 0, 1)
+bonuses = Array[ExtResource("1_lhu7q")]([SubResource("Resource_stn5k")])
+metadata/_custom_type_script = "uid://bkilv1ae3o77"
