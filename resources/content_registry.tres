@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ContentRegistry" format=3 uid="uid://bs78juv5pfc7g"]
+
+[ext_resource type="Script" uid="uid://d2uetf6dd60fm" path="res://scripts/definitions/branch_definition.gd" id="1_2lhgq"]
+[ext_resource type="Script" uid="uid://bt5acqnt8giii" path="res://scripts/definitions/enemy_definition.gd" id="2_y02xv"]
+[ext_resource type="Script" uid="uid://1kll8tn5uhyj" path="res://scripts/content/content_registry.gd" id="3_4duaa"]
+[ext_resource type="Script" uid="uid://ck826877i2qaj" path="res://scripts/definitions/stage_definition.gd" id="4_eq0p3"]
+[ext_resource type="Script" uid="uid://br36q7wsbsa5c" path="res://scripts/definitions/status_effect_definition.gd" id="5_18yq4"]
+[ext_resource type="Script" uid="uid://bkilv1ae3o77" path="res://scripts/definitions/tree_soul_definition.gd" id="6_5v1wl"]
+[ext_resource type="Resource" uid="uid://chxee770ulm4" path="res://resources/tree_souls/crimson_tree_soul.tres" id="7_18yq4"]
+[ext_resource type="Resource" uid="uid://t2wm2ej7pgxl" path="res://resources/tree_souls/azure_tree_soul.tres" id="8_5v1wl"]
+[ext_resource type="Resource" uid="uid://dxmx7nora4lk8" path="res://resources/tree_souls/golden_tree_soul.tres" id="9_ehhbu"]
+[ext_resource type="Resource" uid="uid://cagbmmbd3w8vv" path="res://resources/tree_souls/verdant_tree_soul.tres" id="10_efp16"]
+
+[resource]
+script = ExtResource("3_4duaa")
+tree_souls = Array[ExtResource("6_5v1wl")]([ExtResource("7_18yq4"), ExtResource("8_5v1wl"), ExtResource("9_ehhbu"), ExtResource("10_efp16")])
+metadata/_custom_type_script = "uid://1kll8tn5uhyj"
