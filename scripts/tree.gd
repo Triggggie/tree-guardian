@@ -103,7 +103,7 @@ var idle_speed: float = 1.2
 
 
 var forest_essence: int = 0
-var age: int = 19
+var age: int = 1
 
 var max_health_upgrade_level: int = 0
 var health_regeneration_upgrade_level: int = 0
