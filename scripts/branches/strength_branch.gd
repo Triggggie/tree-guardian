@@ -69,9 +69,28 @@ var current_target: Node2D
 var marked_prey_target_id: int = 0
 var marked_prey_stacks: int = 0
 
+var targeting_profile: TargetingProfile = (
+	TargetingProfile.new()
+)
+
 func _ready() -> void:
 	branch_display_name = "Strength Branch"
 	branch_id = &"strength_branch"
+
+	targeting_profile.target_group = &"enemies"
+
+	targeting_profile.target_priority = (
+		TargetingProfile.TargetPriority.NEAREST
+	)
+
+	targeting_profile.lane_mode = (
+		TargetingProfile.LaneMode.PREFERRED
+	)
+
+	targeting_profile.preferred_lane_span = (
+		target_lane_span
+	)
+
 	super._ready()
 	add_to_group("strength_branch")
 	resting_rotation = rotation
@@ -345,87 +364,30 @@ func is_valid_attack_target(target: Node) -> bool:
 
 	return true
 
-func is_target_in_preferred_lane(target: Node) -> bool:
-	if not is_instance_valid(target):
-		return false
-
-	if not target.has_method("get_lane_index"):
-		return false
-
-	var enemy_lane_index: int = int(
-		target.call("get_lane_index")
-	)
-
-	var lane_difference: int = abs(
-		enemy_lane_index - target_lane_index
-	)
-
-	return lane_difference <= target_lane_span
-
 func _on_cooldown_timer_timeout() -> void:
 	if not combat_enabled:
 		return
+
 	current_target = find_nearest_enemy()
+
 	if current_target == null:
 		return
+
 	perform_attack_animation()
 
+
 func find_nearest_enemy() -> Node2D:
-	var preferred_enemy: Node2D = (
-		find_nearest_enemy_with_lane_requirement(
-			true
-		)
+	targeting_profile.preferred_lane_span = (
+		target_lane_span
 	)
 
-	if preferred_enemy != null:
-		return preferred_enemy
-
-	return find_nearest_enemy_with_lane_requirement(
-		false
+	return CombatTargeting.find_target(
+		self,
+		targeting_profile,
+		target_lane_index,
+		get_current_attack_range(),
+		get_facing_direction()
 	)
-
-
-func find_nearest_enemy_with_lane_requirement(
-	require_preferred_lane: bool
-) -> Node2D:
-	var nearest_enemy: Node2D = null
-
-	var nearest_horizontal_distance: float = (
-		get_current_attack_range() + 0.001
-	)
-
-	for enemy in get_tree().get_nodes_in_group(
-		"enemies"
-	):
-		if not is_valid_attack_target(enemy):
-			continue
-
-		if (
-			require_preferred_lane
-			and not is_target_in_preferred_lane(enemy)
-		):
-			continue
-
-		var enemy_node := enemy as Node2D
-
-		var horizontal_distance: float = abs(
-			enemy_node.global_position.x
-			- global_position.x
-		)
-
-		if (
-			horizontal_distance
-			>= nearest_horizontal_distance
-		):
-			continue
-
-		nearest_horizontal_distance = (
-			horizontal_distance
-		)
-
-		nearest_enemy = enemy_node
-
-	return nearest_enemy
 
 func perform_attack_animation() -> void:
 	if not combat_enabled:
