@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://28ykddq1rea" path="res://scripts/tree_upgrade_panel.gd" id="12_sr1c3"]
 [ext_resource type="PackedScene" uid="uid://c7t6jb4idtkrd" path="res://scenes/ui/TalentScreen.tscn" id="14_liqfm"]
 [ext_resource type="Script" uid="uid://c1a77oh0r7f3g" path="res://scripts/tree_soul_selection_screen.gd" id="15_liqfm"]
+[ext_resource type="Script" uid="uid://sehhqrxk388v" path="res://scripts/tree_soul_status_panel.gd" id="16_8v7ug"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
@@ -263,6 +264,13 @@ anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("15_liqfm")
+
+[node name="TreeSoulStatusPanel" type="Panel" parent="UI" unique_id=661013452]
+offset_left = 1410.0
+offset_top = 285.0
+offset_right = 1850.0
+offset_bottom = 885.0
+script = ExtResource("16_8v7ug")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false
