@@ -249,6 +249,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "TREE"
 
+[node name="SoulTabButton" type="Button" parent="UI/UpgradeTabs" unique_id=1733185821]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "SOUL"
+
 [node name="TalentScreen" parent="UI" unique_id=1619679837 instance=ExtResource("14_liqfm")]
 
 [node name="TalentsButton" type="Button" parent="UI" unique_id=1766834317]
