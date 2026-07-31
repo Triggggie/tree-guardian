@@ -103,7 +103,7 @@ var idle_speed: float = 1.2
 
 
 var forest_essence: int = 0
-var age: int = 1
+var age: int = 19
 
 var max_health_upgrade_level: int = 0
 var health_regeneration_upgrade_level: int = 0
@@ -115,6 +115,7 @@ var essence_gain_upgrade_level: int = 0
 var essence_fraction_buffer: float = 0.0
 
 var idle_time: float = 0.0
+var unmodified_max_health: float = 0.0
 var current_health: float
 var is_dead: bool = false
 
@@ -134,7 +135,26 @@ func _ready() -> void:
 	add_to_group("tree")
 
 	resting_position = position
+
+	unmodified_max_health = max(
+		max_health,
+		1.0
+	)
+
+	max_health = get_modified_max_health()
 	current_health = max_health
+
+	TreeSouls.soul_selected.connect(
+		_on_tree_soul_selected
+	)
+
+	TreeSouls.soul_rank_changed.connect(
+		_on_tree_soul_rank_changed
+	)
+
+	TreeSouls.soul_cleared.connect(
+		_on_tree_soul_cleared
+	)
 
 	store_attachment_positions()
 	update_tree_growth()
@@ -505,6 +525,48 @@ func can_upgrade_tree_stat(
 		< get_maximum_tree_upgrade_level()
 	)
 
+func get_modified_max_health() -> float:
+	var maximum_health_before_modifiers: float = (
+		unmodified_max_health
+		+ max_health_upgrade_level
+		* max_health_per_upgrade
+	)
+
+	return max(
+		RunModifiers.apply_modifier(
+			maximum_health_before_modifiers,
+			RunModifierIds.TREE_MAX_HEALTH
+		),
+		1.0
+	)
+
+
+func refresh_maximum_health(
+	restore_gained_health: bool
+) -> void:
+	var previous_maximum_health: float = max_health
+
+	max_health = get_modified_max_health()
+
+	if (
+		restore_gained_health
+		and max_health > previous_maximum_health
+	):
+		current_health += (
+			max_health
+			- previous_maximum_health
+		)
+
+	current_health = clamp(
+		current_health,
+		0.0,
+		max_health
+	)
+
+	health_changed.emit(
+		current_health,
+		max_health
+	)
 
 func get_current_health_regeneration() -> float:
 	var flat_regeneration: float = (
@@ -559,20 +621,14 @@ func purchase_max_health_upgrade() -> bool:
 		return false
 
 	max_health_upgrade_level += 1
-	max_health += max_health_per_upgrade
-	current_health = min(
-		current_health + max_health_per_upgrade,
-		max_health
+
+	refresh_maximum_health(
+		true
 	)
 
 	tree_upgrade_changed.emit(
 		&"max_health",
 		max_health_upgrade_level
-	)
-
-	health_changed.emit(
-		current_health,
-		max_health
 	)
 
 	print_tree_upgrade_result(
@@ -915,6 +971,28 @@ func add_age(amount: int) -> void:
 		get_tree_growth_factor()
 	)
 
+func _on_tree_soul_selected(
+	_soul_definition: TreeSoulDefinition,
+	_soul_rank: int
+) -> void:
+	refresh_maximum_health(
+		true
+	)
+
+
+func _on_tree_soul_rank_changed(
+	_old_rank: int,
+	_new_rank: int
+) -> void:
+	refresh_maximum_health(
+		true
+	)
+
+
+func _on_tree_soul_cleared() -> void:
+	refresh_maximum_health(
+		false
+	)
 
 func heal(
 	amount: float,
