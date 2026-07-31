@@ -141,15 +141,30 @@ func get_current_thickness() -> float:
 	return branch_thickness * tree_thickness_factor
 
 func get_current_damage() -> float:
-	return base_damage + damage_upgrade_level * damage_per_upgrade
+	var current_base_damage: float = (
+		base_damage
+		+ damage_upgrade_level
+		* damage_per_upgrade
+	)
+
+	return BranchStatCalculator.apply_branch_power(
+		current_base_damage
+	)
 
 func get_current_attack_cooldown() -> float:
-	var calculated_cooldown: float = (
-		base_attack_cooldown
-		- attack_speed_upgrade_level
-		* cooldown_reduction_per_upgrade
+	var current_base_cooldown: float = max(
+		(
+			base_attack_cooldown
+			- attack_speed_upgrade_level
+			* cooldown_reduction_per_upgrade
+		),
+		minimum_attack_cooldown
 	)
-	return max(calculated_cooldown, minimum_attack_cooldown)
+
+	return BranchStatCalculator.get_modified_cooldown(
+		current_base_cooldown,
+		minimum_attack_cooldown
+	)
 
 func get_current_range_bonus() -> float:
 	return min(
