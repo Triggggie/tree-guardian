@@ -130,7 +130,7 @@ func get_current_healing_per_tick() -> float:
 		* healing_per_tick_per_upgrade
 	)
 
-	return BranchStatCalculator.apply_branch_power(
+	return BranchStatCalculator.apply_healing_power(
 		current_base_healing
 	)
 
@@ -155,7 +155,7 @@ func get_current_petal_damage() -> float:
 		* petal_damage_per_upgrade
 	)
 
-	return BranchStatCalculator.apply_branch_power(
+	return BranchStatCalculator.apply_branch_damage(
 		current_base_damage
 	)
 
