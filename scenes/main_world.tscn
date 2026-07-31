@@ -15,6 +15,7 @@
 [ext_resource type="Script" uid="uid://b54clhb610ogx" path="res://scripts/branch_upgrade_panel.gd" id="11_avgj4"]
 [ext_resource type="Script" uid="uid://28ykddq1rea" path="res://scripts/tree_upgrade_panel.gd" id="12_sr1c3"]
 [ext_resource type="PackedScene" uid="uid://c7t6jb4idtkrd" path="res://scenes/ui/TalentScreen.tscn" id="14_liqfm"]
+[ext_resource type="Script" uid="uid://c1a77oh0r7f3g" path="res://scripts/tree_soul_selection_screen.gd" id="15_liqfm"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
@@ -255,6 +256,13 @@ offset_top = 1040.0
 offset_right = 90.0
 offset_bottom = 1071.0
 text = "TALENTS"
+
+[node name="TreeSoulSelectionScreen" type="Control" parent="UI" unique_id=252805497]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("15_liqfm")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false
