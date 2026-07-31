@@ -507,9 +507,27 @@ func can_upgrade_tree_stat(
 
 
 func get_current_health_regeneration() -> float:
-	return (
+	var flat_regeneration: float = (
 		health_regeneration_upgrade_level
 		* health_regeneration_per_upgrade
+	)
+
+	var maximum_health_regeneration_rate: float = max(
+		RunModifiers.get_total_additive(
+			RunModifierIds.TREE_REGEN_RATE
+		),
+		0.0
+	)
+
+	var percentage_regeneration: float = (
+		max_health
+		* maximum_health_regeneration_rate
+	)
+
+	return max(
+		flat_regeneration
+		+ percentage_regeneration,
+		0.0
 	)
 
 
