@@ -147,9 +147,10 @@ func get_current_damage() -> float:
 		* damage_per_upgrade
 	)
 
-	return BranchStatCalculator.apply_branch_power(
+	return BranchStatCalculator.apply_branch_damage(
 		current_base_damage
 	)
+
 
 func get_current_attack_cooldown() -> float:
 	var current_base_cooldown: float = max(
@@ -161,7 +162,7 @@ func get_current_attack_cooldown() -> float:
 		minimum_attack_cooldown
 	)
 
-	return BranchStatCalculator.get_modified_cooldown(
+	return BranchStatCalculator.get_modified_attack_cooldown(
 		current_base_cooldown,
 		minimum_attack_cooldown
 	)
