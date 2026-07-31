@@ -514,10 +514,18 @@ func get_current_health_regeneration() -> float:
 
 
 func get_current_essence_multiplier() -> float:
-	return (
+	var tree_upgrade_multiplier: float = (
 		1.0
 		+ essence_gain_upgrade_level
 		* essence_gain_per_upgrade
+	)
+
+	return max(
+		RunModifiers.apply_modifier(
+			tree_upgrade_multiplier,
+			RunModifierIds.ESSENCE_GAIN
+		),
+		0.0
 	)
 
 
