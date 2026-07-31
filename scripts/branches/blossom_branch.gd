@@ -124,10 +124,14 @@ func apply_blossom_healing() -> void:
 
 
 func get_current_healing_per_tick() -> float:
-	return (
+	var current_base_healing: float = (
 		base_healing_per_tick
 		+ healing_per_tick_upgrade_level
 		* healing_per_tick_per_upgrade
+	)
+
+	return BranchStatCalculator.apply_branch_power(
+		current_base_healing
 	)
 
 
@@ -145,10 +149,14 @@ func get_current_healing_tick_interval() -> float:
 
 
 func get_current_petal_damage() -> float:
-	return (
+	var current_base_damage: float = (
 		base_ranged_damage
 		+ petal_damage_upgrade_level
 		* petal_damage_per_upgrade
+	)
+
+	return BranchStatCalculator.apply_branch_power(
+		current_base_damage
 	)
 
 func is_valid_ranged_target(
