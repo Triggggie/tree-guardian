@@ -506,39 +506,80 @@ func perform_strength_hit(
 			)
 		)
 
-	var primary_damage: float = (
+	var primary_context := AttackContext.new(
+		self,
+		primary_target,
 		get_marked_prey_damage(
-		primary_target
+			primary_target
+		)
 	)
-)
 
-	primary_target.take_damage(
-	primary_damage,
-	self
-)
-	
-	apply_rebuff_to_target(
-	primary_target
+	primary_context.attack_id = (
+		&"strength_basic_attack"
 	)
+
+	primary_context.add_tag(
+		&"strength"
+	)
+
+	primary_context.add_tag(
+		&"basic_attack"
+	)
+
+	var primary_hit_resolved: bool = (
+		AttackResolver.resolve_damage(
+			primary_context
+		)
+	)
+
+	if primary_hit_resolved:
+		apply_rebuff_to_target(
+			primary_target
+		)
 
 	if not is_valid_attack_target(
 		secondary_target
 	):
 		return
 
-	var secondary_damage: float = (
+	var secondary_context := AttackContext.new(
+		self,
+		secondary_target,
 		get_current_damage()
-		* sweeping_strike_damage_multiplier
 	)
 
-	secondary_target.take_damage(
-		secondary_damage,
-		self
+	secondary_context.attack_id = (
+		&"strength_sweeping_strike"
 	)
 
-	apply_rebuff_to_target(
-	secondary_target
-)
+	secondary_context.damage_multiplier = (
+		sweeping_strike_damage_multiplier
+	)
+
+	secondary_context.is_secondary_attack = true
+
+	secondary_context.add_tag(
+		&"strength"
+	)
+
+	secondary_context.add_tag(
+		&"secondary_attack"
+	)
+
+	secondary_context.add_tag(
+		TALENT_SWEEPING_STRIKE
+	)
+
+	var secondary_hit_resolved: bool = (
+		AttackResolver.resolve_damage(
+			secondary_context
+		)
+	)
+
+	if secondary_hit_resolved:
+		apply_rebuff_to_target(
+			secondary_target
+		)
 
 func get_marked_prey_damage(
 	target: Node2D
