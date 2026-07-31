@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 RunModifiers="*uid://b7o6v2ow8ujk"
+TreeSouls="*uid://dk33wtchuindw"
 
 [display]
 
