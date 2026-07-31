@@ -24,10 +24,25 @@ var last_announced_rank: int = 0
 
 
 func has_selected_soul() -> bool:
-	return is_instance_valid(
-		selected_soul
+	return is_instance_valid(selected_soul)
+
+
+func get_available_souls() -> Array[TreeSoulDefinition]:
+	return GameContent.get_tree_souls()
+
+
+func select_soul_by_id(
+	tree_soul_id: StringName,
+	tree_age: int
+) -> bool:
+	var soul_definition: TreeSoulDefinition = GameContent.get_tree_soul(
+		tree_soul_id
 	)
 
+	return select_soul(
+		soul_definition,
+		tree_age
+	)
 
 func can_select_soul(
 	soul_definition: TreeSoulDefinition,
