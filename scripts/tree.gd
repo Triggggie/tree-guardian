@@ -876,6 +876,8 @@ func add_age(amount: int) -> void:
 
 	age += amount
 
+	TreeSouls.update_for_age(age)
+
 	update_tree_growth()
 
 	age_changed.emit(age)
