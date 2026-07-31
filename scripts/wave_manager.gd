@@ -75,6 +75,10 @@ var tree_node: Node2D
 # Stage 3 = 201–300
 var current_wave: int = 0
 
+# Nejvyšší globální vlna, kterou strom skutečně dokončil.
+# Opakované vlny po smrti už další Age nepřidávají.
+var highest_completed_wave: int = 0
+
 var tree_defeated: bool = false
 
 # Každý nový běh vln dostane jiné ID.
@@ -502,6 +506,13 @@ func complete_wave() -> void:
 		get_current_wave_in_stage(),
 		" dokončena"
 	)
+
+	# Tuto globální vlnu už strom dříve dokončil.
+	# Jde pouze o opakování po smrti, takže Age nepřidáváme.
+	if current_wave <= highest_completed_wave:
+		return
+
+	highest_completed_wave = current_wave
 
 	if (
 		is_instance_valid(tree_node)
