@@ -89,9 +89,30 @@ func hit_target() -> void:
 		queue_free()
 		return
 
-	target.take_damage(
-		damage,
-		damage_source
+	var attack_context := AttackContext.new(
+		damage_source,
+		target,
+		damage
+	)
+
+	attack_context.attack_id = (
+		&"blossom_petal_attack"
+	)
+
+	attack_context.add_tag(
+		&"blossom"
+	)
+
+	attack_context.add_tag(
+		&"projectile"
+	)
+
+	attack_context.add_tag(
+		&"basic_attack"
+	)
+
+	AttackResolver.resolve_damage(
+		attack_context
 	)
 
 	queue_free()
