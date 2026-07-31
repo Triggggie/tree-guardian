@@ -159,6 +159,12 @@ func get_current_petal_damage() -> float:
 		current_base_damage
 	)
 
+func get_current_ranged_attack_interval() -> float:
+	return BranchStatCalculator.get_modified_attack_cooldown(
+		ranged_attack_interval,
+		0.1
+	)
+
 func is_valid_ranged_target(
 	target: Node
 ) -> bool:
@@ -213,11 +219,9 @@ func process_ranged_attack(delta: float) -> void:
 	if is_valid_ranged_target(target):
 		perform_ranged_attack(target)
 
-	attack_time_remaining = max(
-		ranged_attack_interval,
-		0.1
+	attack_time_remaining = (
+		get_current_ranged_attack_interval()
 	)
-
 
 func find_best_ranged_target() -> Node2D:
 	var own_side_target: Node2D = (
@@ -652,10 +656,14 @@ func get_current_healing_speed() -> float:
 
 
 func get_current_ranged_attack_speed() -> float:
-	if ranged_attack_interval <= 0.0:
+	var current_interval: float = (
+		get_current_ranged_attack_interval()
+	)
+
+	if current_interval <= 0.0:
 		return 0.0
 
-	return 1.0 / ranged_attack_interval
+	return 1.0 / current_interval
 
 
 func get_upgrade_ids() -> Array[StringName]:
