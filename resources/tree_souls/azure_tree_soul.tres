@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TreeSoulDefinition" format=3 uid="uid://t2wm2ej7pgxl"]
+
+[ext_resource type="Script" uid="uid://da2kata1shmj5" path="res://scripts/definitions/tree_soul_bonus_definition.gd" id="1_ah85l"]
+[ext_resource type="Script" uid="uid://bkilv1ae3o77" path="res://scripts/definitions/tree_soul_definition.gd" id="2_32tgb"]
+
+[sub_resource type="Resource" id="Resource_urd7q"]
+script = ExtResource("1_ah85l")
+modifier_id = &"attack_speed"
+base_value = 0.06
+value_per_rank = 0.004
+metadata/_custom_type_script = "uid://da2kata1shmj5"
+
+[resource]
+script = ExtResource("2_32tgb")
+tree_soul_id = &"azure_tree_soul"
+display_name = "Azure Soul"
+description = "Increases the attack speed of all offensive branches."
+soul_color = Color(0.047058824, 0, 1, 1)
+bonuses = Array[ExtResource("1_ah85l")]([SubResource("Resource_urd7q")])
+metadata/_custom_type_script = "uid://bkilv1ae3o77"
