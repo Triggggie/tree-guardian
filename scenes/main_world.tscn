@@ -17,6 +17,7 @@
 [ext_resource type="PackedScene" uid="uid://c7t6jb4idtkrd" path="res://scenes/ui/TalentScreen.tscn" id="14_liqfm"]
 [ext_resource type="Script" uid="uid://c1a77oh0r7f3g" path="res://scripts/tree_soul_selection_screen.gd" id="15_liqfm"]
 [ext_resource type="Script" uid="uid://sehhqrxk388v" path="res://scripts/tree_soul_status_panel.gd" id="16_8v7ug"]
+[ext_resource type="Script" path="res://scripts/tree_soul_rank_up_notification.gd" id="17_rank_up"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
@@ -276,6 +277,14 @@ offset_top = 285.0
 offset_right = 1850.0
 offset_bottom = 885.0
 script = ExtResource("16_8v7ug")
+
+[node name="TreeSoulRankUpNotification" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+script = ExtResource("17_rank_up")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false
