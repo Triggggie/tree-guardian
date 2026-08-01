@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentTreeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+[ext_resource type="Script" path="res://scripts/definitions/talent_tree_definition.gd" id="2_tree"]
+[ext_resource type="Resource" path="res://resources/talents/strength/sweeping_strike.tres" id="3_sweeping"]
+[ext_resource type="Resource" path="res://resources/talents/strength/rebuff.tres" id="4_rebuff"]
+[ext_resource type="Resource" path="res://resources/talents/strength/marked_prey.tres" id="5_marked"]
+
+[resource]
+script = ExtResource("2_tree")
+talent_tree_id = &"strength_talent_tree"
+display_name = "Strength Talent Tree"
+description = "Talent tree for the Strength Branch."
+talents = Array[ExtResource("1_talent")]([ExtResource("3_sweeping"), ExtResource("4_rebuff"), ExtResource("5_marked")])

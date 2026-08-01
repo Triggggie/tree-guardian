@@ -14,6 +14,8 @@ var description: String = ""
 
 @export_category("Presentation")
 
+@export var path_name: String = ""
+
 @export var icon: Texture2D
 
 
@@ -67,6 +69,11 @@ func is_valid_definition() -> bool:
 
 	if has_duplicate_ids(
 		conflicting_ids
+	):
+		return false
+
+	if has_duplicate_ids(
+		effect_ids
 	):
 		return false
 
