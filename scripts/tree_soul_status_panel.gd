@@ -205,6 +205,10 @@ func refresh_without_selected_soul(
 	)
 
 	soul_name_label.text = "TREE SOUL"
+	soul_name_label.add_theme_color_override(
+		"font_color",
+		Color(0.45, 0.45, 0.45, 1.0)
+	)
 	rank_label.text = "INACTIVE"
 	bonuses_label.text = "No Soul selected."
 
@@ -409,15 +413,29 @@ func get_tree_age() -> int:
 
 
 func get_awakening_age() -> int:
-	var awakening_age: int = 20
+	var awakening_age: int = 0
+	var has_valid_definition: bool = false
 
 	for soul_definition in (
 		TreeSouls.get_available_souls()
 	):
-		awakening_age = min(
-			awakening_age,
-			soul_definition.awakening_age
-		)
+		if not is_instance_valid(soul_definition):
+			continue
+
+		if not soul_definition.is_valid_definition():
+			continue
+
+		if not has_valid_definition:
+			awakening_age = soul_definition.awakening_age
+			has_valid_definition = true
+		else:
+			awakening_age = min(
+				awakening_age,
+				soul_definition.awakening_age
+			)
+
+	if not has_valid_definition:
+		return 20
 
 	return awakening_age
 
