@@ -28,19 +28,29 @@ extends Resource
 
 
 var branches_by_id: Dictionary = {}
+var upgrades_by_branch_id: Dictionary = {}
+var talent_trees_by_id: Dictionary = {}
+var talents_by_branch_id: Dictionary = {}
 var tree_souls_by_id: Dictionary = {}
 var enemies_by_id: Dictionary = {}
 var stages_by_id: Dictionary = {}
+var waves_by_stage_id: Dictionary = {}
 var status_effects_by_id: Dictionary = {}
 
 var indexes_ready: bool = false
 
 
 func rebuild_indexes() -> void:
+	indexes_ready = false
+
 	branches_by_id.clear()
+	upgrades_by_branch_id.clear()
+	talent_trees_by_id.clear()
+	talents_by_branch_id.clear()
 	tree_souls_by_id.clear()
 	enemies_by_id.clear()
 	stages_by_id.clear()
+	waves_by_stage_id.clear()
 	status_effects_by_id.clear()
 
 	index_definitions(
@@ -73,6 +83,9 @@ func rebuild_indexes() -> void:
 		status_effects_by_id
 	)
 
+	index_branch_content()
+	index_stage_waves()
+
 	indexes_ready = true
 
 
@@ -95,6 +108,52 @@ func get_branch_definition(
 	return branches_by_id.get(
 		branch_id
 	) as BranchDefinition
+
+
+func get_upgrade_definition(
+	branch_id: StringName,
+	upgrade_id: StringName
+) -> UpgradeDefinition:
+	ensure_indexes()
+
+	var scoped_index: Dictionary = (
+		upgrades_by_branch_id.get(
+			branch_id,
+			{}
+		)
+	)
+
+	return scoped_index.get(
+		upgrade_id
+	) as UpgradeDefinition
+
+
+func get_talent_tree_definition(
+	talent_tree_id: StringName
+) -> TalentTreeDefinition:
+	ensure_indexes()
+
+	return talent_trees_by_id.get(
+		talent_tree_id
+	) as TalentTreeDefinition
+
+
+func get_talent_definition(
+	branch_id: StringName,
+	talent_id: StringName
+) -> TalentDefinition:
+	ensure_indexes()
+
+	var scoped_index: Dictionary = (
+		talents_by_branch_id.get(
+			branch_id,
+			{}
+		)
+	)
+
+	return scoped_index.get(
+		talent_id
+	) as TalentDefinition
 
 
 func get_tree_soul_definition(
@@ -127,6 +186,24 @@ func get_stage_definition(
 	) as StageDefinition
 
 
+func get_wave_definition(
+	stage_id: StringName,
+	wave_id: StringName
+) -> WaveDefinition:
+	ensure_indexes()
+
+	var scoped_index: Dictionary = (
+		waves_by_stage_id.get(
+			stage_id,
+			{}
+		)
+	)
+
+	return scoped_index.get(
+		wave_id
+	) as WaveDefinition
+
+
 func get_status_effect_definition(
 	status_effect_id: StringName
 ) -> StatusEffectDefinition:
@@ -135,6 +212,195 @@ func get_status_effect_definition(
 	return status_effects_by_id.get(
 		status_effect_id
 	) as StatusEffectDefinition
+
+
+func get_upgrade_definitions_for_branch(
+	branch_id: StringName
+) -> Array[UpgradeDefinition]:
+	var branch_definition: BranchDefinition = (
+		get_branch_definition(branch_id)
+	)
+
+	if not is_instance_valid(branch_definition):
+		return []
+
+	return branch_definition.upgrades
+
+
+func get_talent_definitions_for_branch(
+	branch_id: StringName
+) -> Array[TalentDefinition]:
+	var branch_definition: BranchDefinition = (
+		get_branch_definition(branch_id)
+	)
+
+	if not is_instance_valid(branch_definition):
+		return []
+
+	if not is_instance_valid(
+		branch_definition.talent_tree
+	):
+		return []
+
+	return branch_definition.talent_tree.talents
+
+
+func get_wave_definitions_for_stage(
+	stage_id: StringName
+) -> Array[WaveDefinition]:
+	var stage_definition: StageDefinition = (
+		get_stage_definition(stage_id)
+	)
+
+	if not is_instance_valid(stage_definition):
+		return []
+
+	return stage_definition.waves
+
+
+func index_branch_content() -> void:
+	for branch_definition in branches:
+		if not is_instance_valid(branch_definition):
+			continue
+
+		var branch_id: StringName = (
+			branch_definition.branch_id
+		)
+
+		if branch_id == &"":
+			continue
+
+		if branches_by_id.get(branch_id) != branch_definition:
+			continue
+
+		upgrades_by_branch_id[branch_id] = (
+			index_scoped_definitions(
+				branch_definition.upgrades,
+				&"upgrade_id",
+				branch_id,
+				"Upgrade",
+				"Branch"
+			)
+		)
+
+		var talent_tree: TalentTreeDefinition = (
+			branch_definition.talent_tree
+		)
+
+		if not is_instance_valid(talent_tree):
+			continue
+
+		var talent_tree_id: StringName = (
+			talent_tree.talent_tree_id
+		)
+
+		if talent_tree_id != &"":
+			if talent_trees_by_id.has(talent_tree_id):
+				var indexed_talent_tree: TalentTreeDefinition = (
+					talent_trees_by_id.get(
+						talent_tree_id
+					) as TalentTreeDefinition
+				)
+
+				if indexed_talent_tree != talent_tree:
+					push_warning(
+						(
+							"Duplicate Talent Tree ID '%s' "
+							+ "in Branch '%s'."
+						)
+						% [
+							talent_tree_id,
+							branch_id
+						]
+					)
+			else:
+				talent_trees_by_id[
+					talent_tree_id
+				] = talent_tree
+
+		talents_by_branch_id[branch_id] = (
+			index_scoped_definitions(
+				talent_tree.talents,
+				&"talent_id",
+				branch_id,
+				"Talent",
+				"Branch"
+			)
+		)
+
+
+func index_stage_waves() -> void:
+	for stage_definition in stages:
+		if not is_instance_valid(stage_definition):
+			continue
+
+		var stage_id: StringName = (
+			stage_definition.stage_id
+		)
+
+		if stage_id == &"":
+			continue
+
+		if stages_by_id.get(stage_id) != stage_definition:
+			continue
+
+		waves_by_stage_id[stage_id] = (
+			index_scoped_definitions(
+				stage_definition.waves,
+				&"wave_id",
+				stage_id,
+				"Wave",
+				"Stage"
+			)
+		)
+
+
+func index_scoped_definitions(
+	definitions: Array,
+	id_property: StringName,
+	owner_id: StringName,
+	content_kind: String,
+	owner_kind: String
+) -> Dictionary:
+	var scoped_index: Dictionary = {}
+
+	if owner_id == &"":
+		return scoped_index
+
+	for definition in definitions:
+		if not is_instance_valid(definition):
+			continue
+
+		var raw_id = definition.get(
+			id_property
+		)
+
+		if raw_id == null:
+			continue
+
+		var definition_id: StringName = (
+			StringName(str(raw_id))
+		)
+
+		if definition_id == &"":
+			continue
+
+		if scoped_index.has(definition_id):
+			push_warning(
+				"Duplicate %s ID '%s' in %s '%s'."
+				% [
+					content_kind,
+					definition_id,
+					owner_kind,
+					owner_id
+				]
+			)
+
+			continue
+
+		scoped_index[definition_id] = definition
+
+	return scoped_index
 
 
 func index_definitions(

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="BranchDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/branch_definition.gd" id="1_branch"]
+[ext_resource type="Script" path="res://scripts/definitions/targeting_profile.gd" id="2_targeting"]
+[ext_resource type="PackedScene" path="res://scenes/branches/strength_branch.tscn" id="3_scene"]
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="4_upgrade"]
+[ext_resource type="Resource" path="res://resources/talents/strength/strength_talent_tree.tres" id="5_talent_tree"]
+[ext_resource type="Resource" path="res://resources/upgrades/strength/damage.tres" id="6_damage"]
+[ext_resource type="Resource" path="res://resources/upgrades/strength/attack_speed.tres" id="7_attack_speed"]
+[ext_resource type="Resource" path="res://resources/upgrades/strength/range.tres" id="8_range"]
+
+[sub_resource type="Resource" id="Resource_targeting"]
+script = ExtResource("2_targeting")
+target_group = &"enemies"
+target_priority = 0
+lane_mode = 1
+preferred_lane_span = 1
+
+[resource]
+script = ExtResource("1_branch")
+branch_id = &"strength_branch"
+display_name = "Strength Branch"
+description = "A powerful melee branch that strikes nearby enemies and controls the frontline."
+branch_scene = ExtResource("3_scene")
+targeting_profile = SubResource("Resource_targeting")
+upgrades = Array[ExtResource("4_upgrade")]([ExtResource("6_damage"), ExtResource("7_attack_speed"), ExtResource("8_range")])
+talent_tree = ExtResource("5_talent_tree")

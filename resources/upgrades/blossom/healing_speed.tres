@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="1_upgrade"]
+
+[resource]
+script = ExtResource("1_upgrade")
+upgrade_id = &"healing_speed"
+display_name = "Healing Speed"
+description = "Reduces the interval between Blossom healing ticks."
+effect_id = &"healing_tick_interval_reduction"
+value_per_level = 0.10
+base_cost = 11
+cost_growth = 1.35
+maximum_level = 13

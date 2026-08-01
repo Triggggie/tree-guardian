@@ -1,6 +1,11 @@
 extends CombatBranch
 
 
+const UPGRADE_HEALING_PER_TICK: StringName = &"healing_per_tick"
+const UPGRADE_HEALING_SPEED: StringName = &"healing_speed"
+const UPGRADE_PETAL_DAMAGE: StringName = &"petal_damage"
+
+
 @export_category("Healing Over Time")
 @export var base_healing_per_tick: float = 3.0
 @export var base_healing_tick_interval: float = 2.0
@@ -14,17 +19,6 @@ extends CombatBranch
 @export var base_ranged_damage: float = 3.0
 @export var ranged_attack_interval: float = 2.0
 @export var ranged_attack_range: float = 650.0
-
-
-@export_category("Essence Upgrades")
-@export var healing_per_tick_per_upgrade: float = 1.0
-@export var healing_per_tick_upgrade_base_cost: int = 9
-
-@export var healing_interval_reduction_per_upgrade: float = 0.10
-@export var healing_speed_upgrade_base_cost: int = 11
-
-@export var petal_damage_per_upgrade: float = 1.0
-@export var petal_damage_upgrade_base_cost: int = 8
 
 
 @export_category("Visual Growth")
@@ -127,7 +121,9 @@ func get_current_healing_per_tick() -> float:
 	var current_base_healing: float = (
 		base_healing_per_tick
 		+ healing_per_tick_upgrade_level
-		* healing_per_tick_per_upgrade
+		* get_upgrade_value_per_level(
+			UPGRADE_HEALING_PER_TICK
+		)
 	)
 
 	return BranchStatCalculator.apply_healing_power(
@@ -139,7 +135,9 @@ func get_current_healing_tick_interval() -> float:
 	var calculated_interval: float = (
 		base_healing_tick_interval
 		- healing_speed_upgrade_level
-		* healing_interval_reduction_per_upgrade
+		* get_upgrade_value_per_level(
+			UPGRADE_HEALING_SPEED
+		)
 	)
 
 	return max(
@@ -152,7 +150,9 @@ func get_current_petal_damage() -> float:
 	var current_base_damage: float = (
 		base_ranged_damage
 		+ petal_damage_upgrade_level
-		* petal_damage_per_upgrade
+		* get_upgrade_value_per_level(
+			UPGRADE_PETAL_DAMAGE
+		)
 	)
 
 	return BranchStatCalculator.apply_branch_damage(
@@ -519,29 +519,26 @@ func draw_flower(
 
 
 func get_healing_per_tick_upgrade_cost() -> int:
-	return get_upgrade_cost(
-		healing_per_tick_upgrade_base_cost,
-		healing_per_tick_upgrade_level
+	return get_upgrade_cost_by_id(
+		UPGRADE_HEALING_PER_TICK
 	)
 
 
 func get_healing_speed_upgrade_cost() -> int:
-	return get_upgrade_cost(
-		healing_speed_upgrade_base_cost,
-		healing_speed_upgrade_level
+	return get_upgrade_cost_by_id(
+		UPGRADE_HEALING_SPEED
 	)
 
 
 func get_petal_damage_upgrade_cost() -> int:
-	return get_upgrade_cost(
-		petal_damage_upgrade_base_cost,
-		petal_damage_upgrade_level
+	return get_upgrade_cost_by_id(
+		UPGRADE_PETAL_DAMAGE
 	)
 
 
 func purchase_healing_per_tick_upgrade() -> bool:
-	if not can_upgrade_stat(
-		healing_per_tick_upgrade_level
+	if not can_purchase_upgrade_by_id(
+		UPGRADE_HEALING_PER_TICK
 	):
 		return false
 
@@ -557,7 +554,7 @@ func purchase_healing_per_tick_upgrade() -> bool:
 	refresh_healing_effect()
 
 	upgrade_changed.emit(
-		&"healing_per_tick",
+		UPGRADE_HEALING_PER_TICK,
 		healing_per_tick_upgrade_level
 	)
 
@@ -565,8 +562,8 @@ func purchase_healing_per_tick_upgrade() -> bool:
 
 
 func purchase_healing_speed_upgrade() -> bool:
-	if not can_upgrade_stat(
-		healing_speed_upgrade_level
+	if not can_purchase_upgrade_by_id(
+		UPGRADE_HEALING_SPEED
 	):
 		return false
 
@@ -588,7 +585,7 @@ func purchase_healing_speed_upgrade() -> bool:
 	refresh_healing_effect()
 
 	upgrade_changed.emit(
-		&"healing_speed",
+		UPGRADE_HEALING_SPEED,
 		healing_speed_upgrade_level
 	)
 
@@ -596,8 +593,8 @@ func purchase_healing_speed_upgrade() -> bool:
 
 
 func purchase_petal_damage_upgrade() -> bool:
-	if not can_upgrade_stat(
-		petal_damage_upgrade_level
+	if not can_purchase_upgrade_by_id(
+		UPGRADE_PETAL_DAMAGE
 	):
 		return false
 
@@ -611,7 +608,7 @@ func purchase_petal_damage_upgrade() -> bool:
 	petal_damage_upgrade_level += 1
 
 	upgrade_changed.emit(
-		&"petal_damage",
+		UPGRADE_PETAL_DAMAGE,
 		petal_damage_upgrade_level
 	)
 
@@ -666,92 +663,18 @@ func get_current_ranged_attack_speed() -> float:
 	return 1.0 / current_interval
 
 
-func get_upgrade_ids() -> Array[StringName]:
-	return [
-		&"healing_per_tick",
-		&"healing_speed",
-		&"petal_damage"
-	]
-
-
-func get_upgrade_display_name(
-	upgrade_id: StringName
-) -> String:
-	match upgrade_id:
-		&"healing_per_tick":
-			return "Healing per Tick"
-
-		&"healing_speed":
-			return "Healing Speed"
-
-		&"petal_damage":
-			return "Petal Damage"
-
-	return "Unknown Upgrade"
-
-
 func get_upgrade_level(
 	upgrade_id: StringName
 ) -> int:
 	match upgrade_id:
-		&"healing_per_tick":
+		UPGRADE_HEALING_PER_TICK:
 			return healing_per_tick_upgrade_level
 
-		&"healing_speed":
+		UPGRADE_HEALING_SPEED:
 			return healing_speed_upgrade_level
 
-		&"petal_damage":
+		UPGRADE_PETAL_DAMAGE:
 			return petal_damage_upgrade_level
-
-	return 0
-
-
-func get_upgrade_maximum_level(
-	upgrade_id: StringName
-) -> int:
-	var branch_maximum: int = (
-		get_maximum_essence_upgrade_level()
-	)
-
-	if upgrade_id == &"healing_speed":
-		return min(
-			branch_maximum,
-			get_maximum_healing_speed_upgrade_level()
-		)
-
-	return branch_maximum
-
-
-func get_maximum_healing_speed_upgrade_level() -> int:
-	if healing_interval_reduction_per_upgrade <= 0.0:
-		return 0
-
-	return max(
-		int(
-			ceil(
-				(
-					base_healing_tick_interval
-					- minimum_healing_tick_interval
-				)
-				/ healing_interval_reduction_per_upgrade
-			)
-		),
-		0
-	)
-
-
-func get_upgrade_cost_by_id(
-	upgrade_id: StringName
-) -> int:
-	match upgrade_id:
-		&"healing_per_tick":
-			return get_healing_per_tick_upgrade_cost()
-
-		&"healing_speed":
-			return get_healing_speed_upgrade_cost()
-
-		&"petal_damage":
-			return get_petal_damage_upgrade_cost()
 
 	return 0
 
@@ -760,19 +683,19 @@ func get_upgrade_current_value_text(
 	upgrade_id: StringName
 ) -> String:
 	match upgrade_id:
-		&"healing_per_tick":
+		UPGRADE_HEALING_PER_TICK:
 			return (
 				"%.1f HP"
 				% get_current_healing_per_tick()
 			)
 
-		&"healing_speed":
+		UPGRADE_HEALING_SPEED:
 			return (
 				"%.2f /s"
 				% get_current_healing_speed()
 			)
 
-		&"petal_damage":
+		UPGRADE_PETAL_DAMAGE:
 			return (
 				"%.1f"
 				% get_current_petal_damage()
@@ -785,10 +708,12 @@ func get_upgrade_next_value_text(
 	upgrade_id: StringName
 ) -> String:
 	match upgrade_id:
-		&"healing_per_tick":
+		UPGRADE_HEALING_PER_TICK:
 			var next_healing: float = (
 				get_current_healing_per_tick()
-				+ healing_per_tick_per_upgrade
+				+ get_upgrade_value_per_level(
+					UPGRADE_HEALING_PER_TICK
+				)
 			)
 
 			return (
@@ -796,15 +721,17 @@ func get_upgrade_next_value_text(
 				% next_healing
 			)
 
-		&"healing_speed":
+		UPGRADE_HEALING_SPEED:
 			var next_level: int = (
 				healing_speed_upgrade_level + 1
 			)
 
 			var next_interval: float = max(
 				base_healing_tick_interval
-				- next_level
-				* healing_interval_reduction_per_upgrade,
+					- next_level
+					* get_upgrade_value_per_level(
+						UPGRADE_HEALING_SPEED
+					),
 				minimum_healing_tick_interval
 			)
 
@@ -820,10 +747,12 @@ func get_upgrade_next_value_text(
 				% next_speed
 			)
 
-		&"petal_damage":
+		UPGRADE_PETAL_DAMAGE:
 			var next_damage: float = (
 				get_current_petal_damage()
-				+ petal_damage_per_upgrade
+				+ get_upgrade_value_per_level(
+					UPGRADE_PETAL_DAMAGE
+				)
 			)
 
 			return (
@@ -838,13 +767,13 @@ func purchase_upgrade(
 	upgrade_id: StringName
 ) -> bool:
 	match upgrade_id:
-		&"healing_per_tick":
+		UPGRADE_HEALING_PER_TICK:
 			return purchase_healing_per_tick_upgrade()
 
-		&"healing_speed":
+		UPGRADE_HEALING_SPEED:
 			return purchase_healing_speed_upgrade()
 
-		&"petal_damage":
+		UPGRADE_PETAL_DAMAGE:
 			return purchase_petal_damage_upgrade()
 
 	return false

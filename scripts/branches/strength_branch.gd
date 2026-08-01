@@ -4,6 +4,10 @@ const TALENT_SWEEPING_STRIKE: StringName = &"sweeping_strike"
 const TALENT_REBUFF: StringName = &"rebuff"
 const TALENT_MARKED_PREY: StringName = &"marked_prey"
 
+const UPGRADE_DAMAGE: StringName = &"damage"
+const UPGRADE_ATTACK_SPEED: StringName = &"attack_speed"
+const UPGRADE_RANGE: StringName = &"range"
+
 @export_category("Combat")
 @export var base_range_padding: float = 100.0
 @export var base_damage: float = 10.0
@@ -19,15 +23,6 @@ var target_lane_index: int = 3
 
 @export_range(0, 4, 1)
 var target_lane_span: int = 1
-
-@export_category("Essence Upgrades")
-@export var damage_per_upgrade: float = 2.0
-@export var damage_upgrade_base_cost: int = 8
-@export var cooldown_reduction_per_upgrade: float = 0.08
-@export var attack_speed_upgrade_base_cost: int = 10
-@export var range_per_upgrade: float = 15.0
-@export var maximum_range_bonus: float = 150.0
-@export var range_upgrade_base_cost: int = 7
 
 @export_category("Talent Balance")
 
@@ -144,7 +139,9 @@ func get_current_damage() -> float:
 	var current_base_damage: float = (
 		base_damage
 		+ damage_upgrade_level
-		* damage_per_upgrade
+		* get_upgrade_value_per_level(
+			UPGRADE_DAMAGE
+		)
 	)
 
 	return BranchStatCalculator.apply_branch_damage(
@@ -157,7 +154,9 @@ func get_current_attack_cooldown() -> float:
 		(
 			base_attack_cooldown
 			- attack_speed_upgrade_level
-			* cooldown_reduction_per_upgrade
+			* get_upgrade_value_per_level(
+				UPGRADE_ATTACK_SPEED
+			)
 		),
 		minimum_attack_cooldown
 	)
@@ -168,9 +167,11 @@ func get_current_attack_cooldown() -> float:
 	)
 
 func get_current_range_bonus() -> float:
-	return min(
-		range_upgrade_level * range_per_upgrade,
-		maximum_range_bonus
+	return (
+		range_upgrade_level
+		* get_upgrade_value_per_level(
+			UPGRADE_RANGE
+		)
 	)
 
 func get_current_attack_range() -> float:
@@ -181,51 +182,73 @@ func get_current_attack_range() -> float:
 	)
 
 func get_damage_upgrade_cost() -> int:
-	return get_upgrade_cost(damage_upgrade_base_cost, damage_upgrade_level)
+	return get_upgrade_cost_by_id(
+		UPGRADE_DAMAGE
+	)
 
 func get_attack_speed_upgrade_cost() -> int:
-	return get_upgrade_cost(
-		attack_speed_upgrade_base_cost,
-		attack_speed_upgrade_level
+	return get_upgrade_cost_by_id(
+		UPGRADE_ATTACK_SPEED
 	)
 
 func get_range_upgrade_cost() -> int:
-	return get_upgrade_cost(range_upgrade_base_cost, range_upgrade_level)
+	return get_upgrade_cost_by_id(
+		UPGRADE_RANGE
+	)
 
 func purchase_damage_upgrade() -> bool:
-	if not can_upgrade_stat(damage_upgrade_level):
+	if not can_purchase_upgrade_by_id(
+		UPGRADE_DAMAGE
+	):
 		return false
 	var cost: int = get_damage_upgrade_cost()
 	if not try_spend_essence(cost):
 		return false
 	damage_upgrade_level += 1
-	upgrade_changed.emit(&"damage", damage_upgrade_level)
-	print_upgrade_result("Damage", damage_upgrade_level, cost)
+	upgrade_changed.emit(UPGRADE_DAMAGE, damage_upgrade_level)
+	print_upgrade_result(
+		get_upgrade_display_name(UPGRADE_DAMAGE),
+		damage_upgrade_level,
+		cost
+	)
 	return true
 
 func purchase_attack_speed_upgrade() -> bool:
-	if not can_upgrade_stat(attack_speed_upgrade_level):
+	if not can_purchase_upgrade_by_id(
+		UPGRADE_ATTACK_SPEED
+	):
 		return false
 	var cost: int = get_attack_speed_upgrade_cost()
 	if not try_spend_essence(cost):
 		return false
 	attack_speed_upgrade_level += 1
 	update_attack_cooldown()
-	upgrade_changed.emit(&"attack_speed", attack_speed_upgrade_level)
-	print_upgrade_result("Attack Speed", attack_speed_upgrade_level, cost)
+	upgrade_changed.emit(
+		UPGRADE_ATTACK_SPEED,
+		attack_speed_upgrade_level
+	)
+	print_upgrade_result(
+		get_upgrade_display_name(UPGRADE_ATTACK_SPEED),
+		attack_speed_upgrade_level,
+		cost
+	)
 	return true
 
 func purchase_range_upgrade() -> bool:
-	if range_upgrade_level >= get_maximum_range_upgrade_level():
-		return false
-	if not can_upgrade_stat(range_upgrade_level):
+	if not can_purchase_upgrade_by_id(
+		UPGRADE_RANGE
+	):
 		return false
 	var cost: int = get_range_upgrade_cost()
 	if not try_spend_essence(cost):
 		return false
 	range_upgrade_level += 1
-	upgrade_changed.emit(&"range", range_upgrade_level)
-	print_upgrade_result("Range", range_upgrade_level, cost)
+	upgrade_changed.emit(UPGRADE_RANGE, range_upgrade_level)
+	print_upgrade_result(
+		get_upgrade_display_name(UPGRADE_RANGE),
+		range_upgrade_level,
+		cost
+	)
 	return true
 
 func print_upgrade_result(
@@ -769,14 +792,6 @@ func resume_combat() -> void:
 	if cooldown_timer.is_stopped():
 		cooldown_timer.start()
 
-func get_maximum_range_upgrade_level() -> int:
-	if range_per_upgrade <= 0.0:
-		return 0
-	return max(
-		int(floor(maximum_range_bonus / range_per_upgrade)),
-		0
-	)
-
 func get_stat_summary_lines() -> Array[String]:
 	var attack_speed: float = 0.0
 	var cooldown: float = (
@@ -798,74 +813,18 @@ func get_stat_summary_lines() -> Array[String]:
 	]
 
 
-func get_upgrade_ids() -> Array[StringName]:
-	return [
-		&"damage",
-		&"attack_speed",
-		&"range"
-	]
-
-
-func get_upgrade_display_name(
-	upgrade_id: StringName
-) -> String:
-	match upgrade_id:
-		&"damage":
-			return "Damage"
-
-		&"attack_speed":
-			return "Attack Speed"
-
-		&"range":
-			return "Range"
-
-	return "Unknown Upgrade"
-
-
 func get_upgrade_level(
 	upgrade_id: StringName
 ) -> int:
 	match upgrade_id:
-		&"damage":
+		UPGRADE_DAMAGE:
 			return damage_upgrade_level
 
-		&"attack_speed":
+		UPGRADE_ATTACK_SPEED:
 			return attack_speed_upgrade_level
 
-		&"range":
+		UPGRADE_RANGE:
 			return range_upgrade_level
-
-	return 0
-
-
-func get_upgrade_maximum_level(
-	upgrade_id: StringName
-) -> int:
-	var branch_maximum: int = (
-		get_maximum_essence_upgrade_level()
-	)
-
-	if upgrade_id == &"range":
-		return min(
-			branch_maximum,
-			get_maximum_range_upgrade_level()
-		)
-
-	return branch_maximum
-
-
-func get_upgrade_cost_by_id(
-	upgrade_id: StringName
-) -> int:
-	match upgrade_id:
-		&"damage":
-			return get_damage_upgrade_cost()
-
-		&"attack_speed":
-			return get_attack_speed_upgrade_cost()
-
-		&"range":
-			return get_range_upgrade_cost()
 
 	return 0
 
@@ -874,10 +833,10 @@ func get_upgrade_current_value_text(
 	upgrade_id: StringName
 ) -> String:
 	match upgrade_id:
-		&"damage":
+		UPGRADE_DAMAGE:
 			return "%.1f" % get_current_damage()
 
-		&"attack_speed":
+		UPGRADE_ATTACK_SPEED:
 			var cooldown: float = (
 				get_current_attack_cooldown()
 			)
@@ -889,7 +848,7 @@ func get_upgrade_current_value_text(
 				1.0 / cooldown
 			)
 
-		&"range":
+		UPGRADE_RANGE:
 			return "%.0f" % (
 				get_current_attack_range()
 			)
@@ -901,23 +860,27 @@ func get_upgrade_next_value_text(
 	upgrade_id: StringName
 ) -> String:
 	match upgrade_id:
-		&"damage":
+		UPGRADE_DAMAGE:
 			var next_damage: float = (
 				get_current_damage()
-				+ damage_per_upgrade
+				+ get_upgrade_value_per_level(
+					UPGRADE_DAMAGE
+				)
 			)
 
 			return "%.1f" % next_damage
 
-		&"attack_speed":
+		UPGRADE_ATTACK_SPEED:
 			var next_level: int = (
 				attack_speed_upgrade_level + 1
 			)
 
 			var next_cooldown: float = max(
 				base_attack_cooldown
-				- next_level
-				* cooldown_reduction_per_upgrade,
+					- next_level
+					* get_upgrade_value_per_level(
+						UPGRADE_ATTACK_SPEED
+					),
 				minimum_attack_cooldown
 			)
 
@@ -928,11 +891,12 @@ func get_upgrade_next_value_text(
 				1.0 / next_cooldown
 			)
 
-		&"range":
-			var next_range_bonus: float = min(
+		UPGRADE_RANGE:
+			var next_range_bonus: float = (
 				(range_upgrade_level + 1)
-				* range_per_upgrade,
-				maximum_range_bonus
+				* get_upgrade_value_per_level(
+					UPGRADE_RANGE
+				)
 			)
 
 			var next_range: float = (
@@ -950,95 +914,13 @@ func purchase_upgrade(
 	upgrade_id: StringName
 ) -> bool:
 	match upgrade_id:
-		&"damage":
+		UPGRADE_DAMAGE:
 			return purchase_damage_upgrade()
 
-		&"attack_speed":
+		UPGRADE_ATTACK_SPEED:
 			return purchase_attack_speed_upgrade()
 
-		&"range":
+		UPGRADE_RANGE:
 			return purchase_range_upgrade()
 
 	return false
-
-func get_talent_ids() -> Array[StringName]:
-	return [
-		TALENT_SWEEPING_STRIKE,
-		TALENT_REBUFF,
-		TALENT_MARKED_PREY
-	]
-
-
-func get_talent_display_name(
-	talent_id: StringName
-) -> String:
-	match talent_id:
-		TALENT_SWEEPING_STRIKE:
-			return "Sweeping Strike"
-
-		TALENT_REBUFF:
-			return "Rebuff"
-
-		TALENT_MARKED_PREY:
-			return "Marked Prey"
-
-	return "Unknown Talent"
-
-
-func get_talent_description(
-	talent_id: StringName
-) -> String:
-	match talent_id:
-		TALENT_SWEEPING_STRIKE:
-			return (
-				"Basic attacks also hit a second "
-				+ "nearby enemy for 60% damage."
-			)
-
-		TALENT_REBUFF:
-			return (
-				"Each hit pushes the enemy "
-				+ "slightly away from the tree."
-			)
-
-		TALENT_MARKED_PREY:
-			return (
-				"Repeated attacks against the same "
-				+ "enemy build Marked Prey stacks."
-			)
-
-	return ""
-
-
-func get_talent_branch_name(
-	talent_id: StringName
-) -> String:
-	match talent_id:
-		TALENT_SWEEPING_STRIKE:
-			return "Crusher"
-
-		TALENT_REBUFF:
-			return "Warden"
-
-		TALENT_MARKED_PREY:
-			return "Duelist"
-
-	return ""
-
-
-func get_talent_required_level(
-	talent_id: StringName
-) -> int:
-	if talent_id in get_talent_ids():
-		return 2
-
-	return 1
-
-
-func get_talent_cost(
-	talent_id: StringName
-) -> int:
-	if talent_id in get_talent_ids():
-		return 1
-
-	return 0

@@ -57,6 +57,10 @@ var slot_index: int = 1
 ]
 
 
+@export_category("Talent Definitions")
+@export var talent_tree_definition: TalentTreeDefinition
+
+
 @export_category("Upgrade Limits")
 @export_range(1, 20, 1)
 var upgrade_levels_per_branch_level: int = 3
@@ -75,11 +79,37 @@ var purchased_talents: Dictionary = {}
 
 var combat_enabled: bool = true
 var tree_node: Node2D
+var branch_definition: BranchDefinition
 
 
 func _ready() -> void:
+	load_branch_definition()
 	add_to_group("combat_branch")
 	find_tree_node()
+
+
+func load_branch_definition() -> void:
+	branch_definition = null
+
+	if branch_id == &"":
+		push_warning(
+			"CombatBranch: Cannot load a BranchDefinition "
+			+ "without a branch_id."
+		)
+		return
+
+	branch_definition = GameContent.get_branch(
+		branch_id
+	)
+
+	if not is_instance_valid(branch_definition):
+		push_warning(
+			"CombatBranch: BranchDefinition '%s' was not found."
+			% branch_id
+		)
+		return
+
+	talent_tree_definition = branch_definition.talent_tree
 
 
 func find_tree_node() -> void:
@@ -416,50 +446,117 @@ func on_talent_purchased(
 	pass
 
 
+func get_talent_definition(
+	talent_id: StringName
+) -> TalentDefinition:
+	if not is_instance_valid(
+		talent_tree_definition
+	):
+		return null
+
+	return talent_tree_definition.get_talent_by_id(
+		talent_id
+	)
+
+
 func get_talent_ids() -> Array[StringName]:
-	return []
+	if not is_instance_valid(
+		talent_tree_definition
+	):
+		return []
+
+	return talent_tree_definition.get_talent_ids()
 
 
 func get_talent_display_name(
-	_talent_id: StringName
+	talent_id: StringName
 ) -> String:
-	return "Unknown Talent"
+	var talent_definition: TalentDefinition = (
+		get_talent_definition(talent_id)
+	)
+
+	if not is_instance_valid(talent_definition):
+		return "Unknown Talent"
+
+	return talent_definition.display_name
 
 
 func get_talent_description(
-	_talent_id: StringName
+	talent_id: StringName
 ) -> String:
-	return ""
+	var talent_definition: TalentDefinition = (
+		get_talent_definition(talent_id)
+	)
+
+	if not is_instance_valid(talent_definition):
+		return ""
+
+	return talent_definition.description
 
 
 func get_talent_branch_name(
-	_talent_id: StringName
+	talent_id: StringName
 ) -> String:
-	return ""
+	var talent_definition: TalentDefinition = (
+		get_talent_definition(talent_id)
+	)
+
+	if not is_instance_valid(talent_definition):
+		return ""
+
+	return talent_definition.path_name
 
 
 func get_talent_required_level(
-	_talent_id: StringName
+	talent_id: StringName
 ) -> int:
-	return 1
+	var talent_definition: TalentDefinition = (
+		get_talent_definition(talent_id)
+	)
+
+	if not is_instance_valid(talent_definition):
+		return 1
+
+	return talent_definition.required_branch_level
 
 
 func get_talent_cost(
-	_talent_id: StringName
+	talent_id: StringName
 ) -> int:
-	return 1
+	var talent_definition: TalentDefinition = (
+		get_talent_definition(talent_id)
+	)
+
+	if not is_instance_valid(talent_definition):
+		return 1
+
+	return talent_definition.talent_point_cost
 
 
 func get_talent_prerequisites(
-	_talent_id: StringName
+	talent_id: StringName
 ) -> Array[StringName]:
-	return []
+	var talent_definition: TalentDefinition = (
+		get_talent_definition(talent_id)
+	)
+
+	if not is_instance_valid(talent_definition):
+		return []
+
+	return talent_definition.prerequisite_ids
 
 
 func get_talent_conflicts(
-	_talent_id: StringName
+	talent_id: StringName
 ) -> Array[StringName]:
-	return []
+	var talent_definition: TalentDefinition = (
+		get_talent_definition(talent_id)
+	)
+
+	if not is_instance_valid(talent_definition):
+		return []
+
+	return talent_definition.conflicting_ids
 
 
 func get_talent_status_text(
@@ -570,14 +667,62 @@ func get_stat_summary_lines() -> Array[String]:
 # -------------------------------------------------------------------
 
 
+func get_upgrade_definition(
+	upgrade_id: StringName
+) -> UpgradeDefinition:
+	if not is_instance_valid(branch_definition):
+		return null
+
+	return branch_definition.get_upgrade_by_id(
+		upgrade_id
+	)
+
+
+func get_upgrade_value_per_level(
+	upgrade_id: StringName
+) -> float:
+	var upgrade_definition: UpgradeDefinition = (
+		get_upgrade_definition(upgrade_id)
+	)
+
+	if not is_instance_valid(upgrade_definition):
+		return 0.0
+
+	return upgrade_definition.value_per_level
+
+
+func can_purchase_upgrade_by_id(
+	upgrade_id: StringName
+) -> bool:
+	if not is_instance_valid(
+		get_upgrade_definition(upgrade_id)
+	):
+		return false
+
+	return (
+		get_upgrade_level(upgrade_id)
+		< get_upgrade_maximum_level(upgrade_id)
+	)
+
+
 func get_upgrade_ids() -> Array[StringName]:
-	return []
+	if not is_instance_valid(branch_definition):
+		return []
+
+	return branch_definition.get_upgrade_ids()
 
 
 func get_upgrade_display_name(
-	_upgrade_id: StringName
+	upgrade_id: StringName
 ) -> String:
-	return "Upgrade"
+	var upgrade_definition: UpgradeDefinition = (
+		get_upgrade_definition(upgrade_id)
+	)
+
+	if not is_instance_valid(upgrade_definition):
+		return "Unknown Upgrade"
+
+	return upgrade_definition.display_name
 
 
 func get_upgrade_level(
@@ -587,15 +732,41 @@ func get_upgrade_level(
 
 
 func get_upgrade_maximum_level(
-	_upgrade_id: StringName
+	upgrade_id: StringName
 ) -> int:
-	return 0
+	var upgrade_definition: UpgradeDefinition = (
+		get_upgrade_definition(upgrade_id)
+	)
+
+	if not is_instance_valid(upgrade_definition):
+		return 0
+
+	var branch_maximum: int = (
+		get_maximum_essence_upgrade_level()
+	)
+
+	if upgrade_definition.maximum_level <= 0:
+		return branch_maximum
+
+	return min(
+		branch_maximum,
+		upgrade_definition.maximum_level
+	)
 
 
 func get_upgrade_cost_by_id(
-	_upgrade_id: StringName
+	upgrade_id: StringName
 ) -> int:
-	return 0
+	var upgrade_definition: UpgradeDefinition = (
+		get_upgrade_definition(upgrade_id)
+	)
+
+	if not is_instance_valid(upgrade_definition):
+		return 0
+
+	return upgrade_definition.get_cost_for_level(
+		get_upgrade_level(upgrade_id)
+	)
 
 
 func get_upgrade_current_value_text(
