@@ -96,19 +96,19 @@ Modifier semantics:
 Tree Souls are a run-long specialization selected during a prestige run.
 
 - The Soul orb exists visually from Age 1 but is gray and inactive.
-- Soul selection unlocks at Age 20.
+- Soul selection unlocks at Age 200.
 - The selection screen does not pause gameplay.
 - While selection is pending, no Soul bonus is active.
 - The player may choose later; Rank is calculated from the current Age at the moment of selection.
 - A selected Soul cannot be changed during the current prestige run.
 - Normal death preserves Age, selected Soul, Soul Rank, Essence, XP, talents, and purchased upgrades.
-- Prestige resets Age to 1, clears the selected Soul, resets Soul Rank to 0, locks selection until Age 20, and returns the orb to gray.
+- Prestige resets Age to 1, clears the selected Soul, resets Soul Rank to 0, locks selection until Age 200, and returns the orb to gray.
 
 Rank progression:
 
-- Rank 1 begins at Age 20.
+- Rank 1 begins at Age 200.
 - A new Rank is gained every 100 Age.
-- Formula: `1 + floor((age - 20) / 100)`.
+- Formula: `1 + floor((age - 200) / 100)`.
 - There is no hard maximum Rank.
 - After Rank 50, per-rank growth may be multiplied by a configurable soft-cap multiplier, currently 0.5.
 

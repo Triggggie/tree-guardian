@@ -28,7 +28,7 @@ var description: String = ""
 
 # Age, při kterém se Soul probudí a získá Rank 1.
 @export_range(1, 1000000, 1)
-var awakening_age: int = 20
+var awakening_age: int = 200
 
 # Počet Age potřebný pro každý další Rank.
 @export_range(1, 1000000, 1)
