@@ -10,12 +10,17 @@ var description_label: Label
 var bonuses_label: Label
 var next_rank_label: Label
 var rank_progress_bar: ProgressBar
+var choose_soul_button: Button
+var selection_screen: Node
 
 
 func _ready() -> void:
 	visible = false
 
 	create_interface()
+	selection_screen = get_node_or_null(
+		"../TreeSoulSelectionScreen"
+	)
 
 	tree_node = get_tree().get_first_node_in_group(
 		"tree"
@@ -150,6 +155,19 @@ func create_interface() -> void:
 		bonuses_label
 	)
 
+	choose_soul_button = Button.new()
+	choose_soul_button.text = "CHOOSE TREE SOUL"
+	choose_soul_button.custom_minimum_size = Vector2(
+		0.0,
+		42.0
+	)
+	choose_soul_button.pressed.connect(
+		_on_choose_soul_button_pressed
+	)
+	main_container.add_child(
+		choose_soul_button
+	)
+
 	var progress_spacer := Control.new()
 	progress_spacer.size_flags_vertical = (
 		Control.SIZE_EXPAND_FILL
@@ -212,6 +230,12 @@ func refresh_without_selected_soul(
 	rank_label.text = "INACTIVE"
 	bonuses_label.text = "No Soul selected."
 
+	var selection_available: bool = (
+		tree_age >= awakening_age
+	)
+	choose_soul_button.visible = selection_available
+	choose_soul_button.disabled = not selection_available
+
 	if tree_age < awakening_age:
 		description_label.text = (
 			"Soul awakens at Age %d."
@@ -243,6 +267,9 @@ func refresh_without_selected_soul(
 func refresh_selected_soul(
 	tree_age: int
 ) -> void:
+	choose_soul_button.visible = false
+	choose_soul_button.disabled = true
+
 	var soul_definition: TreeSoulDefinition = (
 		TreeSouls.selected_soul
 	)
@@ -462,3 +489,17 @@ func _on_soul_rank_changed(
 
 func _on_soul_cleared() -> void:
 	refresh_panel()
+
+
+func _on_choose_soul_button_pressed() -> void:
+	if not is_instance_valid(selection_screen):
+		return
+
+	if not selection_screen.has_method(
+		&"open_selection"
+	):
+		return
+
+	selection_screen.call(
+		&"open_selection"
+	)

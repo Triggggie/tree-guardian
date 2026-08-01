@@ -6,6 +6,7 @@ var tree_node: Node
 var dark_background: ColorRect
 var selection_panel: PanelContainer
 var soul_buttons: GridContainer
+var selection_deferred: bool = false
 
 
 func _ready() -> void:
@@ -33,6 +34,10 @@ func _ready() -> void:
 
 	TreeSouls.soul_selected.connect(
 		_on_soul_selected
+	)
+
+	TreeSouls.soul_cleared.connect(
+		_on_soul_cleared
 	)
 
 	refresh_for_age(
@@ -182,6 +187,19 @@ func create_interface() -> void:
 		soul_buttons
 	)
 
+	var choose_later_button := Button.new()
+	choose_later_button.text = "CHOOSE LATER"
+	choose_later_button.custom_minimum_size = Vector2(
+		0.0,
+		42.0
+	)
+	choose_later_button.pressed.connect(
+		_on_choose_later_button_pressed
+	)
+	main_container.add_child(
+		choose_later_button
+	)
+
 
 func create_selection_panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -254,8 +272,42 @@ func refresh_for_age(
 		visible = false
 		return
 
-	var selection_available: bool = false
+	if selection_deferred:
+		visible = false
+		return
 
+	if not is_selection_available(tree_age):
+		visible = false
+		return
+
+	rebuild_soul_buttons(
+		tree_age
+	)
+	visible = true
+
+
+func open_selection() -> void:
+	if tree_node == null:
+		return
+
+	if TreeSouls.has_selected_soul():
+		visible = false
+		return
+
+	var tree_age: int = int(tree_node.age)
+
+	if not is_selection_available(tree_age):
+		visible = false
+		return
+
+	selection_deferred = false
+	rebuild_soul_buttons(tree_age)
+	visible = true
+
+
+func is_selection_available(
+	tree_age: int
+) -> bool:
 	for soul_definition in (
 		TreeSouls.get_available_souls()
 	):
@@ -263,17 +315,9 @@ func refresh_for_age(
 			soul_definition,
 			tree_age
 		):
-			selection_available = true
-			break
+			return true
 
-	visible = selection_available
-
-	if not selection_available:
-		return
-
-	rebuild_soul_buttons(
-		tree_age
-	)
+	return false
 
 
 func rebuild_soul_buttons(
@@ -518,8 +562,19 @@ func _on_soul_button_pressed(
 	)
 
 
+func _on_choose_later_button_pressed() -> void:
+	selection_deferred = true
+	visible = false
+
+
 func _on_soul_selected(
 	_soul_definition: TreeSoulDefinition,
 	_soul_rank: int
 ) -> void:
+	selection_deferred = false
+	visible = false
+
+
+func _on_soul_cleared() -> void:
+	selection_deferred = false
 	visible = false
