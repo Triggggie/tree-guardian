@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="StageDefinition" format=3]
+[gd_resource type="Resource" script_class="StageDefinition" format=3 uid="uid://dt401x3biva4f"]
 
-[ext_resource type="Script" path="res://scripts/definitions/stage_definition.gd" id="1_stage"]
-[ext_resource type="Script" path="res://scripts/definitions/substage_definition.gd" id="2_substage"]
+[ext_resource type="Script" uid="uid://ck826877i2qaj" path="res://scripts/definitions/stage_definition.gd" id="1_stage"]
+[ext_resource type="Script" uid="uid://c2xgnbwyy30nv" path="res://scripts/definitions/substage_definition.gd" id="2_substage"]
 [ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_01.tres" id="3_substage_01"]
 [ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_02.tres" id="4_substage_02"]
 [ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_03.tres" id="5_substage_03"]
@@ -20,7 +20,5 @@ display_name = "Guardian Grove"
 description = "The repeating prototype Stage used for the current endless wave progression."
 substages = Array[ExtResource("2_substage")]([ExtResource("3_substage_01"), ExtResource("4_substage_02"), ExtResource("5_substage_03"), ExtResource("6_substage_04"), ExtResource("7_substage_05"), ExtResource("8_substage_06"), ExtResource("9_substage_07"), ExtResource("10_substage_08"), ExtResource("11_substage_09"), ExtResource("12_substage_10")])
 repeat_indefinitely = true
-health_increase_per_stage_wave = 3.0
-maximum_enemy_health = 1000000.0
-completion_essence_reward = 0
-completion_effect_ids = Array[StringName]([])
+health_growth_per_stage_wave = 0.015
+damage_growth_per_stage_wave = 0.003

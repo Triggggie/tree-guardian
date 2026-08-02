@@ -19,6 +19,12 @@ signal new_highest_wave_completed(
 const ACTIVE_STAGE_ID: StringName = &"guardian_grove"
 
 
+@export_category("Debug")
+
+@export_range(0, 1000000, 1)
+var debug_start_global_wave: int = 0
+
+
 var spawn_director: SpawnDirector
 var enemy_tracker: EnemyTracker
 var stage_definition: StageDefinition
@@ -30,6 +36,7 @@ var highest_completed_wave: int = 0
 
 var _wave_cycle_id: int = 0
 var _cycle_running: bool = false
+var _debug_start_applied: bool = false
 
 
 func _ready() -> void:
@@ -209,10 +216,39 @@ func start_cycle(
 	_cycle_running = true
 
 	var new_cycle_id: int = _wave_cycle_id
+	var debug_start_applied: bool = (
+		_apply_debug_start_if_needed()
+	)
 
 	_run_wave_loop(
 		new_cycle_id,
-		retry_current_wave
+		retry_current_wave and not debug_start_applied
+	)
+
+	return true
+
+
+func _apply_debug_start_if_needed() -> bool:
+	if _debug_start_applied:
+		return false
+
+	_debug_start_applied = true
+
+	if (
+		not OS.is_debug_build()
+		or debug_start_global_wave <= 0
+	):
+		return false
+
+	var requested_wave: int = debug_start_global_wave
+
+	current_wave = requested_wave
+	var progress_code: String = get_current_progress_code()
+	current_wave = requested_wave - 1
+
+	print(
+		"[WaveDirector] Debug start: global Wave %d (%s)"
+		% [requested_wave, progress_code]
 	)
 
 	return true
@@ -613,7 +649,8 @@ func _run_wave_loop(
 			var damage_multiplier: float = (
 				stage_definition.get_enemy_damage_multiplier(
 					wave_definition,
-					enemy_id
+					enemy_id,
+					stage_wave
 				)
 			)
 

@@ -77,16 +77,16 @@ func test_enemy_definition() -> void:
 	expect(
 		is_equal_approx(
 			definition.maximum_health,
-			30.0
+			12.0
 		),
-		"Bark Beetle maximum health is not 30.0."
+		"Bark Beetle maximum health is not 12.0."
 	)
 	expect(
 		is_equal_approx(
 			definition.attack_damage,
-			5.0
+			1.5
 		),
-		"Bark Beetle attack damage is not 5.0."
+		"Bark Beetle attack damage is not 1.5."
 	)
 	expect(
 		is_equal_approx(
@@ -151,9 +151,9 @@ func test_bark_runner_definition() -> void:
 	expect(
 		is_equal_approx(
 			bark_runner.maximum_health,
-			18.0
+			7.0
 		),
-		"Bark Runner maximum health is not 18.0."
+		"Bark Runner maximum health is not 7.0."
 	)
 	expect(
 		is_equal_approx(
@@ -165,9 +165,9 @@ func test_bark_runner_definition() -> void:
 	expect(
 		is_equal_approx(
 			bark_runner.attack_damage,
-			3.0
+			0.75
 		),
-		"Bark Runner attack damage is not 3.0."
+		"Bark Runner attack damage is not 0.75."
 	)
 	expect(
 		is_equal_approx(
@@ -211,7 +211,7 @@ func test_bark_runner_definition() -> void:
 
 	print(
 		"BARK RUNNER DEFINITION TEST PASS: "
-		+ "health=18, speed=185, damage=3"
+		+ "health=7, speed=185, damage=0.75"
 	)
 
 
@@ -355,9 +355,9 @@ func test_bark_runner_scene() -> void:
 		expect(
 			is_equal_approx(
 				health_component.get_maximum_health(),
-				18.0
+				7.0
 			),
-			"Bark Runner HealthComponent maximum is not 18.0."
+			"Bark Runner HealthComponent maximum is not 7.0."
 		)
 
 	if is_instance_valid(attack_component):
@@ -368,9 +368,9 @@ func test_bark_runner_scene() -> void:
 		expect(
 			is_equal_approx(
 				attack_component.get_attack_damage(),
-				3.0
+				0.75
 			),
-			"Bark Runner AttackComponent damage is not 3.0."
+			"Bark Runner AttackComponent damage is not 0.75."
 		)
 		expect(
 			is_equal_approx(
@@ -694,8 +694,8 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		"Guardian Grove schedule display name is incorrect."
 	)
 	expect(
-		schedule.entries.size() == 11,
-		"Guardian Grove schedule does not contain exactly 11 entries."
+		schedule.entries.size() == 19,
+		"Guardian Grove schedule does not contain exactly 19 entries."
 	)
 	expect(
 		schedule.get_wave_for_number(0) == null,
@@ -713,15 +713,27 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		{"wave": 19, "wave_id": &"bark_runner_intro"},
 		{"wave": 20, "wave_id": &"bark_beetle_runner_mixed"},
 		{"wave": 21, "wave_id": &"standard_bark_beetle"},
+		{"wave": 29, "wave_id": &"standard_bark_beetle"},
+		{"wave": 30, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 31, "wave_id": &"standard_bark_beetle"},
 		{"wave": 39, "wave_id": &"standard_bark_beetle"},
-		{"wave": 40, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 40, "wave_id": &"bark_runner_rush"},
 		{"wave": 41, "wave_id": &"standard_bark_beetle"},
+		{"wave": 49, "wave_id": &"standard_bark_beetle"},
+		{"wave": 50, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 51, "wave_id": &"standard_bark_beetle"},
 		{"wave": 59, "wave_id": &"standard_bark_beetle"},
 		{"wave": 60, "wave_id": &"bark_runner_rush"},
 		{"wave": 61, "wave_id": &"standard_bark_beetle"},
+		{"wave": 69, "wave_id": &"standard_bark_beetle"},
+		{"wave": 70, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 71, "wave_id": &"standard_bark_beetle"},
 		{"wave": 79, "wave_id": &"standard_bark_beetle"},
-		{"wave": 80, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 80, "wave_id": &"bark_runner_rush"},
 		{"wave": 81, "wave_id": &"standard_bark_beetle"},
+		{"wave": 89, "wave_id": &"standard_bark_beetle"},
+		{"wave": 90, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 91, "wave_id": &"standard_bark_beetle"},
 		{"wave": 99, "wave_id": &"standard_bark_beetle"},
 		{"wave": 100, "wave_id": &"guardian_grove_substage_finale"}
 	]
@@ -815,16 +827,16 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		intro_wave,
 		&"bark_runner_intro",
 		"Bark Runner Introduction",
-		0.22,
-		0.7,
-		0.5
+		0.16,
+		0.35,
+		0.25
 	)
 	_expect_wave_entry_data(
 		intro_wave,
 		0,
 		&"bark_runner",
-		1,
-		1,
+		4,
+		11,
 		100,
 		1,
 		10
@@ -833,45 +845,45 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		mixed_wave,
 		&"bark_beetle_runner_mixed",
 		"Bark Beetle and Bark Runner Mixed Wave",
-		0.22,
-		0.7,
-		0.6
+		0.15,
+		0.4,
+		0.3
 	)
 	_expect_wave_entry_data(
 		mixed_wave,
 		0,
 		&"bark_beetle",
-		2,
+		4,
+		20,
+		30,
 		1,
-		100,
-		1,
-		12
+		10
 	)
 	_expect_wave_entry_data(
 		mixed_wave,
 		1,
 		&"bark_runner",
+		2,
+		20,
+		30,
 		1,
-		1,
-		100,
-		1,
-		10
+		8
 	)
 	_expect_wave_identity_and_timing(
 		rush_wave,
 		&"bark_runner_rush",
 		"Bark Runner Rush",
-		0.15,
-		0.7,
-		0.6
+		0.12,
+		0.4,
+		0.3
 	)
 	_expect_wave_entry_data(
 		rush_wave,
 		0,
 		&"bark_runner",
-		3,
-		1,
-		100,
+		6,
+		40,
+		40,
 		1,
 		12
 	)
@@ -879,26 +891,26 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		finale_wave,
 		&"guardian_grove_substage_finale",
 		"Guardian Grove Substage Finale",
-		0.18,
-		0.8,
-		1.0
+		0.12,
+		0.5,
+		0.4
 	)
 	_expect_wave_entry_data(
 		finale_wave,
 		0,
 		&"bark_beetle",
-		4,
-		1,
+		7,
+		100,
 		100,
 		1,
-		16
+		14
 	)
 	_expect_wave_entry_data(
 		finale_wave,
 		1,
 		&"bark_runner",
-		2,
-		1,
+		4,
+		100,
 		100,
 		1,
 		10
@@ -948,44 +960,196 @@ func test_guardian_grove_schedule_and_waves() -> void:
 			% (substage_index + 1)
 		)
 
+	var standard_counts: Array[Dictionary] = [
+		{"wave": 1, "count": 3},
+		{"wave": 10, "count": 3},
+		{"wave": 11, "count": 4},
+		{"wave": 20, "count": 4},
+		{"wave": 21, "count": 5},
+		{"wave": 30, "count": 5},
+		{"wave": 31, "count": 6},
+		{"wave": 40, "count": 6},
+		{"wave": 41, "count": 7},
+		{"wave": 50, "count": 7},
+		{"wave": 100, "count": 12}
+	]
+
+	for count_fixture in standard_counts:
+		var stage_wave: int = int(count_fixture["wave"])
+		expect(
+			standard_wave.get_enemy_count_for_id(
+				&"bark_beetle",
+				stage_wave
+			) == int(count_fixture["count"]),
+			"Standard Wave Stage Wave %d count is incorrect."
+			% stage_wave
+		)
+
+	var intro_counts: Array[Dictionary] = [
+		{"wave": 11, "count": 4},
+		{"wave": 19, "count": 4},
+		{"wave": 111, "count": 5},
+		{"wave": 911, "count": 10}
+	]
+
+	for count_fixture in intro_counts:
+		var stage_wave: int = int(count_fixture["wave"])
+		expect(
+			intro_wave.get_enemy_count_for_id(
+				&"bark_runner",
+				stage_wave
+			) == int(count_fixture["count"]),
+			"Runner Intro Stage Wave %d count is incorrect."
+			% stage_wave
+		)
+
+	var mixed_counts: Array[Dictionary] = [
+		{"wave": 20, "beetle": 4, "runner": 2},
+		{"wave": 30, "beetle": 4, "runner": 2},
+		{"wave": 50, "beetle": 5, "runner": 3},
+		{"wave": 80, "beetle": 6, "runner": 4}
+	]
+
+	for count_fixture in mixed_counts:
+		var stage_wave: int = int(count_fixture["wave"])
+		expect(
+			mixed_wave.get_enemy_count_for_id(
+				&"bark_beetle",
+				stage_wave
+			) == int(count_fixture["beetle"]),
+			"Mixed Stage Wave %d Bark Beetle count is incorrect."
+			% stage_wave
+		)
+		expect(
+			mixed_wave.get_enemy_count_for_id(
+				&"bark_runner",
+				stage_wave
+			) == int(count_fixture["runner"]),
+			"Mixed Stage Wave %d Bark Runner count is incorrect."
+			% stage_wave
+		)
+
+	var rush_counts: Array[Dictionary] = [
+		{"wave": 40, "count": 6},
+		{"wave": 60, "count": 6},
+		{"wave": 80, "count": 7}
+	]
+
+	for count_fixture in rush_counts:
+		var stage_wave: int = int(count_fixture["wave"])
+		expect(
+			rush_wave.get_enemy_count_for_id(
+				&"bark_runner",
+				stage_wave
+			) == int(count_fixture["count"]),
+			"Runner Rush Stage Wave %d count is incorrect."
+			% stage_wave
+		)
+
 	expect(
-		intro_wave.get_enemy_count_for_id(&"bark_runner", 11) == 1,
-		"Runner Intro Stage Wave 11 count is not 1."
+		finale_wave.get_enemy_count_for_id(&"bark_beetle", 100) == 7,
+		"Finale Stage Wave 100 Bark Beetle count is not 7."
 	)
 	expect(
-		intro_wave.get_enemy_count_for_id(&"bark_runner", 111) == 2,
-		"Runner Intro Stage Wave 111 count is not 2."
+		finale_wave.get_enemy_count_for_id(&"bark_runner", 100) == 4,
+		"Finale Stage Wave 100 Bark Runner count is not 4."
 	)
+
+	var total_health_fixtures: Array[Dictionary] = [
+		{"wave": 2, "health": 36.54},
+		{"wave": 20, "health": 79.67},
+		{"wave": 21, "health": 78.0},
+		{"wave": 29, "health": 85.2},
+		{"wave": 30, "health": 88.97},
+		{"wave": 49, "health": 144.48},
+		{"wave": 50, "health": 140.535}
+	]
+
+	for health_fixture in total_health_fixtures:
+		var stage_wave: int = int(health_fixture["wave"])
+		expect(
+			is_equal_approx(
+				_get_total_enemy_health_per_side(
+					stage,
+					stage_wave
+				),
+				float(health_fixture["health"])
+			),
+			"Stage Wave %d total health per side is incorrect."
+			% stage_wave
+		)
+
 	expect(
-		intro_wave.get_enemy_count_for_id(&"bark_runner", 911) == 10,
-		"Runner Intro Stage Wave 911 count is not 10."
+		is_equal_approx(
+			_get_total_enemy_health_per_side(stage, 2) * 2.0,
+			73.08
+		),
+		"Stage Wave 2 total health across both sides is incorrect."
 	)
+
+	var enemies_per_side_waves_1_to_50: int = 0
+
+	for stage_wave in range(1, 51):
+		var scheduled_wave: WaveDefinition = (
+			stage.get_wave_for_stage_index(stage_wave - 1)
+		)
+
+		if is_instance_valid(scheduled_wave):
+			enemies_per_side_waves_1_to_50 += (
+				scheduled_wave.get_total_enemies_per_side(stage_wave)
+			)
+
 	expect(
-		mixed_wave.get_enemy_count_for_id(&"bark_beetle", 20) == 2,
-		"Mixed Stage Wave 20 Bark Beetle count is not 2."
-	)
-	expect(
-		mixed_wave.get_enemy_count_for_id(&"bark_runner", 20) == 1,
-		"Mixed Stage Wave 20 Bark Runner count is not 1."
-	)
-	expect(
-		mixed_wave.get_enemy_count_for_id(&"bark_beetle", 120) == 3,
-		"Mixed Stage Wave 120 Bark Beetle count is not 3."
-	)
-	expect(
-		mixed_wave.get_enemy_count_for_id(&"bark_runner", 120) == 2,
-		"Mixed Stage Wave 120 Bark Runner count is not 2."
+		enemies_per_side_waves_1_to_50 == 254,
+		"Waves 1-50 do not spawn 254 enemies per side."
 	)
 
 	print(
-		"SUBSTAGE SCHEDULE TEST PASS: entries=11, coverage=1-100"
+		"SUBSTAGE SCHEDULE TEST PASS: entries=19, coverage=1-100"
 	)
 	print(
 		"PRODUCTION WAVE DATA TEST PASS: new_waves=4, ordered mixed entries"
 	)
 	print(
-		"SCHEDULE COUNT SCALING TEST PASS: Stage Waves 11, 111, 911, 20, 120"
+		"EARLY BALANCE TEST PASS: counts, continuity, total_spawned_1_50=508"
 	)
+
+
+func _get_total_enemy_health_per_side(
+	stage: StageDefinition,
+	stage_wave: int
+) -> float:
+	var wave_definition: WaveDefinition = (
+		stage.get_wave_for_stage_index(stage_wave - 1)
+	)
+
+	if not is_instance_valid(wave_definition):
+		return 0.0
+
+	var total_health: float = 0.0
+
+	for enemy_id in wave_definition.get_enemy_ids():
+		var enemy_definition: EnemyDefinition = (
+			GameContent.get_enemy(enemy_id)
+		)
+
+		if not is_instance_valid(enemy_definition):
+			continue
+
+		total_health += (
+			stage.get_enemy_count_for_stage_wave(
+				wave_definition,
+				enemy_id,
+				stage_wave
+			)
+			* stage.get_enemy_health_for_stage_wave(
+				wave_definition,
+				enemy_definition,
+				stage_wave
+			)
+		)
+
+	return total_health
 
 
 func _expect_wave_identity_and_timing(
@@ -1153,6 +1317,36 @@ func test_stage_and_wave_definition() -> void:
 		stage.repeat_indefinitely,
 		"Guardian Grove is not configured to repeat indefinitely."
 	)
+	expect(
+		is_equal_approx(stage.health_growth_per_stage_wave, 0.015),
+		"Guardian Grove health growth per Stage Wave is not 0.015."
+	)
+	expect(
+		is_equal_approx(stage.damage_growth_per_stage_wave, 0.003),
+		"Guardian Grove damage growth per Stage Wave is not 0.003."
+	)
+	expect(
+		is_equal_approx(stage.maximum_enemy_health, 1000000.0),
+		"Guardian Grove maximum enemy health is not 1000000.0."
+	)
+
+	stage.health_growth_per_stage_wave = -0.01
+	expect(
+		not stage.is_valid_definition(),
+		"StageDefinition accepted negative health growth."
+	)
+	stage.health_growth_per_stage_wave = 0.015
+
+	stage.damage_growth_per_stage_wave = -0.01
+	expect(
+		not stage.is_valid_definition(),
+		"StageDefinition accepted negative damage growth."
+	)
+	stage.damage_growth_per_stage_wave = 0.003
+	expect(
+		stage.is_valid_definition(),
+		"Guardian Grove remained invalid after restoring growth values."
+	)
 
 	var standard_wave: WaveDefinition = (
 		stage.get_wave_for_stage_index(0)
@@ -1200,8 +1394,8 @@ func test_stage_and_wave_definition() -> void:
 			% (substage_index + 1)
 		)
 		expect(
-			substage.get_wave_pattern_count() == 11,
-			"Guardian Grove Substage %d does not have 11 schedule entries."
+			substage.get_wave_pattern_count() == 19,
+			"Guardian Grove Substage %d does not have 19 schedule entries."
 			% (substage_index + 1)
 		)
 		expect(
@@ -1371,24 +1565,24 @@ func test_stage_and_wave_definition() -> void:
 			"Standard Wave entry has the wrong enemy ID."
 		)
 		expect(
-			bark_beetle_entry.base_count_per_side == 2,
-			"Standard Wave entry base count is not 2."
+			bark_beetle_entry.base_count_per_side == 3,
+			"Standard Wave entry base count is not 3."
 		)
 		expect(
 			bark_beetle_entry.count_scaling_start_stage_wave == 1,
 			"Standard Wave entry scaling start is not 1."
 		)
 		expect(
-			bark_beetle_entry.count_increase_interval == 3,
-			"Standard Wave entry count interval is not 3."
+			bark_beetle_entry.count_increase_interval == 10,
+			"Standard Wave entry count interval is not 10."
 		)
 		expect(
 			bark_beetle_entry.count_increase_amount == 1,
 			"Standard Wave entry count amount is not 1."
 		)
 		expect(
-			bark_beetle_entry.maximum_count_per_side == 30,
-			"Standard Wave entry maximum count is not 30."
+			bark_beetle_entry.maximum_count_per_side == 12,
+			"Standard Wave entry maximum count is not 12."
 		)
 		expect(
 			is_equal_approx(
@@ -1409,29 +1603,29 @@ func test_stage_and_wave_definition() -> void:
 		standard_wave.get_enemy_count_for_id(
 			&"bark_beetle",
 			1
-		) == 2,
-		"Standard Wave Stage Wave 1 count is not 2."
-	)
-	expect(
-		standard_wave.get_enemy_count_for_id(
-			&"bark_beetle",
-			3
-		) == 2,
-		"Standard Wave Stage Wave 3 count is not 2."
-	)
-	expect(
-		standard_wave.get_enemy_count_for_id(
-			&"bark_beetle",
-			4
 		) == 3,
-		"Standard Wave Stage Wave 4 count is not 3."
+		"Standard Wave Stage Wave 1 count is not 3."
+	)
+	expect(
+		standard_wave.get_enemy_count_for_id(
+			&"bark_beetle",
+			10
+		) == 3,
+		"Standard Wave Stage Wave 10 count is not 3."
+	)
+	expect(
+		standard_wave.get_enemy_count_for_id(
+			&"bark_beetle",
+			11
+		) == 4,
+		"Standard Wave Stage Wave 11 count is not 4."
 	)
 	expect(
 		standard_wave.get_enemy_count_for_id(
 			&"bark_beetle",
 			100
-		) == 30,
-		"Standard Wave Stage Wave 100 count is not 30."
+		) == 12,
+		"Standard Wave Stage Wave 100 count is not 12."
 	)
 	expect(
 		standard_wave.get_enemy_count_for_id(
@@ -1441,23 +1635,23 @@ func test_stage_and_wave_definition() -> void:
 		"Standard Wave unknown enemy count is not 0."
 	)
 	expect(
-		standard_wave.get_total_enemies_per_side(1) == 2,
-		"Standard Wave Stage Wave 1 total count is not 2."
+		standard_wave.get_total_enemies_per_side(1) == 3,
+		"Standard Wave Stage Wave 1 total count is not 3."
 	)
 	expect(
-		standard_wave.get_total_enemies_per_side(4) == 3,
-		"Standard Wave Stage Wave 4 total count is not 3."
+		standard_wave.get_total_enemies_per_side(11) == 4,
+		"Standard Wave Stage Wave 11 total count is not 4."
 	)
 	expect(
-		standard_wave.get_total_enemies_per_side(100) == 30,
-		"Standard Wave Stage Wave 100 total count is not 30."
+		standard_wave.get_total_enemies_per_side(100) == 12,
+		"Standard Wave Stage Wave 100 total count is not 12."
 	)
 	expect(
 		is_equal_approx(
 			standard_wave.spawn_interval,
-			0.25
+			0.18
 		),
-		"Standard Wave spawn interval is not 0.25."
+		"Standard Wave spawn interval is not 0.18."
 	)
 	expect(
 		is_equal_approx(
@@ -1498,93 +1692,284 @@ func test_stage_and_wave_definition() -> void:
 	expect(
 		is_equal_approx(
 			standard_wave.completion_message_duration,
-			0.7
+			0.35
 		),
-		"Standard Wave completion message duration is not 0.7."
+		"Standard Wave completion message duration is not 0.35."
 	)
 	expect(
 		is_equal_approx(
 			standard_wave.time_after_wave,
-			0.5
+			0.25
 		),
-		"Standard Wave time after Wave is not 0.5."
+		"Standard Wave time after Wave is not 0.25."
 	)
 
 	var bark_beetle_definition: EnemyDefinition = (
 		GameContent.get_enemy(&"bark_beetle")
 	)
+	var bark_runner_definition: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_runner")
+	)
+	var intro_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"bark_runner_intro"
+	)
 	expect(
 		is_instance_valid(bark_beetle_definition),
 		"Stage test could not load Bark Beetle EnemyDefinition."
 	)
-
-	var stage_wave_counts: Array[int] = [2, 2, 2, 3]
-
-	for stage_wave_index in range(stage_wave_counts.size()):
-		var stage_wave: int = stage_wave_index + 1
-		expect(
-			stage.get_enemy_count_for_stage_wave(
-				standard_wave,
-				&"bark_beetle",
-				stage_wave
-			) == stage_wave_counts[stage_wave_index],
-			"Stage Wave %d Bark Beetle count is incorrect."
-			% stage_wave
-		)
-
 	expect(
-		stage.get_enemy_count_for_stage_wave(
-			standard_wave,
-			&"bark_beetle",
-			100
-		) == 30,
-		"Stage Wave 100 Bark Beetle count is not 30."
+		is_instance_valid(bark_runner_definition),
+		"Stage test could not load Bark Runner EnemyDefinition."
 	)
 	expect(
-		is_equal_approx(
-			stage.get_enemy_damage_multiplier(
-				standard_wave,
-				&"bark_beetle"
-			),
-			1.0
-		),
-		"Stage Bark Beetle damage multiplier is not 1.0."
+		is_instance_valid(intro_wave),
+		"Stage test could not load Bark Runner Intro Wave."
 	)
 
-	if is_instance_valid(bark_beetle_definition):
-		var stage_wave_health: Array[float] = [
-			30.0,
-			33.0,
-			36.0,
-			39.0
+	if (
+		is_instance_valid(bark_beetle_definition)
+		and is_instance_valid(bark_runner_definition)
+		and is_instance_valid(intro_wave)
+	):
+		var scaling_fixtures: Array[Dictionary] = [
+			{
+				"wave": 1,
+				"beetle_health": 12.0,
+				"runner_health": 7.0,
+				"damage_multiplier": 1.0,
+				"beetle_damage": 1.5,
+				"runner_damage": 0.75
+			},
+			{
+				"wave": 2,
+				"beetle_health": 12.18,
+				"runner_health": 7.105,
+				"damage_multiplier": 1.003,
+				"beetle_damage": 1.5045,
+				"runner_damage": 0.75225
+			},
+			{
+				"wave": 20,
+				"beetle_health": 15.42,
+				"runner_health": 8.995,
+				"damage_multiplier": 1.057,
+				"beetle_damage": 1.5855,
+				"runner_damage": 0.79275
+			},
+			{
+				"wave": 21,
+				"beetle_health": 15.6,
+				"runner_health": 9.1,
+				"damage_multiplier": 1.06,
+				"beetle_damage": 1.59,
+				"runner_damage": 0.795
+			},
+			{
+				"wave": 31,
+				"beetle_health": 17.4,
+				"runner_health": 10.15,
+				"damage_multiplier": 1.09,
+				"beetle_damage": 1.635,
+				"runner_damage": 0.8175
+			},
+			{
+				"wave": 40,
+				"beetle_health": 19.02,
+				"runner_health": 11.095,
+				"damage_multiplier": 1.117,
+				"beetle_damage": 1.6755,
+				"runner_damage": 0.83775
+			},
+			{
+				"wave": 50,
+				"beetle_health": 20.82,
+				"runner_health": 12.145,
+				"damage_multiplier": 1.147,
+				"beetle_damage": 1.7205,
+				"runner_damage": 0.86025
+			},
+			{
+				"wave": 100,
+				"beetle_health": 29.82,
+				"runner_health": 17.395,
+				"damage_multiplier": 1.297,
+				"beetle_damage": 1.9455,
+				"runner_damage": 0.97275
+			}
 		]
 
-		for stage_wave_index in range(stage_wave_health.size()):
-			var stage_wave: int = stage_wave_index + 1
+		for scaling_fixture in scaling_fixtures:
+			var stage_wave: int = int(scaling_fixture["wave"])
+			var beetle_health: float = (
+				stage.get_enemy_health_for_stage_wave(
+					standard_wave,
+					bark_beetle_definition,
+					stage_wave
+				)
+			)
+			var runner_health: float = (
+				stage.get_enemy_health_for_stage_wave(
+					intro_wave,
+					bark_runner_definition,
+					stage_wave
+				)
+			)
+			var beetle_damage_multiplier: float = (
+				stage.get_enemy_damage_multiplier(
+					standard_wave,
+					&"bark_beetle",
+					stage_wave
+				)
+			)
+			var runner_damage_multiplier: float = (
+				stage.get_enemy_damage_multiplier(
+					intro_wave,
+					&"bark_runner",
+					stage_wave
+				)
+			)
+
 			expect(
 				is_equal_approx(
-					stage.get_enemy_health_for_stage_wave(
-						standard_wave,
-						bark_beetle_definition,
-						stage_wave
-					),
-					stage_wave_health[stage_wave_index]
+					beetle_health,
+					float(scaling_fixture["beetle_health"])
 				),
 				"Stage Wave %d Bark Beetle health is incorrect."
 				% stage_wave
 			)
+			expect(
+				is_equal_approx(
+					runner_health,
+					float(scaling_fixture["runner_health"])
+				),
+				"Stage Wave %d Bark Runner health is incorrect."
+				% stage_wave
+			)
+			expect(
+				is_equal_approx(
+					beetle_damage_multiplier,
+					float(scaling_fixture["damage_multiplier"])
+				),
+				"Stage Wave %d Bark Beetle damage multiplier is incorrect."
+				% stage_wave
+			)
+			expect(
+				is_equal_approx(
+					runner_damage_multiplier,
+					float(scaling_fixture["damage_multiplier"])
+				),
+				"Stage Wave %d Bark Runner damage multiplier is incorrect."
+				% stage_wave
+			)
+			expect(
+				is_equal_approx(
+					bark_beetle_definition.attack_damage
+					* beetle_damage_multiplier,
+					float(scaling_fixture["beetle_damage"])
+				),
+				"Stage Wave %d Bark Beetle applied damage is incorrect."
+				% stage_wave
+			)
+			expect(
+				is_equal_approx(
+					bark_runner_definition.attack_damage
+					* runner_damage_multiplier,
+					float(scaling_fixture["runner_damage"])
+				),
+				"Stage Wave %d Bark Runner applied damage is incorrect."
+				% stage_wave
+			)
+			expect(
+				is_equal_approx(
+					runner_health / beetle_health,
+					7.0 / 12.0
+				),
+				"Stage Wave %d did not preserve the Runner HP ratio."
+				% stage_wave
+			)
+
+		var wave_31_beetles_per_side: int = (
+			stage.get_enemy_count_for_stage_wave(
+				standard_wave,
+				&"bark_beetle",
+				31
+			)
+		)
+		var wave_31_total_beetles: int = (
+			wave_31_beetles_per_side * 2
+		)
+		var wave_31_applied_damage: float = (
+			bark_beetle_definition.attack_damage
+			* stage.get_enemy_damage_multiplier(
+				standard_wave,
+				&"bark_beetle",
+				31
+			)
+		)
+		var wave_31_theoretical_dps: float = (
+			wave_31_applied_damage
+			/ bark_beetle_definition.attack_interval
+			* wave_31_total_beetles
+		)
+		var previous_wave_31_applied_damage: float = (
+			2.0 * (1.0 + 0.005 * 30.0)
+		)
+		var previous_wave_31_theoretical_dps: float = (
+			previous_wave_31_applied_damage
+			/ 1.5
+			* wave_31_total_beetles
+		)
+		var wave_31_dps_reduction: float = (
+			1.0
+			- wave_31_theoretical_dps
+			/ previous_wave_31_theoretical_dps
+		)
 
 		expect(
-			is_equal_approx(
-				stage.get_enemy_health_for_stage_wave(
-					standard_wave,
-					bark_beetle_definition,
-					100
-				),
-				327.0
-			),
-			"Stage Wave 100 Bark Beetle health is not 327.0."
+			wave_31_beetles_per_side == 6
+			and wave_31_total_beetles == 12,
+			"Stage Wave 31 does not contain 6 Beetles per side."
 		)
+		expect(
+			is_equal_approx(wave_31_applied_damage, 1.635),
+			"Stage Wave 31 Bark Beetle applied damage is not 1.635."
+		)
+		expect(
+			is_equal_approx(wave_31_theoretical_dps, 13.08),
+			"Stage Wave 31 theoretical Beetle DPS is not 13.08."
+		)
+		expect(
+			is_equal_approx(
+				previous_wave_31_theoretical_dps,
+				18.4
+			),
+			"Previous Stage Wave 31 theoretical DPS is not 18.4."
+		)
+		expect(
+			is_equal_approx(
+				wave_31_dps_reduction,
+				0.2891304348
+			),
+			"Stage Wave 31 DPS reduction is not approximately 28.9%."
+		)
+
+		print(
+			"WAVE 31 DPS DIAGNOSTIC TEST PASS: "
+			+ "previous=18.40, current=13.08, reduction=28.9%"
+		)
+
+	expect(
+		is_equal_approx(
+			stage.get_enemy_damage_multiplier(
+				standard_wave,
+				&"missing_enemy",
+				100
+			),
+			1.0
+		),
+		"Stage unknown enemy damage fallback is not 1.0."
+	)
 
 	var indexed_wave: WaveDefinition = GameContent.get_wave(
 		&"guardian_grove",
@@ -1598,6 +1983,9 @@ func test_stage_and_wave_definition() -> void:
 	print(
 		"STAGE/SUBSTAGE MAPPING TEST PASS: "
 		+ "substages=10, waves_per_substage=100, total_waves=1000"
+	)
+	print(
+		"STAGE PERCENT SCALING TEST PASS: HP and damage Waves 1-100"
 	)
 
 
@@ -2094,6 +2482,26 @@ func test_wave_director_substage_queries() -> void:
 		"WaveDirector initial progress code is not 1-1-1."
 	)
 
+	var debug_progress_mappings: Array[Dictionary] = [
+		{"global_wave": 20, "code": "1-1-20"},
+		{"global_wave": 21, "code": "1-1-21"},
+		{"global_wave": 40, "code": "1-1-40"},
+		{"global_wave": 50, "code": "1-1-50"},
+		{"global_wave": 100, "code": "1-1-100"},
+		{"global_wave": 101, "code": "1-2-1"},
+		{"global_wave": 1001, "code": "2-1-1"}
+	]
+
+	for mapping in debug_progress_mappings:
+		var global_wave: int = int(mapping["global_wave"])
+		director.current_wave = global_wave
+		expect(
+			director.get_current_progress_code()
+			== String(mapping["code"]),
+			"Debug global Wave %d produced the wrong progress code."
+			% global_wave
+		)
+
 	var mappings: Array[Dictionary] = [
 		{
 			"global_wave": 1,
@@ -2223,26 +2631,62 @@ func test_wave_director_substage_queries() -> void:
 			% global_wave
 		)
 
+	if OS.is_debug_build():
+		director.current_wave = 0
+		director.highest_completed_wave = 7
+		director.debug_start_global_wave = 50
+		expect(
+			director._apply_debug_start_if_needed(),
+			"WaveDirector did not apply a valid debug start."
+		)
+		expect(
+			director.current_wave == 49,
+			"Debug start did not prepare Wave 50 without off-by-one."
+		)
+		expect(
+			director.highest_completed_wave == 7,
+			"Debug start changed highest completed Wave."
+		)
+
+		director.current_wave += 1
+		expect(
+			director.get_current_progress_code() == "1-1-50",
+			"Prepared debug start did not resolve to 1-1-50."
+		)
+
+		director.debug_start_global_wave = 20
+		expect(
+			not director._apply_debug_start_if_needed(),
+			"WaveDirector applied debug start more than once."
+		)
+		expect(
+			director.current_wave == 50,
+			"Repeated debug start changed the current Wave."
+		)
+
 	director.current_wave = 1001
 	expect(
 		director.get_current_wave_in_stage() == 1,
 		"Global Wave 1001 did not reset balance to Stage Wave 1."
 	)
 	expect(
-		director.get_current_enemies_per_side() == 2,
-		"Global Wave 1001 did not reset Bark Beetle count to 2."
+		director.get_current_enemies_per_side() == 3,
+		"Global Wave 1001 did not reset Bark Beetle count to 3."
 	)
 	expect(
 		is_equal_approx(
 			director.get_current_enemy_health(),
-			30.0
+			12.0
 		),
-		"Global Wave 1001 did not reset Bark Beetle health to 30."
+		"Global Wave 1001 did not reset Bark Beetle health to 12."
 	)
 
 	print(
 		"WAVE DIRECTOR PROGRESS TEST PASS: "
 		+ "1-1-1 through 2-1-47 boundaries verified"
+	)
+	print(
+		"DEBUG START TEST PASS: one-shot mapping and progression isolation"
 	)
 
 	director.free()
@@ -2264,7 +2708,7 @@ func test_enemy_spawn_request() -> void:
 	var valid_request := EnemySpawnRequest.new(
 		definition,
 		2,
-		30.0,
+		definition.maximum_health,
 		1.0
 	)
 
@@ -2283,9 +2727,9 @@ func test_enemy_spawn_request() -> void:
 	expect(
 		is_equal_approx(
 			valid_request.maximum_health,
-			30.0
+			12.0
 		),
-		"EnemySpawnRequest did not retain maximum health 30.0."
+		"EnemySpawnRequest did not retain maximum health 12.0."
 	)
 	expect(
 		is_equal_approx(
@@ -2298,13 +2742,13 @@ func test_enemy_spawn_request() -> void:
 	var missing_definition_request := EnemySpawnRequest.new(
 		null,
 		2,
-		30.0,
+		12.0,
 		1.0
 	)
 	var zero_count_request := EnemySpawnRequest.new(
 		definition,
 		0,
-		30.0,
+		12.0,
 		1.0
 	)
 	var zero_health_request := EnemySpawnRequest.new(
@@ -2316,7 +2760,7 @@ func test_enemy_spawn_request() -> void:
 	var zero_damage_request := EnemySpawnRequest.new(
 		definition,
 		2,
-		30.0,
+		12.0,
 		0.0
 	)
 
@@ -2340,6 +2784,106 @@ func test_enemy_spawn_request() -> void:
 		not zero_damage_request.is_valid_request(),
 		"EnemySpawnRequest accepted zero damage multiplier."
 	)
+
+	var stage: StageDefinition = GameContent.get_stage(
+		&"guardian_grove"
+	)
+	var mixed_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"bark_beetle_runner_mixed"
+	)
+	var bark_runner: EnemyDefinition = GameContent.get_enemy(
+		&"bark_runner"
+	)
+
+	expect(
+		is_instance_valid(stage),
+		"Production SpawnRequest test could not load Guardian Grove."
+	)
+	expect(
+		is_instance_valid(mixed_wave),
+		"Production SpawnRequest test could not load the mixed Wave."
+	)
+	expect(
+		is_instance_valid(bark_runner),
+		"Production SpawnRequest test could not load Bark Runner."
+	)
+
+	if (
+		is_instance_valid(stage)
+		and is_instance_valid(mixed_wave)
+		and is_instance_valid(bark_runner)
+	):
+		var stage_wave: int = 20
+		var production_requests: Array[EnemySpawnRequest] = [
+			EnemySpawnRequest.new(
+				definition,
+				stage.get_enemy_count_for_stage_wave(
+					mixed_wave,
+					&"bark_beetle",
+					stage_wave
+				),
+				stage.get_enemy_health_for_stage_wave(
+					mixed_wave,
+					definition,
+					stage_wave
+				),
+				stage.get_enemy_damage_multiplier(
+					mixed_wave,
+					&"bark_beetle",
+					stage_wave
+				)
+			),
+			EnemySpawnRequest.new(
+				bark_runner,
+				stage.get_enemy_count_for_stage_wave(
+					mixed_wave,
+					&"bark_runner",
+					stage_wave
+				),
+				stage.get_enemy_health_for_stage_wave(
+					mixed_wave,
+					bark_runner,
+					stage_wave
+				),
+				stage.get_enemy_damage_multiplier(
+					mixed_wave,
+					&"bark_runner",
+					stage_wave
+				)
+			)
+		]
+		var beetle_request: EnemySpawnRequest = production_requests[0]
+		var runner_request: EnemySpawnRequest = production_requests[1]
+
+		expect(
+			beetle_request.is_valid_request()
+			and runner_request.is_valid_request(),
+			"Production mixed Wave created an invalid SpawnRequest."
+		)
+		expect(
+			beetle_request.enemies_per_side == 4
+			and runner_request.enemies_per_side == 2,
+			"Production mixed SpawnRequests have incorrect counts."
+		)
+		expect(
+			is_equal_approx(beetle_request.maximum_health, 15.42)
+			and is_equal_approx(runner_request.maximum_health, 8.995),
+			"Production mixed SpawnRequests have incorrect health."
+		)
+		expect(
+			is_equal_approx(
+				definition.attack_damage
+				* beetle_request.attack_damage_multiplier,
+				1.5855
+			)
+			and is_equal_approx(
+				bark_runner.attack_damage
+				* runner_request.attack_damage_multiplier,
+				0.79275
+			),
+			"Production mixed SpawnRequests have incorrect damage."
+		)
 
 
 func test_health_component() -> void:

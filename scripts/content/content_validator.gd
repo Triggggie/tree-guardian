@@ -781,10 +781,19 @@ static func validate_stage_content(
 				]
 			)
 
-		if stage.health_increase_per_stage_wave < 0.0:
+		if stage.health_growth_per_stage_wave < 0.0:
 			errors.append(
 				(
-					"%s has a negative health increase "
+					"%s has negative health growth "
+					+ "per Stage Wave."
+				)
+				% stage_label
+			)
+
+		if stage.damage_growth_per_stage_wave < 0.0:
+			errors.append(
+				(
+					"%s has negative damage growth "
 					+ "per Stage Wave."
 				)
 				% stage_label

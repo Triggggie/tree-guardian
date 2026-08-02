@@ -29,8 +29,14 @@ var description: String = ""
 
 @export var repeat_indefinitely: bool = false
 
-@export_range(0.0, 1000000000.0, 0.01)
-var health_increase_per_stage_wave: float = 3.0
+
+@export_category("Enemy Scaling")
+
+@export_range(0.0, 1.0, 0.0001)
+var health_growth_per_stage_wave: float = 0.0
+
+@export_range(0.0, 1.0, 0.0001)
+var damage_growth_per_stage_wave: float = 0.0
 
 @export_range(1.0, 1000000000.0, 1.0)
 var maximum_enemy_health: float = 1000000.0
@@ -259,12 +265,16 @@ func get_enemy_health_for_stage_wave(
 		stage_wave,
 		1
 	)
+	var stage_health_multiplier: float = (
+		1.0
+		+ health_growth_per_stage_wave
+		* (safe_stage_wave - 1)
+	)
 
 	var calculated_health: float = (
 		enemy_definition.maximum_health
 		* enemy_entry.health_multiplier
-		+ health_increase_per_stage_wave
-		* (safe_stage_wave - 1)
+		* stage_health_multiplier
 	)
 
 	return min(
@@ -281,7 +291,8 @@ func get_enemy_health_for_stage_wave(
 
 func get_enemy_damage_multiplier(
 	wave_definition: WaveDefinition,
-	enemy_id: StringName
+	enemy_id: StringName,
+	stage_wave: int = 1
 ) -> float:
 	if (
 		not is_instance_valid(wave_definition)
@@ -289,8 +300,26 @@ func get_enemy_damage_multiplier(
 	):
 		return 1.0
 
-	return wave_definition.get_damage_multiplier_for_id(
-		enemy_id
+	var enemy_entry: WaveEnemyEntryDefinition = (
+		wave_definition.get_enemy_entry(enemy_id)
+	)
+
+	if (
+		not is_instance_valid(enemy_entry)
+		or not enemy_entry.is_valid_definition()
+	):
+		return 1.0
+
+	var safe_stage_wave: int = max(stage_wave, 1)
+	var stage_damage_multiplier: float = (
+		1.0
+		+ damage_growth_per_stage_wave
+		* (safe_stage_wave - 1)
+	)
+
+	return (
+		enemy_entry.damage_multiplier
+		* stage_damage_multiplier
 	)
 
 
@@ -304,7 +333,10 @@ func is_valid_definition() -> bool:
 	if substages.size() != SUBSTAGE_COUNT:
 		return false
 
-	if health_increase_per_stage_wave < 0.0:
+	if health_growth_per_stage_wave < 0.0:
+		return false
+
+	if damage_growth_per_stage_wave < 0.0:
 		return false
 
 	if maximum_enemy_health < 1.0:

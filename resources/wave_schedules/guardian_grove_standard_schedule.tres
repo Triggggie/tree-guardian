@@ -1,16 +1,15 @@
-[gd_resource type="Resource" script_class="SubstageWaveScheduleDefinition" format=3]
+[gd_resource type="Resource" script_class="SubstageWaveScheduleDefinition" format=3 uid="uid://bjfl7ftp6dct4"]
 
-[ext_resource type="Script" path="res://scripts/definitions/substage_wave_schedule_definition.gd" id="1_schedule"]
-[ext_resource type="Script" path="res://scripts/definitions/substage_wave_schedule_entry_definition.gd" id="2_entry"]
-[ext_resource type="Resource" path="res://resources/waves/standard_bark_beetle_wave.tres" id="3_standard"]
-[ext_resource type="Resource" path="res://resources/waves/bark_runner_intro_wave.tres" id="4_intro"]
-[ext_resource type="Resource" path="res://resources/waves/bark_beetle_runner_mixed_wave.tres" id="5_mixed"]
-[ext_resource type="Resource" path="res://resources/waves/bark_runner_rush_wave.tres" id="6_rush"]
-[ext_resource type="Resource" path="res://resources/waves/guardian_grove_substage_finale_wave.tres" id="7_finale"]
+[ext_resource type="Script" uid="uid://fyiexim15ekq" path="res://scripts/definitions/substage_wave_schedule_definition.gd" id="1_schedule"]
+[ext_resource type="Script" uid="uid://dqe65srr0w036" path="res://scripts/definitions/substage_wave_schedule_entry_definition.gd" id="2_entry"]
+[ext_resource type="Resource" uid="uid://c65i7ldtrv1ax" path="res://resources/waves/standard_bark_beetle_wave.tres" id="3_standard"]
+[ext_resource type="Resource" uid="uid://m0swravpgwga" path="res://resources/waves/bark_runner_intro_wave.tres" id="4_intro"]
+[ext_resource type="Resource" uid="uid://bhxf8hu7xy8fl" path="res://resources/waves/bark_beetle_runner_mixed_wave.tres" id="5_mixed"]
+[ext_resource type="Resource" uid="uid://d126m3yd457aa" path="res://resources/waves/bark_runner_rush_wave.tres" id="6_rush"]
+[ext_resource type="Resource" uid="uid://bfj6820m7mjnv" path="res://resources/waves/guardian_grove_substage_finale_wave.tres" id="7_finale"]
 
 [sub_resource type="Resource" id="Resource_entry_01"]
 script = ExtResource("2_entry")
-start_wave = 1
 end_wave = 10
 wave_definition = ExtResource("3_standard")
 
@@ -29,46 +28,94 @@ wave_definition = ExtResource("5_mixed")
 [sub_resource type="Resource" id="Resource_entry_04"]
 script = ExtResource("2_entry")
 start_wave = 21
-end_wave = 39
+end_wave = 29
 wave_definition = ExtResource("3_standard")
 
 [sub_resource type="Resource" id="Resource_entry_05"]
 script = ExtResource("2_entry")
-start_wave = 40
-end_wave = 40
+start_wave = 30
+end_wave = 30
 wave_definition = ExtResource("5_mixed")
 
 [sub_resource type="Resource" id="Resource_entry_06"]
 script = ExtResource("2_entry")
-start_wave = 41
-end_wave = 59
+start_wave = 31
+end_wave = 39
 wave_definition = ExtResource("3_standard")
 
 [sub_resource type="Resource" id="Resource_entry_07"]
+script = ExtResource("2_entry")
+start_wave = 40
+end_wave = 40
+wave_definition = ExtResource("6_rush")
+
+[sub_resource type="Resource" id="Resource_entry_08"]
+script = ExtResource("2_entry")
+start_wave = 41
+end_wave = 49
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_09"]
+script = ExtResource("2_entry")
+start_wave = 50
+end_wave = 50
+wave_definition = ExtResource("5_mixed")
+
+[sub_resource type="Resource" id="Resource_entry_10"]
+script = ExtResource("2_entry")
+start_wave = 51
+end_wave = 59
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_11"]
 script = ExtResource("2_entry")
 start_wave = 60
 end_wave = 60
 wave_definition = ExtResource("6_rush")
 
-[sub_resource type="Resource" id="Resource_entry_08"]
+[sub_resource type="Resource" id="Resource_entry_12"]
 script = ExtResource("2_entry")
 start_wave = 61
+end_wave = 69
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_13"]
+script = ExtResource("2_entry")
+start_wave = 70
+end_wave = 70
+wave_definition = ExtResource("5_mixed")
+
+[sub_resource type="Resource" id="Resource_entry_14"]
+script = ExtResource("2_entry")
+start_wave = 71
 end_wave = 79
 wave_definition = ExtResource("3_standard")
 
-[sub_resource type="Resource" id="Resource_entry_09"]
+[sub_resource type="Resource" id="Resource_entry_15"]
 script = ExtResource("2_entry")
 start_wave = 80
 end_wave = 80
-wave_definition = ExtResource("5_mixed")
+wave_definition = ExtResource("6_rush")
 
-[sub_resource type="Resource" id="Resource_entry_10"]
+[sub_resource type="Resource" id="Resource_entry_16"]
 script = ExtResource("2_entry")
 start_wave = 81
+end_wave = 89
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_17"]
+script = ExtResource("2_entry")
+start_wave = 90
+end_wave = 90
+wave_definition = ExtResource("5_mixed")
+
+[sub_resource type="Resource" id="Resource_entry_18"]
+script = ExtResource("2_entry")
+start_wave = 91
 end_wave = 99
 wave_definition = ExtResource("3_standard")
 
-[sub_resource type="Resource" id="Resource_entry_11"]
+[sub_resource type="Resource" id="Resource_entry_19"]
 script = ExtResource("2_entry")
 start_wave = 100
 end_wave = 100
@@ -78,4 +125,4 @@ wave_definition = ExtResource("7_finale")
 script = ExtResource("1_schedule")
 schedule_id = &"guardian_grove_standard"
 display_name = "Guardian Grove Standard Schedule"
-entries = Array[ExtResource("2_entry")]([SubResource("Resource_entry_01"), SubResource("Resource_entry_02"), SubResource("Resource_entry_03"), SubResource("Resource_entry_04"), SubResource("Resource_entry_05"), SubResource("Resource_entry_06"), SubResource("Resource_entry_07"), SubResource("Resource_entry_08"), SubResource("Resource_entry_09"), SubResource("Resource_entry_10"), SubResource("Resource_entry_11")])
+entries = Array[ExtResource("2_entry")]([SubResource("Resource_entry_01"), SubResource("Resource_entry_02"), SubResource("Resource_entry_03"), SubResource("Resource_entry_04"), SubResource("Resource_entry_05"), SubResource("Resource_entry_06"), SubResource("Resource_entry_07"), SubResource("Resource_entry_08"), SubResource("Resource_entry_09"), SubResource("Resource_entry_10"), SubResource("Resource_entry_11"), SubResource("Resource_entry_12"), SubResource("Resource_entry_13"), SubResource("Resource_entry_14"), SubResource("Resource_entry_15"), SubResource("Resource_entry_16"), SubResource("Resource_entry_17"), SubResource("Resource_entry_18"), SubResource("Resource_entry_19")])

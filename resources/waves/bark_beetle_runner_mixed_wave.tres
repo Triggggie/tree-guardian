@@ -1,35 +1,31 @@
-[gd_resource type="Resource" script_class="WaveDefinition" format=3]
+[gd_resource type="Resource" script_class="WaveDefinition" format=3 uid="uid://bhxf8hu7xy8fl"]
 
-[ext_resource type="Script" path="res://scripts/definitions/wave_definition.gd" id="1_wave"]
-[ext_resource type="Script" path="res://scripts/definitions/wave_enemy_entry_definition.gd" id="2_entry"]
+[ext_resource type="Script" uid="uid://d13s4hu6scyoe" path="res://scripts/definitions/wave_definition.gd" id="1_wave"]
+[ext_resource type="Script" uid="uid://bvmrh5nj17jav" path="res://scripts/definitions/wave_enemy_entry_definition.gd" id="2_entry"]
 
 [sub_resource type="Resource" id="Resource_bark_beetle_entry"]
 script = ExtResource("2_entry")
 enemy_id = &"bark_beetle"
-base_count_per_side = 2
-count_scaling_start_stage_wave = 1
-count_increase_interval = 100
+base_count_per_side = 4
+count_scaling_start_stage_wave = 20
+count_increase_interval = 30
 count_increase_amount = 1
-maximum_count_per_side = 12
-health_multiplier = 1.0
-damage_multiplier = 1.0
+maximum_count_per_side = 10
 
 [sub_resource type="Resource" id="Resource_bark_runner_entry"]
 script = ExtResource("2_entry")
 enemy_id = &"bark_runner"
-base_count_per_side = 1
-count_scaling_start_stage_wave = 1
-count_increase_interval = 100
+base_count_per_side = 2
+count_scaling_start_stage_wave = 20
+count_increase_interval = 30
 count_increase_amount = 1
-maximum_count_per_side = 10
-health_multiplier = 1.0
-damage_multiplier = 1.0
+maximum_count_per_side = 8
 
 [resource]
 script = ExtResource("1_wave")
 wave_id = &"bark_beetle_runner_mixed"
 display_name = "Bark Beetle and Bark Runner Mixed Wave"
 enemy_entries = Array[ExtResource("2_entry")]([SubResource("Resource_bark_beetle_entry"), SubResource("Resource_bark_runner_entry")])
-spawn_interval = 0.22
-completion_message_duration = 0.7
-time_after_wave = 0.6
+spawn_interval = 0.15
+completion_message_duration = 0.4
+time_after_wave = 0.3
