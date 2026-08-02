@@ -11,6 +11,8 @@ func _ready() -> void:
 	print("ENEMY RUNTIME SMOKE TEST START")
 
 	test_enemy_definition()
+	test_bark_runner_definition()
+	await test_bark_runner_scene()
 	test_wave_enemy_entry_definition()
 	test_stage_and_wave_definition()
 	test_wave_definition_multi_entry_data()
@@ -23,6 +25,7 @@ func _ready() -> void:
 	await test_enemy_tracker()
 	await test_lane_registry()
 	await test_spawn_director_multi_request_batch()
+	await test_spawn_director_mixed_enemy_batch()
 
 	finish_test()
 
@@ -109,6 +112,332 @@ func test_enemy_definition() -> void:
 	expect(
 		GameContent.get_enemy(&"missing_enemy") == null,
 		"Missing enemy lookup did not return null."
+	)
+
+
+func test_bark_runner_definition() -> void:
+	var bark_beetle: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_beetle")
+	)
+	var bark_runner: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_runner")
+	)
+
+	expect(
+		is_instance_valid(bark_runner),
+		"Bark Runner EnemyDefinition was not found."
+	)
+
+	if not is_instance_valid(bark_runner):
+		return
+
+	expect(
+		bark_runner.is_valid_definition(),
+		"Bark Runner EnemyDefinition is invalid."
+	)
+	expect(
+		bark_runner.enemy_id == &"bark_runner",
+		"Bark Runner enemy ID is incorrect."
+	)
+	expect(
+		bark_runner.display_name == "Bark Runner",
+		"Bark Runner display name is incorrect."
+	)
+	expect(
+		bark_runner.enemy_scene != null,
+		"Bark Runner enemy scene is missing."
+	)
+	expect(
+		is_equal_approx(
+			bark_runner.maximum_health,
+			18.0
+		),
+		"Bark Runner maximum health is not 18.0."
+	)
+	expect(
+		is_equal_approx(
+			bark_runner.movement_speed,
+			185.0
+		),
+		"Bark Runner movement speed is not 185.0."
+	)
+	expect(
+		is_equal_approx(
+			bark_runner.attack_damage,
+			3.0
+		),
+		"Bark Runner attack damage is not 3.0."
+	)
+	expect(
+		is_equal_approx(
+			bark_runner.attack_interval,
+			1.0
+		),
+		"Bark Runner attack interval is not 1.0."
+	)
+	expect(
+		is_equal_approx(
+			bark_runner.attack_range,
+			110.0
+		),
+		"Bark Runner attack range is not 110.0."
+	)
+	expect(
+		bark_runner.essence_reward == 1,
+		"Bark Runner Essence reward is not 1."
+	)
+	expect(
+		bark_runner.experience_reward == 1,
+		"Bark Runner XP reward is not 1."
+	)
+
+	if is_instance_valid(bark_beetle):
+		expect(
+			bark_runner.movement_speed
+			> bark_beetle.movement_speed,
+			"Bark Runner is not faster than Bark Beetle."
+		)
+		expect(
+			bark_runner.maximum_health
+			< bark_beetle.maximum_health,
+			"Bark Runner is not weaker than Bark Beetle."
+		)
+		expect(
+			bark_runner.attack_damage
+			< bark_beetle.attack_damage,
+			"Bark Runner is not less damaging than Bark Beetle."
+		)
+
+	print(
+		"BARK RUNNER DEFINITION TEST PASS: "
+		+ "health=18, speed=185, damage=3"
+	)
+
+
+func test_bark_runner_scene() -> void:
+	var definition: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_runner")
+	)
+
+	expect(
+		is_instance_valid(definition),
+		"Bark Runner scene test could not load its definition."
+	)
+
+	if not is_instance_valid(definition):
+		return
+
+	var fixture := Node2D.new()
+	fixture.name = "BarkRunnerSceneFixture"
+	add_child(fixture)
+
+	var tree_target := Node2D.new()
+	tree_target.name = "Tree"
+	tree_target.position = Vector2(500.0, 40.0)
+	fixture.add_child(tree_target)
+	tree_target.add_to_group("tree")
+
+	var enemy_tracker := EnemyTracker.new()
+	enemy_tracker.name = "EnemyTracker"
+	fixture.add_child(enemy_tracker)
+
+	var lane_registry := LaneRegistry.new()
+	lane_registry.name = "LaneRegistry"
+	fixture.add_child(lane_registry)
+
+	var runner_instance: Node = definition.enemy_scene.instantiate()
+	expect(
+		is_instance_valid(runner_instance),
+		"Bark Runner scene did not instantiate."
+	)
+	expect(
+		runner_instance is CharacterBody2D,
+		"Bark Runner scene root is not CharacterBody2D."
+	)
+
+	if not (runner_instance is CharacterBody2D):
+		if is_instance_valid(runner_instance):
+			runner_instance.free()
+		fixture.queue_free()
+		await get_tree().process_frame
+		return
+
+	var runner: CharacterBody2D = (
+		runner_instance as CharacterBody2D
+	)
+	var configured_successfully: bool = bool(
+		runner.call(
+			"configure_from_definition",
+			definition,
+			definition.maximum_health,
+			1.0
+		)
+	)
+	expect(
+		configured_successfully,
+		"Bark Runner rejected its EnemyDefinition."
+	)
+
+	fixture.add_child(runner)
+	runner.global_position = Vector2(0.0, 40.0)
+	runner.call(
+		"setup_crowd_formation",
+		-1.0,
+		0,
+		40.0,
+		0,
+		1.0,
+		0.0,
+		1.0
+	)
+
+	var health_component: EnemyHealthComponent = (
+		runner.get_node_or_null("HealthComponent")
+		as EnemyHealthComponent
+	)
+	var attack_component: EnemyAttackComponent = (
+		runner.get_node_or_null("AttackComponent")
+		as EnemyAttackComponent
+	)
+	var movement_component: EnemyMovementComponent = (
+		runner.get_node_or_null("MovementComponent")
+		as EnemyMovementComponent
+	)
+
+	expect(
+		is_instance_valid(health_component),
+		"Bark Runner has no HealthComponent."
+	)
+	expect(
+		is_instance_valid(attack_component),
+		"Bark Runner has no AttackComponent."
+	)
+	expect(
+		is_instance_valid(movement_component),
+		"Bark Runner has no MovementComponent."
+	)
+	expect(
+		runner.get_node_or_null("CollisionShape2D") != null,
+		"Bark Runner has no CollisionShape2D."
+	)
+	expect(
+		runner.get_node_or_null("AttackComponent/AttackTimer")
+		is Timer,
+		"Bark Runner has no AttackTimer."
+	)
+	expect(
+		runner.get_node_or_null("Visual") is Node2D,
+		"Bark Runner has no Visual node."
+	)
+	expect(
+		runner.get_node_or_null("HealthBar") != null,
+		"Bark Runner has no HealthBar."
+	)
+	expect(
+		runner.get("enemy_definition") == definition,
+		"Bark Runner did not retain its EnemyDefinition."
+	)
+	expect(
+		int(runner.get("forest_essence_reward")) == 1,
+		"Bark Runner did not apply its Essence reward."
+	)
+	expect(
+		int(runner.get("xp_reward")) == 1,
+		"Bark Runner did not apply its XP reward."
+	)
+
+	if is_instance_valid(health_component):
+		expect(
+			health_component.is_initialized(),
+			"Bark Runner HealthComponent was not initialized."
+		)
+		expect(
+			is_equal_approx(
+				health_component.get_maximum_health(),
+				18.0
+			),
+			"Bark Runner HealthComponent maximum is not 18.0."
+		)
+
+	if is_instance_valid(attack_component):
+		expect(
+			attack_component.is_initialized(),
+			"Bark Runner AttackComponent was not initialized."
+		)
+		expect(
+			is_equal_approx(
+				attack_component.get_attack_damage(),
+				3.0
+			),
+			"Bark Runner AttackComponent damage is not 3.0."
+		)
+		expect(
+			is_equal_approx(
+				attack_component.get_attack_interval(),
+				1.0
+			),
+			"Bark Runner AttackComponent interval is not 1.0."
+		)
+
+	if is_instance_valid(movement_component):
+		expect(
+			movement_component.is_initialized(),
+			"Bark Runner MovementComponent was not initialized."
+		)
+		expect(
+			is_equal_approx(
+				float(movement_component.get("_move_speed")),
+				185.0
+			),
+			"Bark Runner MovementComponent speed is not 185.0."
+		)
+
+	expect(
+		enemy_tracker.get_enemy_count() == 1,
+		"Bark Runner did not register with EnemyTracker."
+	)
+	expect(
+		lane_registry.is_enemy_registered(runner),
+		"Bark Runner did not register with LaneRegistry."
+	)
+
+	runner.call("stop_combat")
+	runner.remove_from_group("enemies")
+	runner.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	expect(
+		enemy_tracker.get_enemy_count() == 0,
+		"EnemyTracker retained Bark Runner after cleanup."
+	)
+	expect(
+		lane_registry.get_lane_enemy_count(-1.0, 0) == 0,
+		"LaneRegistry retained Bark Runner after cleanup."
+	)
+	expect(
+		get_tree().get_nodes_in_group("enemies").is_empty(),
+		"Bark Runner scene cleanup left an enemy group member."
+	)
+
+	fixture.queue_free()
+	await get_tree().process_frame
+
+	expect(
+		get_tree().get_nodes_in_group("enemy_tracker").is_empty(),
+		"Bark Runner scene fixture left EnemyTracker registered."
+	)
+	expect(
+		get_tree().get_nodes_in_group("lane_registry").is_empty(),
+		"Bark Runner scene fixture left LaneRegistry registered."
+	)
+	expect(
+		get_tree().get_nodes_in_group("tree").is_empty(),
+		"Bark Runner scene fixture left a tree group member."
+	)
+
+	print(
+		"BARK RUNNER SCENE TEST PASS: components and cleanup verified"
 	)
 
 
@@ -2114,6 +2443,273 @@ func test_spawn_director_multi_request_batch() -> void:
 	expect(
 		get_tree().get_nodes_in_group("enemies").is_empty(),
 		"Fixture left an enemies group member behind."
+	)
+
+
+func test_spawn_director_mixed_enemy_batch() -> void:
+	var bark_beetle: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_beetle")
+	)
+	var bark_runner: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_runner")
+	)
+
+	expect(
+		is_instance_valid(bark_beetle),
+		"Mixed fixture could not load Bark Beetle."
+	)
+	expect(
+		is_instance_valid(bark_runner),
+		"Mixed fixture could not load Bark Runner."
+	)
+
+	if (
+		not is_instance_valid(bark_beetle)
+		or not is_instance_valid(bark_runner)
+	):
+		return
+
+	var fixture := Node2D.new()
+	fixture.name = "MixedSpawnDirectorFixture"
+	add_child(fixture)
+
+	var entities := Node2D.new()
+	entities.name = "Entities"
+	fixture.add_child(entities)
+
+	var world := Node2D.new()
+	world.name = "World"
+	fixture.add_child(world)
+
+	var left_spawn_point := Marker2D.new()
+	left_spawn_point.name = "LeftSpawnPoint"
+	left_spawn_point.position = Vector2(0.0, 40.0)
+	world.add_child(left_spawn_point)
+
+	var right_spawn_point := Marker2D.new()
+	right_spawn_point.name = "RightSpawnPoint"
+	right_spawn_point.position = Vector2(1000.0, 40.0)
+	world.add_child(right_spawn_point)
+
+	var tree_target := Node2D.new()
+	tree_target.name = "Tree"
+	tree_target.position = Vector2(500.0, 40.0)
+	fixture.add_child(tree_target)
+	tree_target.add_to_group("tree")
+
+	var enemy_tracker := EnemyTracker.new()
+	enemy_tracker.name = "EnemyTracker"
+	fixture.add_child(enemy_tracker)
+
+	var lane_registry := LaneRegistry.new()
+	lane_registry.name = "LaneRegistry"
+	fixture.add_child(lane_registry)
+
+	var spawn_director := SpawnDirector.new()
+	spawn_director.name = "SpawnDirector"
+	fixture.add_child(spawn_director)
+
+	await get_tree().process_frame
+
+	expect(
+		spawn_director.is_ready_to_spawn(),
+		"Mixed fixture SpawnDirector is not ready."
+	)
+
+	var requests: Array[EnemySpawnRequest] = [
+		EnemySpawnRequest.new(
+			bark_beetle,
+			1,
+			bark_beetle.maximum_health,
+			1.0
+		),
+		EnemySpawnRequest.new(
+			bark_runner,
+			1,
+			bark_runner.maximum_health,
+			1.0
+		)
+	]
+
+	var completed: bool = await (
+		spawn_director.spawn_wave(
+			requests,
+			0.001,
+			_always_continue
+		)
+	)
+
+	expect(
+		completed,
+		"SpawnDirector did not complete the mixed enemy batch."
+	)
+
+	var spawned_enemies: Array[Node] = entities.get_children()
+	expect(
+		spawned_enemies.size() == 4,
+		"Mixed fixture did not spawn exactly 4 enemies."
+	)
+	expect(
+		enemy_tracker.get_enemy_count() == 4,
+		"Mixed fixture did not register all enemies with EnemyTracker."
+	)
+
+	var bark_beetle_count: int = 0
+	var bark_runner_count: int = 0
+	var left_enemy_count: int = 0
+	var right_enemy_count: int = 0
+	var queue_keys: Dictionary = {}
+
+	for enemy_index in range(spawned_enemies.size()):
+		var enemy: Node = spawned_enemies[enemy_index]
+		var enemy_definition: EnemyDefinition = (
+			enemy.get("enemy_definition") as EnemyDefinition
+		)
+
+		expect(
+			is_instance_valid(enemy_definition),
+			"Mixed fixture enemy has no applied definition."
+		)
+
+		if not is_instance_valid(enemy_definition):
+			continue
+
+		var enemy_id: StringName = enemy_definition.enemy_id
+
+		if enemy_id == &"bark_beetle":
+			bark_beetle_count += 1
+		elif enemy_id == &"bark_runner":
+			bark_runner_count += 1
+
+		var expected_enemy_id: StringName = (
+			&"bark_beetle"
+			if enemy_index < 2
+			else &"bark_runner"
+		)
+		expect(
+			enemy_id == expected_enemy_id,
+			"Mixed fixture did not preserve request block order."
+		)
+
+		expect(
+			enemy.get_node_or_null("HealthComponent")
+			is EnemyHealthComponent,
+			"Mixed fixture enemy has no HealthComponent."
+		)
+		expect(
+			enemy.get_node_or_null("AttackComponent")
+			is EnemyAttackComponent,
+			"Mixed fixture enemy has no AttackComponent."
+		)
+		expect(
+			enemy.get_node_or_null("MovementComponent")
+			is EnemyMovementComponent,
+			"Mixed fixture enemy has no MovementComponent."
+		)
+
+		var formation_side: float = float(
+			enemy.get("formation_side")
+		)
+		var lane_index: int = int(
+			enemy.get("lane_index")
+		)
+		var queue_order: int = int(
+			enemy.get("queue_order")
+		)
+
+		if formation_side < 0.0:
+			left_enemy_count += 1
+		elif formation_side > 0.0:
+			right_enemy_count += 1
+
+		var queue_key: String = "%d:%d:%d" % [
+			int(formation_side),
+			lane_index,
+			queue_order
+		]
+		expect(
+			not queue_keys.has(queue_key),
+			"Mixed fixture produced duplicate queue key %s."
+			% queue_key
+		)
+		queue_keys[queue_key] = true
+
+		expect(
+			lane_registry.get_queue_column(enemy)
+			== queue_order,
+			"Mixed fixture queue column does not match queue order."
+		)
+
+	expect(
+		bark_beetle_count == 2,
+		"Mixed fixture did not spawn 2 Bark Beetles."
+	)
+	expect(
+		bark_runner_count == 2,
+		"Mixed fixture did not spawn 2 Bark Runners."
+	)
+	expect(
+		left_enemy_count == 2,
+		"Mixed fixture did not spawn 2 left enemies."
+	)
+	expect(
+		right_enemy_count == 2,
+		"Mixed fixture did not spawn 2 right enemies."
+	)
+	expect(
+		queue_keys.size() == 4,
+		"Mixed fixture did not produce 4 unique queue keys."
+	)
+
+	print(
+		"BARK RUNNER MIXED SPAWN TEST PASS: "
+		+ "beetles=2, runners=2, unique_queue_keys=4"
+	)
+
+	for enemy in spawned_enemies:
+		if not is_instance_valid(enemy):
+			continue
+
+		if enemy.has_method("stop_combat"):
+			enemy.call("stop_combat")
+
+		enemy.remove_from_group("enemies")
+		enemy.queue_free()
+
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	expect(
+		enemy_tracker.get_enemy_count() == 0,
+		"EnemyTracker retained mixed fixture enemies after cleanup."
+	)
+	expect(
+		entities.get_child_count() == 0,
+		"Mixed fixture Entities retained enemies after cleanup."
+	)
+
+	fixture.queue_free()
+	await get_tree().process_frame
+
+	expect(
+		get_tree().get_nodes_in_group("enemy_tracker").is_empty(),
+		"Mixed fixture left an EnemyTracker group member behind."
+	)
+	expect(
+		get_tree().get_nodes_in_group("lane_registry").is_empty(),
+		"Mixed fixture left a LaneRegistry group member behind."
+	)
+	expect(
+		get_tree().get_nodes_in_group("spawn_director").is_empty(),
+		"Mixed fixture left a SpawnDirector group member behind."
+	)
+	expect(
+		get_tree().get_nodes_in_group("tree").is_empty(),
+		"Mixed fixture left a tree group member behind."
+	)
+	expect(
+		get_tree().get_nodes_in_group("enemies").is_empty(),
+		"Mixed fixture left an enemies group member behind."
 	)
 
 

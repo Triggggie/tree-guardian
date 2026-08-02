@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/bark_runner.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_enemy")
+enemy_id = &"bark_runner"
+display_name = "Bark Runner"
+description = "A fast, lightly built melee enemy that rushes toward the Guardian Tree."
+enemy_scene = ExtResource("2_scene")
+movement_speed = 185.0
+maximum_health = 18.0
+attack_damage = 3.0
+attack_interval = 1.0
+attack_range = 110.0
+essence_reward = 1
+experience_reward = 1
+tags = Array[StringName]([])
+immune_status_effect_ids = Array[StringName]([])

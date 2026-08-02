@@ -1,0 +1,53 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/bark_runner.gd" id="1_runner"]
+[ext_resource type="Script" path="res://scripts/enemies/components/enemy_health_component.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/enemies/components/enemy_attack_component.gd" id="3_attack"]
+[ext_resource type="Script" path="res://scripts/enemies/components/enemy_movement_component.gd" id="4_movement"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_runner"]
+radius = 22.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_runner_background"]
+bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_runner_fill"]
+bg_color = Color(0.7882353, 0.4745098, 0.21176471, 1)
+
+[node name="BarkRunner" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("1_runner")
+move_speed = 185.0
+stopping_distance = 110.0
+max_health = 18.0
+attack_damage = 3.0
+attack_cooldown = 1.0
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health")
+
+[node name="AttackComponent" type="Node" parent="."]
+script = ExtResource("3_attack")
+
+[node name="AttackTimer" type="Timer" parent="AttackComponent"]
+wait_time = 1.0
+
+[node name="MovementComponent" type="Node" parent="."]
+script = ExtResource("4_movement")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_runner")
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+offset_left = -28.0
+offset_top = -45.0
+offset_right = 28.0
+offset_bottom = -39.0
+theme_override_styles/background = SubResource("StyleBoxFlat_runner_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_runner_fill")
+max_value = 18.0
+value = 18.0
+show_percentage = false
