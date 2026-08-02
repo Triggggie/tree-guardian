@@ -4,6 +4,7 @@ extends CombatBranch
 const UPGRADE_HEALING_PER_TICK: StringName = &"healing_per_tick"
 const UPGRADE_HEALING_SPEED: StringName = &"healing_speed"
 const UPGRADE_PETAL_DAMAGE: StringName = &"petal_damage"
+const HEALING_EFFECT_ID_PREFIX: String = "blossom_healing"
 
 
 @export_category("Healing Over Time")
@@ -44,6 +45,7 @@ var petal_damage_upgrade_level: int = 0
 
 var healing_refresh_time_remaining: float = 0.0
 var attack_time_remaining: float = 0.0
+var healing_effect_id: StringName = &""
 
 
 func _ready() -> void:
@@ -108,13 +110,26 @@ func apply_blossom_healing() -> void:
 		return
 
 	tree_node.apply_healing_over_time(
-		&"blossom_healing",
+		get_healing_effect_id(),
 		get_current_healing_per_tick(),
 		get_current_healing_tick_interval(),
 		healing_effect_duration,
 		self,
 		true
 	)
+
+
+func get_healing_effect_id() -> StringName:
+	if healing_effect_id == &"":
+		healing_effect_id = StringName(
+			"%s_%d"
+			% [
+				HEALING_EFFECT_ID_PREFIX,
+				get_instance_id()
+			]
+		)
+
+	return healing_effect_id
 
 
 func get_current_healing_per_tick() -> float:
