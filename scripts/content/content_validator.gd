@@ -898,12 +898,6 @@ static func validate_stage_substages(
 				% substage_label
 			)
 
-		if substage.wave_patterns.is_empty():
-			errors.append(
-				"%s has no Wave patterns."
-				% substage_label
-			)
-
 		if substage.completion_essence_reward < 0:
 			errors.append(
 				(
@@ -919,7 +913,7 @@ static func validate_stage_substages(
 			errors
 		)
 
-		validate_substage_wave_patterns(
+		validate_substage_wave_schedule(
 			substage,
 			substage_label,
 			used_wave_ids,
@@ -967,39 +961,201 @@ static func validate_substage_completion_effect_ids(
 			used_effect_ids[effect_id] = true
 
 
-static func validate_substage_wave_patterns(
+static func validate_substage_wave_schedule(
 	substage: SubstageDefinition,
 	substage_label: String,
 	used_wave_ids: Dictionary,
 	validated_wave_instance_ids: Dictionary,
 	errors: Array[String]
 ) -> void:
-	for wave_index in range(
-		substage.wave_patterns.size()
-	):
-		var wave: WaveDefinition = (
-			substage.wave_patterns[wave_index]
+	var schedule: SubstageWaveScheduleDefinition = (
+		substage.wave_schedule
+	)
+
+	if not is_instance_valid(schedule):
+		errors.append(
+			"%s has no Wave schedule."
+			% substage_label
+		)
+		return
+
+	var schedule_label: String = (
+		"Wave schedule '%s'"
+		% schedule.schedule_id
+	)
+
+	if not schedule.is_valid_definition():
+		errors.append(
+			"%s in %s is invalid."
+			% [
+				schedule_label,
+				substage_label
+			]
 		)
 
-		if not is_instance_valid(wave):
+	if schedule.schedule_id == &"":
+		errors.append(
+			"Wave schedule in %s has an empty ID."
+			% substage_label
+		)
+
+	if schedule.display_name.strip_edges().is_empty():
+		errors.append(
+			"%s in %s has an empty display name."
+			% [
+				schedule_label,
+				substage_label
+			]
+		)
+
+	if schedule.entries.is_empty():
+		errors.append(
+			"%s in %s has no entries."
+			% [
+				schedule_label,
+				substage_label
+			]
+		)
+		return
+
+	var expected_start_wave: int = 1
+	var previous_start_wave: int = 0
+	var schedule_waves_by_id: Dictionary = {}
+
+	for entry_index in range(schedule.entries.size()):
+		var entry: SubstageWaveScheduleEntryDefinition = (
+			schedule.entries[entry_index]
+		)
+
+		if not is_instance_valid(entry):
 			errors.append(
 				(
-					"%s has an empty Wave pattern "
+					"%s in %s has an empty entry "
 					+ "at index %d."
 				)
 				% [
+					schedule_label,
 					substage_label,
-					wave_index
+					entry_index
 				]
 			)
 			continue
 
+		if entry.start_wave < 1 or entry.start_wave > 100:
+			errors.append(
+				"Schedule entry %d in %s has start Wave outside 1-100."
+				% [
+					entry_index,
+					schedule_label
+				]
+			)
+
+		if entry.end_wave < 1 or entry.end_wave > 100:
+			errors.append(
+				"Schedule entry %d in %s has end Wave outside 1-100."
+				% [
+					entry_index,
+					schedule_label
+				]
+			)
+
+		if entry.start_wave > entry.end_wave:
+			errors.append(
+				"Schedule entry %d in %s starts after it ends."
+				% [
+					entry_index,
+					schedule_label
+				]
+			)
+
+		if entry_index == 0 and entry.start_wave != 1:
+			errors.append(
+				"%s in %s does not begin at Wave 1."
+				% [
+					schedule_label,
+					substage_label
+				]
+			)
+		elif entry_index > 0:
+			if entry.start_wave < previous_start_wave:
+				errors.append(
+					"Schedule entry %d in %s is out of order."
+					% [
+						entry_index,
+						schedule_label
+					]
+				)
+
+			if entry.start_wave > expected_start_wave:
+				errors.append(
+					"%s in %s has a gap before Wave %d."
+					% [
+						schedule_label,
+						substage_label,
+						entry.start_wave
+					]
+				)
+			elif entry.start_wave < expected_start_wave:
+				errors.append(
+					"%s in %s overlaps at Wave %d."
+					% [
+						schedule_label,
+						substage_label,
+						entry.start_wave
+					]
+				)
+
+		previous_start_wave = entry.start_wave
+		expected_start_wave = entry.end_wave + 1
+
+		var wave: WaveDefinition = entry.wave_definition
+
+		if not is_instance_valid(wave):
+			errors.append(
+				"Schedule entry %d in %s has no WaveDefinition."
+				% [
+					entry_index,
+					schedule_label
+				]
+			)
+			continue
+
+		if not wave.is_valid_definition():
+			errors.append(
+				"Schedule entry %d in %s has an invalid WaveDefinition."
+				% [
+					entry_index,
+					schedule_label
+				]
+			)
+
+		if schedule_waves_by_id.has(wave.wave_id):
+			var scheduled_wave: WaveDefinition = (
+				schedule_waves_by_id.get(
+					wave.wave_id
+				) as WaveDefinition
+			)
+
+			if scheduled_wave != wave:
+				errors.append(
+					(
+						"Conflicting Wave ID '%s' in %s uses "
+						+ "multiple different resources."
+					)
+					% [
+						wave.wave_id,
+						schedule_label
+					]
+				)
+		else:
+			schedule_waves_by_id[wave.wave_id] = wave
+
 		if wave.wave_id == &"":
 			errors.append(
-				"Wave pattern %d in %s has an empty ID."
+				"Schedule entry %d in %s has a Wave with an empty ID."
 				% [
-					wave_index,
-					substage_label
+					entry_index,
+					schedule_label
 				]
 			)
 		elif used_wave_ids.has(wave.wave_id):
@@ -1032,9 +1188,25 @@ static func validate_substage_wave_patterns(
 
 		validate_wave_content(
 			wave,
-			wave_index,
-			substage_label,
+			entry.start_wave - 1,
+			schedule_label,
 			errors
+		)
+
+	var last_entry: SubstageWaveScheduleEntryDefinition = (
+		schedule.entries.back()
+	)
+
+	if (
+		is_instance_valid(last_entry)
+		and last_entry.end_wave != 100
+	):
+		errors.append(
+			"%s in %s does not end at Wave 100."
+			% [
+				schedule_label,
+				substage_label
+			]
 		)
 
 

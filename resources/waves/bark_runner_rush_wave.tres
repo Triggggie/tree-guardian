@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WaveDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/wave_definition.gd" id="1_wave"]
+[ext_resource type="Script" path="res://scripts/definitions/wave_enemy_entry_definition.gd" id="2_entry"]
+
+[sub_resource type="Resource" id="Resource_bark_runner_entry"]
+script = ExtResource("2_entry")
+enemy_id = &"bark_runner"
+base_count_per_side = 3
+count_scaling_start_stage_wave = 1
+count_increase_interval = 100
+count_increase_amount = 1
+maximum_count_per_side = 12
+health_multiplier = 1.0
+damage_multiplier = 1.0
+
+[resource]
+script = ExtResource("1_wave")
+wave_id = &"bark_runner_rush"
+display_name = "Bark Runner Rush"
+enemy_entries = Array[ExtResource("2_entry")]([SubResource("Resource_bark_runner_entry")])
+spawn_interval = 0.15
+completion_message_duration = 0.7
+time_after_wave = 0.6

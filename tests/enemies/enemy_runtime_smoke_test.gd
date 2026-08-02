@@ -14,6 +14,7 @@ func _ready() -> void:
 	test_bark_runner_definition()
 	await test_bark_runner_scene()
 	test_wave_enemy_entry_definition()
+	test_guardian_grove_schedule_and_waves()
 	test_stage_and_wave_definition()
 	test_wave_definition_multi_entry_data()
 	test_substage_definition_validation()
@@ -647,6 +648,462 @@ func _create_standard_test_enemy_entry() -> WaveEnemyEntryDefinition:
 	return entry
 
 
+func test_guardian_grove_schedule_and_waves() -> void:
+	var stage: StageDefinition = (
+		GameContent.get_stage(&"guardian_grove")
+	)
+
+	expect(
+		is_instance_valid(stage),
+		"Schedule test could not load Guardian Grove."
+	)
+
+	if not is_instance_valid(stage):
+		return
+
+	var first_substage: SubstageDefinition = stage.get_substage(0)
+	expect(
+		is_instance_valid(first_substage),
+		"Schedule test could not load Guardian Grove Substage 1."
+	)
+
+	if not is_instance_valid(first_substage):
+		return
+
+	var schedule: SubstageWaveScheduleDefinition = (
+		first_substage.wave_schedule
+	)
+	expect(
+		is_instance_valid(schedule),
+		"Guardian Grove standard schedule is missing."
+	)
+
+	if not is_instance_valid(schedule):
+		return
+
+	expect(
+		schedule.is_valid_definition(),
+		"Guardian Grove standard schedule is invalid."
+	)
+	expect(
+		schedule.schedule_id == &"guardian_grove_standard",
+		"Guardian Grove schedule ID is incorrect."
+	)
+	expect(
+		schedule.display_name == "Guardian Grove Standard Schedule",
+		"Guardian Grove schedule display name is incorrect."
+	)
+	expect(
+		schedule.entries.size() == 11,
+		"Guardian Grove schedule does not contain exactly 11 entries."
+	)
+	expect(
+		schedule.get_wave_for_number(0) == null,
+		"Guardian Grove schedule accepted Wave 0."
+	)
+	expect(
+		schedule.get_wave_for_number(101) == null,
+		"Guardian Grove schedule accepted Wave 101."
+	)
+
+	var schedule_boundaries: Array[Dictionary] = [
+		{"wave": 1, "wave_id": &"standard_bark_beetle"},
+		{"wave": 10, "wave_id": &"standard_bark_beetle"},
+		{"wave": 11, "wave_id": &"bark_runner_intro"},
+		{"wave": 19, "wave_id": &"bark_runner_intro"},
+		{"wave": 20, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 21, "wave_id": &"standard_bark_beetle"},
+		{"wave": 39, "wave_id": &"standard_bark_beetle"},
+		{"wave": 40, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 41, "wave_id": &"standard_bark_beetle"},
+		{"wave": 59, "wave_id": &"standard_bark_beetle"},
+		{"wave": 60, "wave_id": &"bark_runner_rush"},
+		{"wave": 61, "wave_id": &"standard_bark_beetle"},
+		{"wave": 79, "wave_id": &"standard_bark_beetle"},
+		{"wave": 80, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 81, "wave_id": &"standard_bark_beetle"},
+		{"wave": 99, "wave_id": &"standard_bark_beetle"},
+		{"wave": 100, "wave_id": &"guardian_grove_substage_finale"}
+	]
+
+	for boundary in schedule_boundaries:
+		var wave_number: int = int(boundary["wave"])
+		var wave_definition: WaveDefinition = (
+			schedule.get_wave_for_number(wave_number)
+		)
+		expect(
+			is_instance_valid(wave_definition),
+			"Schedule Wave %d did not resolve a WaveDefinition."
+			% wave_number
+		)
+
+		if is_instance_valid(wave_definition):
+			expect(
+				wave_definition.wave_id
+				== StringName(boundary["wave_id"]),
+				"Schedule Wave %d resolved the wrong Wave ID."
+				% wave_number
+			)
+
+	for wave_number in range(1, 101):
+		expect(
+			is_instance_valid(
+				schedule.get_wave_for_number(wave_number)
+			),
+			"Guardian Grove schedule does not cover Wave %d."
+			% wave_number
+		)
+
+	var standard_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"standard_bark_beetle"
+	)
+	var intro_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"bark_runner_intro"
+	)
+	var mixed_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"bark_beetle_runner_mixed"
+	)
+	var rush_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"bark_runner_rush"
+	)
+	var finale_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"guardian_grove_substage_finale"
+	)
+	var scheduled_waves: Array[WaveDefinition] = [
+		standard_wave,
+		intro_wave,
+		mixed_wave,
+		rush_wave,
+		finale_wave
+	]
+
+	for wave_definition in scheduled_waves:
+		expect(
+			is_instance_valid(wave_definition),
+			"A Guardian Grove scheduled WaveDefinition is missing."
+		)
+		if is_instance_valid(wave_definition):
+			expect(
+				wave_definition.is_valid_definition(),
+				"Guardian Grove Wave '%s' is invalid."
+				% wave_definition.wave_id
+			)
+
+	if (
+		not is_instance_valid(standard_wave)
+		or not is_instance_valid(intro_wave)
+		or not is_instance_valid(mixed_wave)
+		or not is_instance_valid(rush_wave)
+		or not is_instance_valid(finale_wave)
+	):
+		return
+
+	var unique_waves: Array[WaveDefinition] = (
+		schedule.get_unique_wave_definitions()
+	)
+	expect(
+		unique_waves == scheduled_waves,
+		"Guardian Grove schedule unique Waves are not in first-use order."
+	)
+
+	_expect_wave_identity_and_timing(
+		intro_wave,
+		&"bark_runner_intro",
+		"Bark Runner Introduction",
+		0.22,
+		0.7,
+		0.5
+	)
+	_expect_wave_entry_data(
+		intro_wave,
+		0,
+		&"bark_runner",
+		1,
+		1,
+		100,
+		1,
+		10
+	)
+	_expect_wave_identity_and_timing(
+		mixed_wave,
+		&"bark_beetle_runner_mixed",
+		"Bark Beetle and Bark Runner Mixed Wave",
+		0.22,
+		0.7,
+		0.6
+	)
+	_expect_wave_entry_data(
+		mixed_wave,
+		0,
+		&"bark_beetle",
+		2,
+		1,
+		100,
+		1,
+		12
+	)
+	_expect_wave_entry_data(
+		mixed_wave,
+		1,
+		&"bark_runner",
+		1,
+		1,
+		100,
+		1,
+		10
+	)
+	_expect_wave_identity_and_timing(
+		rush_wave,
+		&"bark_runner_rush",
+		"Bark Runner Rush",
+		0.15,
+		0.7,
+		0.6
+	)
+	_expect_wave_entry_data(
+		rush_wave,
+		0,
+		&"bark_runner",
+		3,
+		1,
+		100,
+		1,
+		12
+	)
+	_expect_wave_identity_and_timing(
+		finale_wave,
+		&"guardian_grove_substage_finale",
+		"Guardian Grove Substage Finale",
+		0.18,
+		0.8,
+		1.0
+	)
+	_expect_wave_entry_data(
+		finale_wave,
+		0,
+		&"bark_beetle",
+		4,
+		1,
+		100,
+		1,
+		16
+	)
+	_expect_wave_entry_data(
+		finale_wave,
+		1,
+		&"bark_runner",
+		2,
+		1,
+		100,
+		1,
+		10
+	)
+
+	for substage_index in range(10):
+		var substage: SubstageDefinition = stage.get_substage(
+			substage_index
+		)
+
+		if not is_instance_valid(substage):
+			continue
+
+		expect(
+			substage.wave_schedule == schedule,
+			"Guardian Grove Substage %d does not share the schedule."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.is_valid_definition(),
+			"Guardian Grove Substage %d rejected its schedule."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_for_index(0) == standard_wave,
+			"Substage %d index 0 is not the standard Wave."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_for_index(10) == intro_wave,
+			"Substage %d index 10 is not Runner Intro."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_for_index(19) == mixed_wave,
+			"Substage %d index 19 is not Mixed."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_for_index(59) == rush_wave,
+			"Substage %d index 59 is not Runner Rush."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_for_index(99) == finale_wave,
+			"Substage %d index 99 is not the Finale."
+			% (substage_index + 1)
+		)
+
+	expect(
+		intro_wave.get_enemy_count_for_id(&"bark_runner", 11) == 1,
+		"Runner Intro Stage Wave 11 count is not 1."
+	)
+	expect(
+		intro_wave.get_enemy_count_for_id(&"bark_runner", 111) == 2,
+		"Runner Intro Stage Wave 111 count is not 2."
+	)
+	expect(
+		intro_wave.get_enemy_count_for_id(&"bark_runner", 911) == 10,
+		"Runner Intro Stage Wave 911 count is not 10."
+	)
+	expect(
+		mixed_wave.get_enemy_count_for_id(&"bark_beetle", 20) == 2,
+		"Mixed Stage Wave 20 Bark Beetle count is not 2."
+	)
+	expect(
+		mixed_wave.get_enemy_count_for_id(&"bark_runner", 20) == 1,
+		"Mixed Stage Wave 20 Bark Runner count is not 1."
+	)
+	expect(
+		mixed_wave.get_enemy_count_for_id(&"bark_beetle", 120) == 3,
+		"Mixed Stage Wave 120 Bark Beetle count is not 3."
+	)
+	expect(
+		mixed_wave.get_enemy_count_for_id(&"bark_runner", 120) == 2,
+		"Mixed Stage Wave 120 Bark Runner count is not 2."
+	)
+
+	print(
+		"SUBSTAGE SCHEDULE TEST PASS: entries=11, coverage=1-100"
+	)
+	print(
+		"PRODUCTION WAVE DATA TEST PASS: new_waves=4, ordered mixed entries"
+	)
+	print(
+		"SCHEDULE COUNT SCALING TEST PASS: Stage Waves 11, 111, 911, 20, 120"
+	)
+
+
+func _expect_wave_identity_and_timing(
+	wave_definition: WaveDefinition,
+	expected_id: StringName,
+	expected_name: String,
+	expected_spawn_interval: float,
+	expected_completion_duration: float,
+	expected_time_after_wave: float
+) -> void:
+	expect(
+		wave_definition.wave_id == expected_id,
+		"Wave '%s' has the wrong ID." % expected_name
+	)
+	expect(
+		wave_definition.display_name == expected_name,
+		"Wave '%s' has the wrong display name." % expected_id
+	)
+	expect(
+		is_equal_approx(
+			wave_definition.spawn_interval,
+			expected_spawn_interval
+		),
+		"Wave '%s' has the wrong spawn interval." % expected_id
+	)
+	expect(
+		is_equal_approx(
+			wave_definition.completion_message_duration,
+			expected_completion_duration
+		),
+		"Wave '%s' has the wrong completion duration." % expected_id
+	)
+	expect(
+		is_equal_approx(
+			wave_definition.time_after_wave,
+			expected_time_after_wave
+		),
+		"Wave '%s' has the wrong time after Wave." % expected_id
+	)
+
+
+func _expect_wave_entry_data(
+	wave_definition: WaveDefinition,
+	entry_index: int,
+	expected_enemy_id: StringName,
+	expected_base_count: int,
+	expected_scaling_start: int,
+	expected_interval: int,
+	expected_amount: int,
+	expected_maximum: int
+) -> void:
+	expect(
+		entry_index >= 0
+		and entry_index < wave_definition.enemy_entries.size(),
+		"Wave '%s' is missing enemy entry %d."
+		% [wave_definition.wave_id, entry_index]
+	)
+
+	if (
+		entry_index < 0
+		or entry_index >= wave_definition.enemy_entries.size()
+	):
+		return
+
+	var entry: WaveEnemyEntryDefinition = (
+		wave_definition.enemy_entries[entry_index]
+	)
+	expect(
+		is_instance_valid(entry),
+		"Wave '%s' enemy entry %d is null."
+		% [wave_definition.wave_id, entry_index]
+	)
+
+	if not is_instance_valid(entry):
+		return
+
+	expect(
+		entry.enemy_id == expected_enemy_id,
+		"Wave '%s' enemy entry %d has the wrong ID."
+		% [wave_definition.wave_id, entry_index]
+	)
+	expect(
+		entry.base_count_per_side == expected_base_count,
+		"Wave '%s' enemy entry %d has the wrong base count."
+		% [wave_definition.wave_id, entry_index]
+	)
+	expect(
+		entry.count_scaling_start_stage_wave == expected_scaling_start,
+		"Wave '%s' enemy entry %d has the wrong scaling start."
+		% [wave_definition.wave_id, entry_index]
+	)
+	expect(
+		entry.count_increase_interval == expected_interval,
+		"Wave '%s' enemy entry %d has the wrong interval."
+		% [wave_definition.wave_id, entry_index]
+	)
+	expect(
+		entry.count_increase_amount == expected_amount,
+		"Wave '%s' enemy entry %d has the wrong increase amount."
+		% [wave_definition.wave_id, entry_index]
+	)
+	expect(
+		entry.maximum_count_per_side == expected_maximum,
+		"Wave '%s' enemy entry %d has the wrong maximum."
+		% [wave_definition.wave_id, entry_index]
+	)
+	expect(
+		is_equal_approx(entry.health_multiplier, 1.0),
+		"Wave '%s' enemy entry %d health multiplier is not 1.0."
+		% [wave_definition.wave_id, entry_index]
+	)
+	expect(
+		is_equal_approx(entry.damage_multiplier, 1.0),
+		"Wave '%s' enemy entry %d damage multiplier is not 1.0."
+		% [wave_definition.wave_id, entry_index]
+	)
+
+
 func test_stage_and_wave_definition() -> void:
 	var stage: StageDefinition = (
 		GameContent.get_stage(&"guardian_grove")
@@ -743,8 +1200,8 @@ func test_stage_and_wave_definition() -> void:
 			% (substage_index + 1)
 		)
 		expect(
-			substage.get_wave_pattern_count() == 1,
-			"Guardian Grove Substage %d does not have one pattern."
+			substage.get_wave_pattern_count() == 11,
+			"Guardian Grove Substage %d does not have 11 schedule entries."
 			% (substage_index + 1)
 		)
 		expect(
@@ -777,6 +1234,14 @@ func test_stage_and_wave_definition() -> void:
 		46,
 		99
 	]
+	var expected_wave_ids: Array[StringName] = [
+		&"standard_bark_beetle",
+		&"guardian_grove_substage_finale",
+		&"standard_bark_beetle",
+		&"standard_bark_beetle",
+		&"standard_bark_beetle",
+		&"guardian_grove_substage_finale"
+	]
 
 	for mapping_index in range(stage_wave_indexes.size()):
 		var stage_wave_index: int = stage_wave_indexes[
@@ -797,11 +1262,13 @@ func test_stage_and_wave_definition() -> void:
 			"Stage Wave index %d resolved to the wrong Substage Wave."
 			% stage_wave_index
 		)
+		var mapped_wave: WaveDefinition = (
+			stage.get_wave_for_stage_index(stage_wave_index)
+		)
 		expect(
-			stage.get_wave_for_stage_index(
-				stage_wave_index
-			) == standard_wave,
-			"Stage Wave index %d did not resolve the standard Wave."
+			is_instance_valid(mapped_wave)
+			and mapped_wave.wave_id == expected_wave_ids[mapping_index],
+			"Stage Wave index %d resolved the wrong scheduled Wave."
 			% stage_wave_index
 		)
 
@@ -854,13 +1321,21 @@ func test_stage_and_wave_definition() -> void:
 		stage.get_unique_wave_definitions()
 	)
 	expect(
-		unique_waves.size() == 1,
-		"Guardian Grove does not expose one unique WaveDefinition."
+		unique_waves.size() == 5,
+		"Guardian Grove does not expose five unique WaveDefinitions."
 	)
-	if unique_waves.size() == 1:
+	if unique_waves.size() == 5:
 		expect(
 			unique_waves[0] == standard_wave,
-			"Guardian Grove unique Wave list returned the wrong Resource."
+			"Guardian Grove unique Wave list does not start with standard."
+		)
+		expect(
+			unique_waves[1].wave_id == &"bark_runner_intro"
+			and unique_waves[2].wave_id == &"bark_beetle_runner_mixed"
+			and unique_waves[3].wave_id == &"bark_runner_rush"
+			and unique_waves[4].wave_id
+			== &"guardian_grove_substage_finale",
+			"Guardian Grove unique Wave list has the wrong first-use order."
 		)
 
 	expect(
@@ -1301,23 +1776,147 @@ func test_substage_definition_validation() -> void:
 		"SubstageDefinition accepted an empty display name."
 	)
 
-	var empty_patterns_substage: SubstageDefinition = (
+	var null_schedule_substage: SubstageDefinition = (
 		_create_test_substage(standard_wave)
 	)
-	empty_patterns_substage.wave_patterns = []
+	null_schedule_substage.wave_schedule = null
 	expect(
-		not empty_patterns_substage.is_valid_definition(),
-		"SubstageDefinition accepted empty Wave patterns."
+		not null_schedule_substage.is_valid_definition(),
+		"SubstageDefinition accepted a null Wave schedule."
 	)
 
-	var null_pattern_substage: SubstageDefinition = (
-		_create_test_substage(standard_wave)
+	var empty_schedule_id: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
 	)
-	var null_patterns: Array[WaveDefinition] = [null]
-	null_pattern_substage.wave_patterns = null_patterns
+	empty_schedule_id.schedule_id = &""
 	expect(
-		not null_pattern_substage.is_valid_definition(),
-		"SubstageDefinition accepted a null Wave pattern."
+		not empty_schedule_id.is_valid_definition(),
+		"Wave schedule accepted an empty ID."
+	)
+
+	var empty_schedule_name: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	empty_schedule_name.display_name = "   "
+	expect(
+		not empty_schedule_name.is_valid_definition(),
+		"Wave schedule accepted an empty display name."
+	)
+
+	var empty_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	empty_schedule.entries = []
+	expect(
+		not empty_schedule.is_valid_definition(),
+		"Wave schedule accepted empty entries."
+	)
+
+	var null_entry_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	var null_schedule_entries: Array[SubstageWaveScheduleEntryDefinition] = [
+		null
+	]
+	null_entry_schedule.entries = null_schedule_entries
+	expect(
+		not null_entry_schedule.is_valid_definition(),
+		"Wave schedule accepted a null entry."
+	)
+
+	var invalid_start_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	invalid_start_schedule.entries[0].start_wave = 0
+	expect(
+		not invalid_start_schedule.is_valid_definition(),
+		"Wave schedule accepted start Wave 0."
+	)
+
+	var invalid_end_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	invalid_end_schedule.entries[0].end_wave = 101
+	expect(
+		not invalid_end_schedule.is_valid_definition(),
+		"Wave schedule accepted end Wave 101."
+	)
+
+	var reversed_range_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	reversed_range_schedule.entries[0].start_wave = 60
+	reversed_range_schedule.entries[0].end_wave = 40
+	expect(
+		not reversed_range_schedule.is_valid_definition(),
+		"Wave schedule accepted a reversed range."
+	)
+
+	var null_wave_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	null_wave_schedule.entries[0].wave_definition = null
+	expect(
+		not null_wave_schedule.is_valid_definition(),
+		"Wave schedule accepted an entry without a WaveDefinition."
+	)
+
+	var gap_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	gap_schedule.entries = [
+		_create_schedule_entry(1, 49, standard_wave),
+		_create_schedule_entry(51, 100, standard_wave)
+	]
+	expect(
+		not gap_schedule.is_valid_definition(),
+		"Wave schedule accepted a coverage gap."
+	)
+
+	var overlap_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	overlap_schedule.entries = [
+		_create_schedule_entry(1, 60, standard_wave),
+		_create_schedule_entry(60, 100, standard_wave)
+	]
+	expect(
+		not overlap_schedule.is_valid_definition(),
+		"Wave schedule accepted overlapping ranges."
+	)
+
+	var out_of_order_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	out_of_order_schedule.entries = [
+		_create_schedule_entry(51, 100, standard_wave),
+		_create_schedule_entry(1, 50, standard_wave)
+	]
+	expect(
+		not out_of_order_schedule.is_valid_definition(),
+		"Wave schedule accepted entries out of order."
+	)
+
+	var late_start_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	late_start_schedule.entries = [
+		_create_schedule_entry(2, 100, standard_wave)
+	]
+	expect(
+		not late_start_schedule.is_valid_definition(),
+		"Wave schedule accepted a first range starting after Wave 1."
+	)
+
+	var early_end_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
+	)
+	early_end_schedule.entries = [
+		_create_schedule_entry(1, 99, standard_wave)
+	]
+	expect(
+		not early_end_schedule.is_valid_definition(),
+		"Wave schedule accepted a final range ending before Wave 100."
 	)
 
 	var negative_reward_substage: SubstageDefinition = (
@@ -1354,21 +1953,21 @@ func test_substage_definition_validation() -> void:
 		"SubstageDefinition accepted duplicate completion effect IDs."
 	)
 
-	var repeated_wave_substage: SubstageDefinition = (
-		_create_test_substage(standard_wave)
+	var repeated_wave_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
 	)
-	var repeated_patterns: Array[WaveDefinition] = [
-		standard_wave,
-		standard_wave
+	repeated_wave_schedule.entries = [
+		_create_schedule_entry(1, 20, standard_wave),
+		_create_schedule_entry(21, 40, standard_wave),
+		_create_schedule_entry(41, 100, standard_wave)
 	]
-	repeated_wave_substage.wave_patterns = repeated_patterns
 	expect(
-		repeated_wave_substage.is_valid_definition(),
-		"SubstageDefinition rejected a repeated identical Wave Resource."
+		repeated_wave_schedule.is_valid_definition(),
+		"Wave schedule rejected a repeated identical Wave Resource."
 	)
 	expect(
-		repeated_wave_substage.get_unique_wave_definitions().size() == 1,
-		"SubstageDefinition did not deduplicate an identical Wave Resource."
+		repeated_wave_schedule.get_unique_wave_definitions().size() == 1,
+		"Wave schedule did not deduplicate an identical Wave Resource."
 	)
 
 	var conflicting_wave := WaveDefinition.new()
@@ -1384,20 +1983,23 @@ func test_substage_definition_validation() -> void:
 		"In-memory conflicting WaveDefinition fixture is invalid."
 	)
 
-	var conflicting_wave_substage: SubstageDefinition = (
-		_create_test_substage(standard_wave)
+	var conflicting_wave_schedule: SubstageWaveScheduleDefinition = (
+		_create_test_wave_schedule(standard_wave)
 	)
-	var conflicting_patterns: Array[WaveDefinition] = [
-		standard_wave,
-		conflicting_wave
+	conflicting_wave_schedule.entries = [
+		_create_schedule_entry(1, 50, standard_wave),
+		_create_schedule_entry(51, 100, conflicting_wave)
 	]
-	conflicting_wave_substage.wave_patterns = conflicting_patterns
 	expect(
-		not conflicting_wave_substage.is_valid_definition(),
+		not conflicting_wave_schedule.is_valid_definition(),
 		(
-			"SubstageDefinition accepted different Wave Resources "
+			"Wave schedule accepted different Wave Resources "
 			+ "with the same ID."
 		)
+	)
+
+	print(
+		"SUBSTAGE SCHEDULE VALIDATION TEST PASS: negative fixtures verified"
 	)
 
 
@@ -1407,9 +2009,34 @@ func _create_test_substage(
 	var substage := SubstageDefinition.new()
 	substage.substage_id = &"test_substage"
 	substage.display_name = "Test Substage"
-	var patterns: Array[WaveDefinition] = [wave_definition]
-	substage.wave_patterns = patterns
+	substage.wave_schedule = _create_test_wave_schedule(
+		wave_definition
+	)
 	return substage
+
+
+func _create_test_wave_schedule(
+	wave_definition: WaveDefinition
+) -> SubstageWaveScheduleDefinition:
+	var schedule := SubstageWaveScheduleDefinition.new()
+	schedule.schedule_id = &"test_schedule"
+	schedule.display_name = "Test Schedule"
+	schedule.entries = [
+		_create_schedule_entry(1, 100, wave_definition)
+	]
+	return schedule
+
+
+func _create_schedule_entry(
+	start_wave: int,
+	end_wave: int,
+	wave_definition: WaveDefinition
+) -> SubstageWaveScheduleEntryDefinition:
+	var entry := SubstageWaveScheduleEntryDefinition.new()
+	entry.start_wave = start_wave
+	entry.end_wave = end_wave
+	entry.wave_definition = wave_definition
+	return entry
 
 
 func test_wave_director_substage_queries() -> void:
@@ -1583,8 +2210,15 @@ func test_wave_director_substage_queries() -> void:
 			% global_wave
 		)
 		expect(
-			director.get_current_wave_definition()
-			== standard_wave,
+			is_instance_valid(
+				director.get_current_wave_definition()
+			)
+			and director.get_current_wave_definition().wave_id
+			== (
+				&"guardian_grove_substage_finale"
+				if int(mapping["wave"]) == 100
+				else &"standard_bark_beetle"
+			),
 			"Global Wave %d resolved the wrong WaveDefinition."
 			% global_wave
 		)

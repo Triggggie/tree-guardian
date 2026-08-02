@@ -1,0 +1,81 @@
+[gd_resource type="Resource" script_class="SubstageWaveScheduleDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/substage_wave_schedule_definition.gd" id="1_schedule"]
+[ext_resource type="Script" path="res://scripts/definitions/substage_wave_schedule_entry_definition.gd" id="2_entry"]
+[ext_resource type="Resource" path="res://resources/waves/standard_bark_beetle_wave.tres" id="3_standard"]
+[ext_resource type="Resource" path="res://resources/waves/bark_runner_intro_wave.tres" id="4_intro"]
+[ext_resource type="Resource" path="res://resources/waves/bark_beetle_runner_mixed_wave.tres" id="5_mixed"]
+[ext_resource type="Resource" path="res://resources/waves/bark_runner_rush_wave.tres" id="6_rush"]
+[ext_resource type="Resource" path="res://resources/waves/guardian_grove_substage_finale_wave.tres" id="7_finale"]
+
+[sub_resource type="Resource" id="Resource_entry_01"]
+script = ExtResource("2_entry")
+start_wave = 1
+end_wave = 10
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_02"]
+script = ExtResource("2_entry")
+start_wave = 11
+end_wave = 19
+wave_definition = ExtResource("4_intro")
+
+[sub_resource type="Resource" id="Resource_entry_03"]
+script = ExtResource("2_entry")
+start_wave = 20
+end_wave = 20
+wave_definition = ExtResource("5_mixed")
+
+[sub_resource type="Resource" id="Resource_entry_04"]
+script = ExtResource("2_entry")
+start_wave = 21
+end_wave = 39
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_05"]
+script = ExtResource("2_entry")
+start_wave = 40
+end_wave = 40
+wave_definition = ExtResource("5_mixed")
+
+[sub_resource type="Resource" id="Resource_entry_06"]
+script = ExtResource("2_entry")
+start_wave = 41
+end_wave = 59
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_07"]
+script = ExtResource("2_entry")
+start_wave = 60
+end_wave = 60
+wave_definition = ExtResource("6_rush")
+
+[sub_resource type="Resource" id="Resource_entry_08"]
+script = ExtResource("2_entry")
+start_wave = 61
+end_wave = 79
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_09"]
+script = ExtResource("2_entry")
+start_wave = 80
+end_wave = 80
+wave_definition = ExtResource("5_mixed")
+
+[sub_resource type="Resource" id="Resource_entry_10"]
+script = ExtResource("2_entry")
+start_wave = 81
+end_wave = 99
+wave_definition = ExtResource("3_standard")
+
+[sub_resource type="Resource" id="Resource_entry_11"]
+script = ExtResource("2_entry")
+start_wave = 100
+end_wave = 100
+wave_definition = ExtResource("7_finale")
+
+[resource]
+script = ExtResource("1_schedule")
+schedule_id = &"guardian_grove_standard"
+display_name = "Guardian Grove Standard Schedule"
+entries = Array[ExtResource("2_entry")]([SubResource("Resource_entry_01"), SubResource("Resource_entry_02"), SubResource("Resource_entry_03"), SubResource("Resource_entry_04"), SubResource("Resource_entry_05"), SubResource("Resource_entry_06"), SubResource("Resource_entry_07"), SubResource("Resource_entry_08"), SubResource("Resource_entry_09"), SubResource("Resource_entry_10"), SubResource("Resource_entry_11")])

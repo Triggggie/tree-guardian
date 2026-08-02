@@ -1,14 +1,13 @@
 [gd_resource type="Resource" script_class="SubstageDefinition" format=3]
 
 [ext_resource type="Script" path="res://scripts/definitions/substage_definition.gd" id="1_substage"]
-[ext_resource type="Script" path="res://scripts/definitions/wave_definition.gd" id="2_wave"]
-[ext_resource type="Resource" path="res://resources/waves/standard_bark_beetle_wave.tres" id="3_standard_wave"]
+[ext_resource type="Resource" path="res://resources/wave_schedules/guardian_grove_standard_schedule.tres" id="2_schedule"]
 
 [resource]
 script = ExtResource("1_substage")
 substage_id = &"guardian_grove_substage_06"
 display_name = "Guardian Grove — Substage 6"
 description = "Prototype Substage 6 of Guardian Grove."
-wave_patterns = Array[ExtResource("2_wave")]([ExtResource("3_standard_wave")])
+wave_schedule = ExtResource("2_schedule")
 completion_essence_reward = 0
 completion_effect_ids = Array[StringName]([])
