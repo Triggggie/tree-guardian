@@ -56,6 +56,8 @@ Talent metadata comes from `TalentDefinition` Resources, but these three combat 
 
 Blossom is a support/ranged branch with its own scene. It heals the tree for 3 HP every 2.0 seconds and fires petals for 3 base damage every 2.0 seconds. Its targeting profile permits any lane.
 
+Each Blossom Branch uses its own runtime healing-effect ID in the form `blossom_healing_<instance_id>`. Reapplying healing from the same Blossom refreshes only its own effect, while multiple Blossom HoTs stack independently. Two base Blossom Branches therefore heal 6 HP together every 2.0 seconds.
+
 Its Resource-defined upgrades are ordered as follows:
 
 | Upgrade | Effect per level | First cost | Maximum |
@@ -129,11 +131,15 @@ Current authored enemy/wave data:
 - Guardian Grove has ten ordered Substage Resources. All ten currently share `guardian_grove_standard_schedule`.
 - Player-facing progression uses `X-Y-Z` for Stage, Substage, and Wave within the Substage. Death restarts the current Substage, while `current_wave`, Age progression, and `highest_completed_wave` remain global.
 - `WaveDefinition` owns ordered `enemy_entries`; their order defines deterministic spawn blocks. Each `WaveEnemyEntryDefinition` owns its stable `enemy_id`, base count per side, scaling start, count interval, count increase, maximum count, health multiplier, and damage multiplier.
-- Enemy count and HP scaling use the Wave within the current Stage, from 1 through 1,000. When the prototype repeats Guardian Grove as the next numbered Stage, balance resets to Stage Wave 1 while Age and highest completion remain global.
+- Enemy count, HP, and damage scaling use the Wave within the current Stage, from 1 through 1,000. When the prototype repeats Guardian Grove as the next numbered Stage, balance resets to Stage Wave 1 while Age and highest completion remain global.
 - Spawn interval, completion-message duration, and time after each Wave remain Resource-driven.
-- Bark Runner is a faster, weaker basic melee enemy with `maximum_health = 18`, `movement_speed = 185`, `attack_damage = 3`, `attack_interval = 1.0`, `attack_range = 110`, `essence_reward = 1`, and `experience_reward = 1`.
+- Bark Beetle has `maximum_health = 12`, `movement_speed = 120`, `attack_damage = 1.5`, `attack_interval = 1.5`, `attack_range = 130`, `essence_reward = 1`, and `experience_reward = 1`.
+- Bark Runner is a faster, weaker basic melee enemy with `maximum_health = 7`, `movement_speed = 185`, `attack_damage = 0.75`, `attack_interval = 1.0`, `attack_range = 110`, `essence_reward = 1`, and `experience_reward = 1`.
 - Bark Runner has its own scene and smaller, narrower orange-brown placeholder drawing. Its root script inherits the existing Bark Beetle runtime and overrides only `_draw()`, while the scene reuses the existing Health, Attack, and Movement components.
 - Bark Runner is registered after Bark Beetle and is now used by production Guardian Grove Wave content.
+- Guardian Grove replaced the same absolute HP addition for every enemy type with proportional scaling: maximum health gains 1.5% of base HP and damage gains 0.3% of base damage for each additional Stage Wave. Wave-entry multipliers are applied before the Stage multiplier, and maximum enemy health remains capped at 1,000,000.
+- The scaling formulas are `base HP × Wave-entry HP multiplier × [1 + HP growth × (Stage Wave - 1)]` and `base damage × Wave-entry damage multiplier × [1 + damage growth × (Stage Wave - 1)]`.
+- `WaveDirector.debug_start_global_wave` is a debug-build-only development tool for starting at any global Wave. A value of `0` preserves the normal start. A positive value is applied once without granting skipped rewards or changing Age, `highest_completed_wave`, or saved data; `main_world.tscn` has no stored override.
 
 Guardian Grove uses this deterministic schedule in every Substage:
 
@@ -142,16 +148,24 @@ Guardian Grove uses this deterministic schedule in every Substage:
 | 1–10 | `standard_bark_beetle` |
 | 11–19 | `bark_runner_intro` |
 | 20 | `bark_beetle_runner_mixed` |
-| 21–39 | `standard_bark_beetle` |
-| 40 | `bark_beetle_runner_mixed` |
-| 41–59 | `standard_bark_beetle` |
+| 21–29 | `standard_bark_beetle` |
+| 30 | `bark_beetle_runner_mixed` |
+| 31–39 | `standard_bark_beetle` |
+| 40 | `bark_runner_rush` |
+| 41–49 | `standard_bark_beetle` |
+| 50 | `bark_beetle_runner_mixed` |
+| 51–59 | `standard_bark_beetle` |
 | 60 | `bark_runner_rush` |
-| 61–79 | `standard_bark_beetle` |
-| 80 | `bark_beetle_runner_mixed` |
-| 81–99 | `standard_bark_beetle` |
+| 61–69 | `standard_bark_beetle` |
+| 70 | `bark_beetle_runner_mixed` |
+| 71–79 | `standard_bark_beetle` |
+| 80 | `bark_runner_rush` |
+| 81–89 | `standard_bark_beetle` |
+| 90 | `bark_beetle_runner_mixed` |
+| 91–99 | `standard_bark_beetle` |
 | 100 | `guardian_grove_substage_finale` |
 
-The mixed and finale Waves use ordered enemy entries: `bark_beetle`, then `bark_runner`. No random Wave or enemy selection was added. The existing `WaveDirector` and `SpawnDirector` APIs required no changes for this schedule.
+This is a 19-entry schedule that covers Waves 1–100 without gaps or overlaps. A special Wave occurs every 10 Waves, and Wave 100 is the Substage Finale. The mixed and finale Waves use ordered enemy entries: `bark_beetle`, then `bark_runner`. No random Wave or enemy selection was added.
 
 ## 5. ContentRegistry and GameContent
 
@@ -225,6 +239,10 @@ Manual-test limitations:
 - Negative ContentValidator cases were not exercised in the editor.
 - The game process was manually stopped at the end of the test.
 
+### Approved Early-game Balance Playtest
+
+The approved manual survivability playtest used two Strength Branches, two Blossom Branches, no upgrades, and a normal start from global Wave 1 (`debug_start_global_wave = 0`). The tree died on Wave 47. The intended no-upgrade early-game wall is approximately Waves 40–50, so this checkpoint meets its target.
+
 ### Enemy/Wave Regression Checkpoint
 
 The user completed a visual Godot 4.7.1 regression pass and confirmed correct two-sided movement, lane ordering, non-overlapping queue columns, front-enemy-only attacks, promotion after a front enemy dies, HealthBar and death feedback, Wave Complete messaging, Game Over, and Retry. No visually apparent regression was found.
@@ -243,11 +261,18 @@ Automated regression evidence for this checkpoint:
 - The Bark Runner smoke checkpoint verified its registered definition and exact stats, scene instantiation, shared Health/Attack/Movement components, EnemyTracker and LaneRegistry cleanup, and safe scene removal.
 - At the Bark Runner checkpoint, a mixed `SpawnDirector` fixture spawned Bark Beetle followed by Bark Runner in one ordered batch: two instances of each type, four unique queue keys, and zero tracked enemies after cleanup. Production Wave Resources were introduced by the later 25D/25E2 checkpoint.
 - The deterministic-schedule checkpoint passed two implementation smoke runs and one final regression run in Godot 4.7.1. All three exited with code 0 and printed `ENEMY RUNTIME SMOKE TEST PASS` without parser, Resource, ContentValidator, orphan, or stack-trace errors.
-- Schedule tests checked all 17 required boundary points, exactly 11 ordered entries, complete coverage of Waves 1–100, and `null` lookup results outside the valid range at Waves 0 and 101.
+- Current schedule tests verify exactly 19 ordered entries, complete coverage of Waves 1–100, and `null` lookup results outside the valid range at Waves 0 and 101.
 - All ten Guardian Grove Substages were verified to share the same schedule Resource and to resolve Standard, Runner Intro, Mixed, Runner Rush, and Finale Waves at their expected indexes.
-- Runner Intro count scaling was verified at Stage Waves 11 → 1, 111 → 2, and 911 → 10. Mixed count scaling was verified at Stage Wave 20 → Bark Beetle 2/Bark Runner 1 and Stage Wave 120 → Bark Beetle 3/Bark Runner 2.
+- Current early-balance tests verify the authored Standard, Runner Intro, Mixed, Runner Rush, and Finale counts and a total of 508 spawned enemies across both sides through Wave 50.
 - Negative schedule fixtures covered missing identity data, empty and null entries, invalid and reversed ranges, gaps, overlaps, entry ordering, incomplete endpoints, missing WaveDefinitions, and conflicting Wave Resources with the same Wave ID.
 - MainWorld was not run for this checkpoint. Production Bark Runner and mixed-Wave presentation remains a later manual and visual verification task.
+
+### Early-game Balance and Blossom Stacking Checkpoint
+
+- Bark Beetle and Bark Runner base HP/damage, proportional Stage-Wave HP/damage growth, all 19 schedule entries, Wave timings, count continuity, debug-start mapping, mixed spawning, and cleanup passed two final enemy runtime smoke runs.
+- Wave 31 diagnostic coverage confirmed 12 total Bark Beetles and reduced theoretical combined DPS from 18.40 to 13.08, approximately 28.9% lower.
+- Blossom healing uses a per-instance runtime ID. Two final Blossom smoke runs confirmed stable per-source refresh, two simultaneous effects, unchanged petal values, and combined healing from 90 to 96 HP in one tick.
+- The later approved MainWorld playtest reached Wave 47 with two Strength Branches, two Blossom Branches, no upgrades, and a normal Wave 1 start.
 
 ## 9. Known Gaps and Limitations
 
@@ -260,7 +285,6 @@ Automated regression evidence for this checkpoint:
 - The `X-Y-Z` HUD mapping is covered by data/runtime tests, but its rendered presentation still needs manual visual confirmation.
 - Bark Runner's placeholder appearance still needs manual visual confirmation.
 - `bark_runner.gd` currently inherits the shared runtime behavior from the Bark Beetle root script and overrides only drawing; separating a generic enemy root base is outside this checkpoint.
-- MainWorld with production Bark Runner and mixed Waves has not yet been manually or visually tested.
 - Plan item 40 is only partially complete because the smoke test validates the enemy runtime foundation rather than a full combat-integration scene.
 - No StatusEffect definitions are registered yet.
 - Talent `effect_ids` are data only. Strength talent execution remains hardcoded in `strength_branch.gd`.
@@ -273,7 +297,7 @@ Automated regression evidence for this checkpoint:
 
 ### Balance Note
 
-Current Stage HP progression is additive. Bark Beetle and Bark Runner differ by 12 base HP, but both receive the same +3 HP per Stage Wave. Their relative HP difference therefore becomes very small in later Substages. This is a known balance concern, not a runtime defect. The formula was intentionally not changed as part of this checkpoint.
+Enemy HP and damage now scale proportionally from each enemy's base values. The approved no-upgrade playtest reached Wave 47, within the intended early-game wall of approximately Waves 40–50. The next balance evidence should come from a normal run with natural upgrade purchases and from reviewing the Forest Essence economy under the higher enemy counts.
 
 ## 10. Architecture Decisions to Preserve
 
@@ -292,9 +316,9 @@ Current Stage HP progression is additive. Bark Beetle and Bark Runner differ by 
 
 The next recommended steps are:
 
-1. Manually verify MainWorld Waves `1-1-11`, `1-1-20`, `1-1-60`, and `1-1-100`.
-2. Perform an enemy HP progression balance pass.
-3. Differentiate later Guardian Grove Substage schedules instead of sharing one schedule forever.
+1. Run a normal playtest with natural upgrade purchases.
+2. Review the Forest Essence economy under the higher enemy counts.
+3. Later decide whether Retry should replay the current Wave or restart the current Substage.
 
 Save/load, prestige integration, complete Strength/Blossom talent trees, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
