@@ -14,27 +14,13 @@ var description: String = ""
 
 @export_category("Enemies")
 
-# Stabilní ID nepřátel obsažených ve vlně.
-@export var enemy_ids: Array[StringName] = []
-
-# Počet každého typu nepřítele na jednu stranu.
-# Index odpovídá indexu v enemy_ids.
-@export var enemies_per_side: Array[int] = []
+@export var enemy_entries: Array[WaveEnemyEntryDefinition] = []
 
 
 @export_category("Spawning")
 
 @export_range(0.0, 60.0, 0.05)
 var spawn_interval: float = 0.25
-
-
-@export_category("Scaling")
-
-@export_range(0.01, 1000000.0, 0.01)
-var health_multiplier: float = 1.0
-
-@export_range(0.01, 1000000.0, 0.01)
-var damage_multiplier: float = 1.0
 
 
 @export_category("Timing")
@@ -46,30 +32,99 @@ var completion_message_duration: float = 0.7
 var time_after_wave: float = 0.5
 
 
-func get_enemy_count_for_id(
+func get_enemy_entry(
 	enemy_id: StringName
+) -> WaveEnemyEntryDefinition:
+	for enemy_entry in enemy_entries:
+		if not is_instance_valid(enemy_entry):
+			continue
+
+		if enemy_entry.enemy_id == enemy_id:
+			return enemy_entry
+
+	return null
+
+
+func get_enemy_ids() -> Array[StringName]:
+	var enemy_ids: Array[StringName] = []
+
+	for enemy_entry in enemy_entries:
+		if (
+			not is_instance_valid(enemy_entry)
+			or enemy_entry.enemy_id == &""
+		):
+			continue
+
+		enemy_ids.append(enemy_entry.enemy_id)
+
+	return enemy_ids
+
+
+func get_enemy_count_for_id(
+	enemy_id: StringName,
+	stage_wave: int = 1
 ) -> int:
-	for enemy_index in range(
-		enemy_ids.size()
-	):
-		if enemy_ids[enemy_index] == enemy_id:
-			return enemies_per_side[
-				enemy_index
-			]
+	var enemy_entry: WaveEnemyEntryDefinition = (
+		get_enemy_entry(enemy_id)
+	)
 
-	return 0
+	if not is_instance_valid(enemy_entry):
+		return 0
+
+	return enemy_entry.get_count_for_stage_wave(
+		stage_wave
+	)
 
 
-func get_total_enemies_per_side() -> int:
+func get_total_enemies_per_side(
+	stage_wave: int = 1
+) -> int:
 	var total_enemies: int = 0
 
-	for enemy_count in enemies_per_side:
-		total_enemies += max(
-			enemy_count,
-			0
+	for enemy_entry in enemy_entries:
+		if (
+			not is_instance_valid(enemy_entry)
+			or not enemy_entry.is_valid_definition()
+		):
+			continue
+
+		total_enemies += enemy_entry.get_count_for_stage_wave(
+			stage_wave
 		)
 
 	return total_enemies
+
+
+func get_health_multiplier_for_id(
+	enemy_id: StringName
+) -> float:
+	var enemy_entry: WaveEnemyEntryDefinition = (
+		get_enemy_entry(enemy_id)
+	)
+
+	if (
+		not is_instance_valid(enemy_entry)
+		or not enemy_entry.is_valid_definition()
+	):
+		return 1.0
+
+	return enemy_entry.health_multiplier
+
+
+func get_damage_multiplier_for_id(
+	enemy_id: StringName
+) -> float:
+	var enemy_entry: WaveEnemyEntryDefinition = (
+		get_enemy_entry(enemy_id)
+	)
+
+	if (
+		not is_instance_valid(enemy_entry)
+		or not enemy_entry.is_valid_definition()
+	):
+		return 1.0
+
+	return enemy_entry.damage_multiplier
 
 
 func is_valid_definition() -> bool:
@@ -79,22 +134,10 @@ func is_valid_definition() -> bool:
 	if display_name.strip_edges().is_empty():
 		return false
 
-	if enemy_ids.is_empty():
-		return false
-
-	if (
-		enemy_ids.size()
-		!= enemies_per_side.size()
-	):
+	if enemy_entries.is_empty():
 		return false
 
 	if spawn_interval < 0.0:
-		return false
-
-	if health_multiplier <= 0.0:
-		return false
-
-	if damage_multiplier <= 0.0:
 		return false
 
 	if completion_message_duration < 0.0:
@@ -105,26 +148,16 @@ func is_valid_definition() -> bool:
 
 	var unique_enemy_ids: Dictionary = {}
 
-	for enemy_index in range(
-		enemy_ids.size()
-	):
-		var enemy_id: StringName = (
-			enemy_ids[enemy_index]
-		)
-
-		var enemy_count: int = (
-			enemies_per_side[enemy_index]
-		)
-
-		if enemy_id == &"":
+	for enemy_entry in enemy_entries:
+		if not is_instance_valid(enemy_entry):
 			return false
 
-		if enemy_count < 1:
+		if not enemy_entry.is_valid_definition():
 			return false
 
-		if unique_enemy_ids.has(enemy_id):
+		if unique_enemy_ids.has(enemy_entry.enemy_id):
 			return false
 
-		unique_enemy_ids[enemy_id] = true
+		unique_enemy_ids[enemy_entry.enemy_id] = true
 
 	return true

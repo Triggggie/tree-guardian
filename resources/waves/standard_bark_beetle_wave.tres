@@ -1,16 +1,25 @@
-[gd_resource type="Resource" script_class="WaveDefinition" format=3]
+[gd_resource type="Resource" script_class="WaveDefinition" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/definitions/wave_definition.gd" id="1_wave"]
+[ext_resource type="Script" path="res://scripts/definitions/wave_enemy_entry_definition.gd" id="2_entry"]
+
+[sub_resource type="Resource" id="Resource_bark_beetle_entry"]
+script = ExtResource("2_entry")
+enemy_id = &"bark_beetle"
+base_count_per_side = 2
+count_scaling_start_stage_wave = 1
+count_increase_interval = 3
+count_increase_amount = 1
+maximum_count_per_side = 30
+health_multiplier = 1.0
+damage_multiplier = 1.0
 
 [resource]
 script = ExtResource("1_wave")
 wave_id = &"standard_bark_beetle"
 display_name = "Standard Bark Beetle Wave"
 description = "A standard wave of Bark Beetles attacking from both sides."
-enemy_ids = Array[StringName]([&"bark_beetle"])
-enemies_per_side = Array[int]([2])
+enemy_entries = Array[ExtResource("2_entry")]([SubResource("Resource_bark_beetle_entry")])
 spawn_interval = 0.25
-health_multiplier = 1.0
-damage_multiplier = 1.0
 completion_message_duration = 0.7
 time_after_wave = 0.5

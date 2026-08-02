@@ -767,41 +767,25 @@ static func validate_stage_content(
 				% stage_label
 			)
 
-		if stage.waves.is_empty():
-			errors.append(
-				"%s has no waves."
-				% stage_label
-			)
-
-		if stage.wave_count < 1:
-			errors.append(
-				"%s has a wave count below 1."
-				% stage_label
-			)
-
-		if stage.enemies_per_side_increase_interval < 1:
+		if (
+			stage.get_substage_count()
+			!= stage.get_required_substage_count()
+		):
 			errors.append(
 				(
-					"%s has an enemy increase "
-					+ "interval below 1."
+					"%s must contain exactly %d Substages."
 				)
-				% stage_label
+				% [
+					stage_label,
+					stage.get_required_substage_count()
+				]
 			)
 
-		if stage.maximum_enemies_per_side < 1:
-			errors.append(
-				(
-					"%s has maximum enemies "
-					+ "per side below 1."
-				)
-				% stage_label
-			)
-
-		if stage.health_increase_per_global_wave < 0.0:
+		if stage.health_increase_per_stage_wave < 0.0:
 			errors.append(
 				(
 					"%s has a negative health increase "
-					+ "per global wave."
+					+ "per Stage Wave."
 				)
 				% stage_label
 			)
@@ -824,55 +808,57 @@ static func validate_stage_content(
 				% stage_label
 			)
 
-		validate_stage_waves(
+		validate_stage_substages(
 			stage,
 			stage_label,
 			errors
 		)
 
 
-static func validate_stage_waves(
+static func validate_stage_substages(
 	stage: StageDefinition,
 	stage_label: String,
 	errors: Array[String]
 ) -> void:
+	var used_substage_ids: Dictionary = {}
 	var used_wave_ids: Dictionary = {}
+	var validated_wave_instance_ids: Dictionary = {}
 
-	for wave_index in range(
-		stage.waves.size()
+	for substage_index in range(
+		stage.substages.size()
 	):
-		var wave: WaveDefinition = (
-			stage.waves[wave_index]
+		var substage: SubstageDefinition = (
+			stage.substages[substage_index]
 		)
 
-		if not is_instance_valid(wave):
+		if not is_instance_valid(substage):
 			errors.append(
 				(
-					"%s has an empty Wave entry "
+					"%s has an empty Substage entry "
 					+ "at index %d."
 				)
 				% [
 					stage_label,
-					wave_index
+					substage_index
 				]
 			)
 
 			continue
 
-		var wave_label: String = (
-			get_wave_label(
-				wave,
-				wave_index,
+		var substage_label: String = (
+			get_substage_label(
+				substage,
+				substage_index,
 				stage_label
 			)
 		)
 
-		if not wave.is_valid_definition():
-			if wave.wave_id == &"":
+		if not substage.is_valid_definition():
+			if substage.substage_id == &"":
 				errors.append(
-					"Wave entry %d in %s is invalid."
+					"Substage entry %d in %s is invalid."
 					% [
-						wave_index,
+						substage_index,
 						stage_label
 					]
 				)
@@ -880,89 +866,246 @@ static func validate_stage_waves(
 				errors.append(
 					"%s in %s is invalid."
 					% [
-						wave_label,
+						substage_label,
 						stage_label
 					]
 				)
 
-		if wave.wave_id == &"":
+		if substage.substage_id == &"":
 			errors.append(
-				"Wave entry %d in %s has an empty ID."
+				"Substage entry %d in %s has an empty ID."
 				% [
-					wave_index,
+					substage_index,
 					stage_label
 				]
 			)
-		elif used_wave_ids.has(wave.wave_id):
+		elif used_substage_ids.has(substage.substage_id):
 			errors.append(
-				"Duplicate Wave ID '%s' in %s."
+				"Duplicate Substage ID '%s' in %s."
 				% [
-					wave.wave_id,
+					substage.substage_id,
 					stage_label
 				]
 			)
 		else:
-			used_wave_ids[wave.wave_id] = true
+			used_substage_ids[
+				substage.substage_id
+			] = substage
 
-		if wave.display_name.strip_edges().is_empty():
+		if substage.display_name.strip_edges().is_empty():
 			errors.append(
 				"%s has an empty display name."
-				% wave_label
+				% substage_label
 			)
 
-		if wave.enemy_ids.is_empty():
+		if substage.wave_patterns.is_empty():
 			errors.append(
-				"%s has no enemy IDs."
-				% wave_label
+				"%s has no Wave patterns."
+				% substage_label
 			)
 
-		if wave.enemy_ids.size() != wave.enemies_per_side.size():
-			errors.append(
-				(
-					"%s has mismatched enemy ID "
-					+ "and count arrays."
-				)
-				% wave_label
-			)
-
-		if wave.spawn_interval < 0.0:
-			errors.append(
-				"%s has a negative spawn interval."
-				% wave_label
-			)
-
-		if wave.health_multiplier <= 0.0:
-			errors.append(
-				"%s has a non-positive health multiplier."
-				% wave_label
-			)
-
-		if wave.damage_multiplier <= 0.0:
-			errors.append(
-				"%s has a non-positive damage multiplier."
-				% wave_label
-			)
-
-		if wave.completion_message_duration < 0.0:
+		if substage.completion_essence_reward < 0:
 			errors.append(
 				(
 					"%s has a negative completion "
-					+ "message duration."
+					+ "Essence reward."
 				)
-				% wave_label
+				% substage_label
 			)
 
-		if wave.time_after_wave < 0.0:
-			errors.append(
-				"%s has a negative time after wave."
-				% wave_label
-			)
-
-		validate_wave_enemy_entries(
-			wave,
-			wave_label,
+		validate_substage_completion_effect_ids(
+			substage,
+			substage_label,
 			errors
 		)
+
+		validate_substage_wave_patterns(
+			substage,
+			substage_label,
+			used_wave_ids,
+			validated_wave_instance_ids,
+			errors
+		)
+
+
+static func validate_substage_completion_effect_ids(
+	substage: SubstageDefinition,
+	substage_label: String,
+	errors: Array[String]
+) -> void:
+	var used_effect_ids: Dictionary = {}
+
+	for effect_index in range(
+		substage.completion_effect_ids.size()
+	):
+		var effect_id: StringName = (
+			substage.completion_effect_ids[effect_index]
+		)
+
+		if effect_id == &"":
+			errors.append(
+				(
+					"%s has an empty completion effect ID "
+					+ "at index %d."
+				)
+				% [
+					substage_label,
+					effect_index
+				]
+			)
+		elif used_effect_ids.has(effect_id):
+			errors.append(
+				(
+					"%s has duplicate completion effect ID '%s'."
+				)
+				% [
+					substage_label,
+					effect_id
+				]
+			)
+		else:
+			used_effect_ids[effect_id] = true
+
+
+static func validate_substage_wave_patterns(
+	substage: SubstageDefinition,
+	substage_label: String,
+	used_wave_ids: Dictionary,
+	validated_wave_instance_ids: Dictionary,
+	errors: Array[String]
+) -> void:
+	for wave_index in range(
+		substage.wave_patterns.size()
+	):
+		var wave: WaveDefinition = (
+			substage.wave_patterns[wave_index]
+		)
+
+		if not is_instance_valid(wave):
+			errors.append(
+				(
+					"%s has an empty Wave pattern "
+					+ "at index %d."
+				)
+				% [
+					substage_label,
+					wave_index
+				]
+			)
+			continue
+
+		if wave.wave_id == &"":
+			errors.append(
+				"Wave pattern %d in %s has an empty ID."
+				% [
+					wave_index,
+					substage_label
+				]
+			)
+		elif used_wave_ids.has(wave.wave_id):
+			var indexed_wave: WaveDefinition = (
+				used_wave_ids.get(
+					wave.wave_id
+				) as WaveDefinition
+			)
+
+			if indexed_wave != wave:
+				errors.append(
+					(
+						"Conflicting Wave ID '%s' in %s uses "
+						+ "multiple different resources."
+					)
+					% [
+						wave.wave_id,
+						substage_label
+					]
+				)
+		else:
+			used_wave_ids[wave.wave_id] = wave
+
+		var wave_instance_id: int = wave.get_instance_id()
+
+		if validated_wave_instance_ids.has(wave_instance_id):
+			continue
+
+		validated_wave_instance_ids[wave_instance_id] = true
+
+		validate_wave_content(
+			wave,
+			wave_index,
+			substage_label,
+			errors
+		)
+
+
+static func validate_wave_content(
+	wave: WaveDefinition,
+	wave_index: int,
+	owner_label: String,
+	errors: Array[String]
+) -> void:
+	var wave_label: String = get_wave_label(
+		wave,
+		wave_index,
+		owner_label
+	)
+
+	if not wave.is_valid_definition():
+		if wave.wave_id == &"":
+			errors.append(
+				"Wave pattern %d in %s is invalid."
+				% [
+					wave_index,
+					owner_label
+				]
+			)
+		else:
+			errors.append(
+				"%s in %s is invalid."
+				% [
+					wave_label,
+					owner_label
+				]
+			)
+
+	if wave.display_name.strip_edges().is_empty():
+		errors.append(
+			"%s has an empty display name."
+			% wave_label
+		)
+
+	if wave.enemy_entries.is_empty():
+		errors.append(
+			"%s has no enemy entries."
+			% wave_label
+		)
+
+	if wave.spawn_interval < 0.0:
+		errors.append(
+			"%s has a negative spawn interval."
+			% wave_label
+		)
+
+	if wave.completion_message_duration < 0.0:
+		errors.append(
+			(
+				"%s has a negative completion "
+				+ "message duration."
+			)
+			% wave_label
+		)
+
+	if wave.time_after_wave < 0.0:
+		errors.append(
+			"%s has a negative time after wave."
+			% wave_label
+		)
+
+	validate_wave_enemy_entries(
+		wave,
+		wave_label,
+		errors
+	)
 
 
 static func validate_wave_enemy_entries(
@@ -971,19 +1114,34 @@ static func validate_wave_enemy_entries(
 	errors: Array[String]
 ) -> void:
 	var used_enemy_ids: Dictionary = {}
-	var shared_entry_count: int = min(
-		wave.enemy_ids.size(),
-		wave.enemies_per_side.size()
-	)
 
-	for enemy_index in range(shared_entry_count):
-		var enemy_id: StringName = (
-			wave.enemy_ids[enemy_index]
+	for enemy_index in range(
+		wave.enemy_entries.size()
+	):
+		var enemy_entry: WaveEnemyEntryDefinition = (
+			wave.enemy_entries[enemy_index]
 		)
 
-		var enemy_count: int = (
-			wave.enemies_per_side[enemy_index]
-		)
+		if not is_instance_valid(enemy_entry):
+			errors.append(
+				"%s has an empty enemy entry at index %d."
+				% [
+					wave_label,
+					enemy_index
+				]
+			)
+			continue
+
+		var enemy_id: StringName = enemy_entry.enemy_id
+
+		if not enemy_entry.is_valid_definition():
+			errors.append(
+				"Enemy entry %d in %s is invalid."
+				% [
+					enemy_index,
+					wave_label
+				]
+			)
 
 		if enemy_id == &"":
 			errors.append(
@@ -1004,12 +1162,101 @@ static func validate_wave_enemy_entries(
 		else:
 			used_enemy_ids[enemy_id] = true
 
-		if enemy_count < 1:
+		if enemy_entry.base_count_per_side < 1:
 			errors.append(
-				"%s has invalid enemy count %d for '%s'."
+				"%s has a base count below 1 for '%s'."
 				% [
 					wave_label,
-					enemy_count,
+					enemy_id
+				]
+			)
+
+		if enemy_entry.count_scaling_start_stage_wave < 1:
+			errors.append(
+				(
+					"%s has a count scaling start below 1 "
+					+ "for '%s'."
+				)
+				% [
+					wave_label,
+					enemy_id
+				]
+			)
+
+		if enemy_entry.count_increase_interval < 0:
+			errors.append(
+				"%s has a negative count interval for '%s'."
+				% [
+					wave_label,
+					enemy_id
+				]
+			)
+
+		if enemy_entry.count_increase_amount < 0:
+			errors.append(
+				"%s has a negative count amount for '%s'."
+				% [
+					wave_label,
+					enemy_id
+				]
+			)
+
+		if (
+			enemy_entry.count_increase_interval == 0
+			and enemy_entry.count_increase_amount > 0
+		):
+			errors.append(
+				(
+					"%s has a zero count interval with a positive "
+					+ "count amount for '%s'."
+				)
+				% [
+					wave_label,
+					enemy_id
+				]
+			)
+
+		if (
+			enemy_entry.count_increase_interval > 0
+			and enemy_entry.count_increase_amount == 0
+		):
+			errors.append(
+				(
+					"%s has a positive count interval with a zero "
+					+ "count amount for '%s'."
+				)
+				% [
+					wave_label,
+					enemy_id
+				]
+			)
+
+		if (
+			enemy_entry.maximum_count_per_side
+			< enemy_entry.base_count_per_side
+		):
+			errors.append(
+				"%s has maximum count below base count for '%s'."
+				% [
+					wave_label,
+					enemy_id
+				]
+			)
+
+		if enemy_entry.health_multiplier <= 0.0:
+			errors.append(
+				"%s has a non-positive health multiplier for '%s'."
+				% [
+					wave_label,
+					enemy_id
+				]
+			)
+
+		if enemy_entry.damage_multiplier <= 0.0:
+			errors.append(
+				"%s has a non-positive damage multiplier for '%s'."
+				% [
+					wave_label,
 					enemy_id
 				]
 			)
@@ -1065,6 +1312,23 @@ static func get_stage_label(
 	return "Stage entry %d" % stage_index
 
 
+static func get_substage_label(
+	substage: SubstageDefinition,
+	substage_index: int,
+	stage_label: String
+) -> String:
+	if substage.substage_id != &"":
+		return "Substage '%s'" % substage.substage_id
+
+	return (
+		"Substage entry %d in %s"
+		% [
+			substage_index,
+			stage_label
+		]
+	)
+
+
 static func get_wave_label(
 	wave: WaveDefinition,
 	wave_index: int,
@@ -1095,11 +1359,26 @@ static func validate_wave_enemy_references(
 		if not is_instance_valid(stage):
 			continue
 
-		for wave in stage.waves:
+		for wave in stage.get_unique_wave_definitions():
 			if not is_instance_valid(wave):
 				continue
 
-			for enemy_id in wave.enemy_ids:
+			var validated_enemy_ids: Dictionary = {}
+
+			for enemy_entry in wave.enemy_entries:
+				if not is_instance_valid(enemy_entry):
+					continue
+
+				var enemy_id: StringName = enemy_entry.enemy_id
+
+				if (
+					enemy_id == &""
+					or validated_enemy_ids.has(enemy_id)
+				):
+					continue
+
+				validated_enemy_ids[enemy_id] = true
+
 				if enemy_ids.has(enemy_id):
 					continue
 

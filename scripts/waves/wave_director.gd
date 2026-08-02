@@ -79,9 +79,9 @@ func _ready() -> void:
 		)
 		return
 
-	if stage_definition.waves.is_empty():
+	if stage_definition.substages.is_empty():
 		push_error(
-			"WaveDirector active Stage '%s' has no Wave templates."
+			"WaveDirector active Stage '%s' has no Substages."
 			% ACTIVE_STAGE_ID
 		)
 		return
@@ -102,7 +102,9 @@ func _ready() -> void:
 func _load_enemy_definitions() -> bool:
 	enemy_definitions_by_id.clear()
 
-	for wave_definition in stage_definition.waves:
+	for wave_definition in (
+		stage_definition.get_unique_wave_definitions()
+	):
 		if (
 			not is_instance_valid(wave_definition)
 			or not wave_definition.is_valid_definition()
@@ -116,7 +118,7 @@ func _load_enemy_definitions() -> bool:
 			)
 			return false
 
-		for enemy_id in wave_definition.enemy_ids:
+		for enemy_id in wave_definition.get_enemy_ids():
 			if enemy_definitions_by_id.has(enemy_id):
 				continue
 
@@ -226,13 +228,13 @@ func cancel_cycle(
 		wave_message_changed.emit("")
 
 
-func restart_current_stage() -> bool:
-	var stage_start_wave: int = (
-		get_current_stage_start_wave()
+func restart_current_substage() -> bool:
+	var substage_start_wave: int = (
+		get_current_substage_start_wave()
 	)
 
 	cancel_cycle(true)
-	current_wave = stage_start_wave - 1
+	current_wave = substage_start_wave - 1
 
 	return start_cycle(false)
 
@@ -274,7 +276,7 @@ func has_wave_for_global_wave(
 		1
 	)
 	var stage_wave_count: int = (
-		stage_definition.get_wave_count()
+		stage_definition.get_total_wave_count()
 	)
 
 	if (
@@ -311,7 +313,7 @@ func get_current_wave_definition() -> WaveDefinition:
 
 	if stage_definition.repeat_indefinitely:
 		wave_index_in_stage %= (
-			stage_definition.get_wave_count()
+			stage_definition.get_total_wave_count()
 		)
 
 	return stage_definition.get_wave_for_stage_index(
@@ -323,7 +325,21 @@ func get_safe_waves_per_stage() -> int:
 	if not is_instance_valid(stage_definition):
 		return 1
 
-	return stage_definition.get_wave_count()
+	return stage_definition.get_total_wave_count()
+
+
+func get_safe_substages_per_stage() -> int:
+	if not is_instance_valid(stage_definition):
+		return 1
+
+	return stage_definition.get_required_substage_count()
+
+
+func get_safe_waves_per_substage() -> int:
+	if not is_instance_valid(stage_definition):
+		return 1
+
+	return stage_definition.get_waves_per_substage()
 
 
 func get_current_stage_number() -> int:
@@ -364,6 +380,42 @@ func get_current_stage_start_wave() -> int:
 	)
 
 
+func get_current_substage_number() -> int:
+	var stage_wave_index: int = (
+		get_current_wave_in_stage() - 1
+	)
+
+	return int(
+		floor(
+			float(stage_wave_index)
+			/ float(get_safe_waves_per_substage())
+		)
+	) + 1
+
+
+func get_current_wave_in_substage() -> int:
+	return (
+		(get_current_wave_in_stage() - 1)
+		% get_safe_waves_per_substage()
+	) + 1
+
+
+func get_current_substage_start_wave() -> int:
+	return (
+		get_current_stage_start_wave()
+		+ (get_current_substage_number() - 1)
+		* get_safe_waves_per_substage()
+	)
+
+
+func get_current_progress_code() -> String:
+	return "%d-%d-%d" % [
+		get_current_stage_number(),
+		get_current_substage_number(),
+		get_current_wave_in_substage()
+	]
+
+
 func get_enemy_definition(
 	enemy_id: StringName
 ) -> EnemyDefinition:
@@ -384,13 +436,14 @@ func get_current_enemies_per_side() -> int:
 		return 0
 
 	var total_enemy_count: int = 0
+	var stage_wave: int = get_current_wave_in_stage()
 
-	for enemy_id in wave_definition.enemy_ids:
+	for enemy_id in wave_definition.get_enemy_ids():
 		total_enemy_count += (
-			stage_definition.get_enemy_count_for_global_wave(
+			stage_definition.get_enemy_count_for_stage_wave(
 				wave_definition,
 				enemy_id,
-				current_wave
+				stage_wave
 			)
 		)
 
@@ -404,15 +457,19 @@ func get_current_enemy_health() -> float:
 	var wave_definition: WaveDefinition = (
 		get_current_wave_definition()
 	)
+	var enemy_ids: Array[StringName] = []
+
+	if is_instance_valid(wave_definition):
+		enemy_ids = wave_definition.get_enemy_ids()
 
 	if (
 		not is_instance_valid(wave_definition)
-		or wave_definition.enemy_ids.is_empty()
+		or enemy_ids.is_empty()
 	):
 		return 1.0
 
 	return get_current_enemy_health_for_id(
-		wave_definition.enemy_ids[0]
+		enemy_ids[0]
 	)
 
 
@@ -429,15 +486,17 @@ func get_current_enemy_health_for_id(
 	if (
 		not is_instance_valid(stage_definition)
 		or not is_instance_valid(wave_definition)
-		or not wave_definition.enemy_ids.has(enemy_id)
+		or not is_instance_valid(
+			wave_definition.get_enemy_entry(enemy_id)
+		)
 		or not is_instance_valid(loaded_enemy_definition)
 	):
 		return 1.0
 
-	return stage_definition.get_enemy_health_for_global_wave(
+	return stage_definition.get_enemy_health_for_stage_wave(
 		wave_definition,
 		loaded_enemy_definition,
-		current_wave
+		get_current_wave_in_stage()
 	)
 
 
@@ -481,6 +540,8 @@ func _run_wave_loop(
 			)
 			return
 
+		var stage_wave: int = get_current_wave_in_stage()
+
 		var enemy_count: int = (
 			get_current_enemies_per_side()
 		)
@@ -494,12 +555,8 @@ func _run_wave_loop(
 		)
 
 		print(
-			"Začíná Stage ",
-			get_current_stage_number(),
-			" | Wave ",
-			get_current_wave_in_stage(),
-			"/",
-			get_safe_waves_per_stage(),
+			"Začíná ",
+			get_current_progress_code(),
 			" | globální vlna ",
 			current_wave,
 			" | nepřátel na každé straně: ",
@@ -510,7 +567,7 @@ func _run_wave_loop(
 
 		var spawn_requests: Array[EnemySpawnRequest] = []
 
-		for enemy_id in wave_definition.enemy_ids:
+		for enemy_id in wave_definition.get_enemy_ids():
 			if not is_cycle_active(cycle_id):
 				return
 
@@ -536,10 +593,10 @@ func _run_wave_loop(
 				return
 
 			var enemy_count_for_type: int = (
-				stage_definition.get_enemy_count_for_global_wave(
+				stage_definition.get_enemy_count_for_stage_wave(
 					wave_definition,
 					enemy_id,
-					current_wave
+					stage_wave
 				)
 			)
 
@@ -547,10 +604,16 @@ func _run_wave_loop(
 				continue
 
 			var enemy_health: float = (
-				stage_definition.get_enemy_health_for_global_wave(
+				stage_definition.get_enemy_health_for_stage_wave(
 					wave_definition,
 					loaded_enemy_definition,
-					current_wave
+					stage_wave
+				)
+			)
+			var damage_multiplier: float = (
+				stage_definition.get_enemy_damage_multiplier(
+					wave_definition,
+					enemy_id
 				)
 			)
 
@@ -559,7 +622,7 @@ func _run_wave_loop(
 					loaded_enemy_definition,
 					enemy_count_for_type,
 					enemy_health,
-					wave_definition.damage_multiplier
+					damage_multiplier
 				)
 			)
 
@@ -657,10 +720,7 @@ func _wait_until_all_enemies_are_dead_fallback(
 
 func _complete_wave() -> void:
 	print(
-		"Stage ",
-		get_current_stage_number(),
-		" | Wave ",
-		get_current_wave_in_stage(),
+		get_current_progress_code(),
 		" dokončena"
 	)
 
@@ -683,7 +743,7 @@ func _show_wave_complete_message(
 
 	wave_message_changed.emit(
 		"WAVE %d COMPLETE"
-		% get_current_wave_in_stage()
+		% get_current_wave_in_substage()
 	)
 
 	var safe_message_duration: float = max(

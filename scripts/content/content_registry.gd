@@ -255,7 +255,7 @@ func get_wave_definitions_for_stage(
 	if not is_instance_valid(stage_definition):
 		return []
 
-	return stage_definition.waves
+	return stage_definition.get_unique_wave_definitions()
 
 
 func index_branch_content() -> void:
@@ -346,7 +346,7 @@ func index_stage_waves() -> void:
 
 		waves_by_stage_id[stage_id] = (
 			index_scoped_definitions(
-				stage_definition.waves,
+				stage_definition.get_unique_wave_definitions(),
 				&"wave_id",
 				stage_id,
 				"Wave",

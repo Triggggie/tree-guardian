@@ -11,7 +11,11 @@ func _ready() -> void:
 	print("ENEMY RUNTIME SMOKE TEST START")
 
 	test_enemy_definition()
+	test_wave_enemy_entry_definition()
 	test_stage_and_wave_definition()
+	test_wave_definition_multi_entry_data()
+	test_substage_definition_validation()
+	test_wave_director_substage_queries()
 	test_enemy_spawn_request()
 	test_health_component()
 	await test_attack_component()
@@ -108,6 +112,212 @@ func test_enemy_definition() -> void:
 	)
 
 
+func test_wave_enemy_entry_definition() -> void:
+	var entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+
+	expect(
+		entry.is_valid_definition(),
+		"Valid WaveEnemyEntryDefinition was rejected."
+	)
+	expect(
+		entry.get_count_for_stage_wave(1) == 2,
+		"Entry Stage Wave 1 count is not 2."
+	)
+	expect(
+		entry.get_count_for_stage_wave(2) == 2,
+		"Entry Stage Wave 2 count is not 2."
+	)
+	expect(
+		entry.get_count_for_stage_wave(3) == 2,
+		"Entry Stage Wave 3 count is not 2."
+	)
+	expect(
+		entry.get_count_for_stage_wave(4) == 3,
+		"Entry Stage Wave 4 count is not 3."
+	)
+	expect(
+		entry.get_count_for_stage_wave(6) == 3,
+		"Entry Stage Wave 6 count is not 3."
+	)
+	expect(
+		entry.get_count_for_stage_wave(7) == 4,
+		"Entry Stage Wave 7 count is not 4."
+	)
+	expect(
+		entry.get_count_for_stage_wave(100) == 30,
+		"Entry Stage Wave 100 count is not capped at 30."
+	)
+	expect(
+		entry.get_count_for_stage_wave(1000) == 30,
+		"Entry Stage Wave 1000 count is not capped at 30."
+	)
+	expect(
+		entry.get_count_for_stage_wave(0) == 2,
+		"Entry Stage Wave 0 safe count is not 2."
+	)
+
+	var delayed_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	delayed_entry.base_count_per_side = 1
+	delayed_entry.count_scaling_start_stage_wave = 101
+	delayed_entry.count_increase_interval = 10
+	delayed_entry.count_increase_amount = 1
+	delayed_entry.maximum_count_per_side = 5
+
+	expect(
+		delayed_entry.is_valid_definition(),
+		"Valid delayed Wave enemy entry was rejected."
+	)
+	expect(
+		delayed_entry.get_count_for_stage_wave(100) == 1,
+		"Delayed entry Stage Wave 100 count is not 1."
+	)
+	expect(
+		delayed_entry.get_count_for_stage_wave(101) == 1,
+		"Delayed entry Stage Wave 101 count is not 1."
+	)
+	expect(
+		delayed_entry.get_count_for_stage_wave(110) == 1,
+		"Delayed entry Stage Wave 110 count is not 1."
+	)
+	expect(
+		delayed_entry.get_count_for_stage_wave(111) == 2,
+		"Delayed entry Stage Wave 111 count is not 2."
+	)
+	expect(
+		delayed_entry.get_count_for_stage_wave(121) == 3,
+		"Delayed entry Stage Wave 121 count is not 3."
+	)
+
+	var fixed_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	fixed_entry.base_count_per_side = 4
+	fixed_entry.count_increase_interval = 0
+	fixed_entry.count_increase_amount = 0
+	fixed_entry.maximum_count_per_side = 4
+	expect(
+		fixed_entry.is_valid_definition(),
+		"Valid fixed-count Wave enemy entry was rejected."
+	)
+	expect(
+		fixed_entry.get_count_for_stage_wave(1000) == 4,
+		"Fixed-count entry changed across Stage Waves."
+	)
+
+	var empty_id_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	empty_id_entry.enemy_id = &""
+	expect(
+		not empty_id_entry.is_valid_definition(),
+		"Wave enemy entry accepted an empty enemy ID."
+	)
+
+	var zero_base_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	zero_base_entry.base_count_per_side = 0
+	expect(
+		not zero_base_entry.is_valid_definition(),
+		"Wave enemy entry accepted base count 0."
+	)
+
+	var zero_start_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	zero_start_entry.count_scaling_start_stage_wave = 0
+	expect(
+		not zero_start_entry.is_valid_definition(),
+		"Wave enemy entry accepted scaling start 0."
+	)
+
+	var negative_interval_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	negative_interval_entry.count_increase_interval = -1
+	expect(
+		not negative_interval_entry.is_valid_definition(),
+		"Wave enemy entry accepted a negative count interval."
+	)
+
+	var negative_amount_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	negative_amount_entry.count_increase_amount = -1
+	expect(
+		not negative_amount_entry.is_valid_definition(),
+		"Wave enemy entry accepted a negative count amount."
+	)
+
+	var zero_interval_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	zero_interval_entry.count_increase_interval = 0
+	zero_interval_entry.count_increase_amount = 1
+	expect(
+		not zero_interval_entry.is_valid_definition(),
+		"Wave enemy entry accepted zero interval with positive amount."
+	)
+
+	var zero_amount_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	zero_amount_entry.count_increase_interval = 3
+	zero_amount_entry.count_increase_amount = 0
+	expect(
+		not zero_amount_entry.is_valid_definition(),
+		"Wave enemy entry accepted positive interval with zero amount."
+	)
+
+	var low_maximum_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	low_maximum_entry.maximum_count_per_side = 1
+	expect(
+		not low_maximum_entry.is_valid_definition(),
+		"Wave enemy entry accepted maximum count below base count."
+	)
+
+	var zero_health_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	zero_health_entry.health_multiplier = 0.0
+	expect(
+		not zero_health_entry.is_valid_definition(),
+		"Wave enemy entry accepted health multiplier 0."
+	)
+
+	var zero_damage_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	zero_damage_entry.damage_multiplier = 0.0
+	expect(
+		not zero_damage_entry.is_valid_definition(),
+		"Wave enemy entry accepted damage multiplier 0."
+	)
+
+	print(
+		"WAVE ENEMY ENTRY TEST PASS: Stage Wave scaling verified"
+	)
+
+
+func _create_standard_test_enemy_entry() -> WaveEnemyEntryDefinition:
+	var entry := WaveEnemyEntryDefinition.new()
+	entry.enemy_id = &"bark_beetle"
+	entry.base_count_per_side = 2
+	entry.count_scaling_start_stage_wave = 1
+	entry.count_increase_interval = 3
+	entry.count_increase_amount = 1
+	entry.maximum_count_per_side = 30
+	entry.health_multiplier = 1.0
+	entry.damage_multiplier = 1.0
+	return entry
+
+
 func test_stage_and_wave_definition() -> void:
 	var stage: StageDefinition = (
 		GameContent.get_stage(&"guardian_grove")
@@ -134,96 +344,363 @@ func test_stage_and_wave_definition() -> void:
 		"Guardian Grove Stage ID is incorrect."
 	)
 	expect(
-		stage.get_wave_count() == 100,
-		"Guardian Grove does not expose 100 wave slots."
+		stage.get_substage_count() == 10,
+		"Guardian Grove does not contain 10 Substages."
 	)
 	expect(
-		stage.get_wave_pattern_count() == 1,
-		"Guardian Grove does not have one Wave template."
+		stage.get_required_substage_count() == 10,
+		"Guardian Grove does not require 10 Substages."
+	)
+	expect(
+		stage.get_waves_per_substage() == 100,
+		"Guardian Grove does not expose 100 Waves per Substage."
+	)
+	expect(
+		stage.get_total_wave_count() == 1000,
+		"Guardian Grove does not expose 1000 total Waves."
+	)
+	expect(
+		stage.get_wave_count() == 1000,
+		"Guardian Grove compatibility Wave count is not 1000."
 	)
 	expect(
 		stage.repeat_indefinitely,
 		"Guardian Grove is not configured to repeat indefinitely."
 	)
 
-	var first_wave: WaveDefinition = (
+	var standard_wave: WaveDefinition = (
 		stage.get_wave_for_stage_index(0)
-	)
-	var last_wave: WaveDefinition = (
-		stage.get_wave_for_stage_index(99)
 	)
 
 	expect(
-		is_instance_valid(first_wave),
+		is_instance_valid(standard_wave),
 		"Guardian Grove first Wave template is missing."
 	)
+
+	if not is_instance_valid(standard_wave):
+		return
+
+	for substage_index in range(10):
+		var substage: SubstageDefinition = (
+			stage.get_substage(substage_index)
+		)
+		var expected_substage_id: StringName = StringName(
+			"guardian_grove_substage_%02d"
+			% (substage_index + 1)
+		)
+
+		expect(
+			is_instance_valid(substage),
+			"Guardian Grove Substage %d is missing."
+			% (substage_index + 1)
+		)
+
+		if not is_instance_valid(substage):
+			continue
+
+		expect(
+			substage.is_valid_definition(),
+			"Guardian Grove Substage %d is invalid."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.substage_id == expected_substage_id,
+			"Guardian Grove Substage %d has the wrong ID."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_count() == 100,
+			"Guardian Grove Substage %d does not expose 100 Waves."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_pattern_count() == 1,
+			"Guardian Grove Substage %d does not have one pattern."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_for_index(0) == standard_wave,
+			"Guardian Grove Substage %d does not share the standard Wave."
+			% (substage_index + 1)
+		)
+
+	var stage_wave_indexes: Array[int] = [
+		0,
+		99,
+		100,
+		187,
+		246,
+		999
+	]
+	var expected_substage_indexes: Array[int] = [
+		0,
+		0,
+		1,
+		1,
+		2,
+		9
+	]
+	var expected_wave_indexes: Array[int] = [
+		0,
+		99,
+		0,
+		87,
+		46,
+		99
+	]
+
+	for mapping_index in range(stage_wave_indexes.size()):
+		var stage_wave_index: int = stage_wave_indexes[
+			mapping_index
+		]
+
+		expect(
+			stage.get_substage_index_for_stage_wave(
+				stage_wave_index
+			) == expected_substage_indexes[mapping_index],
+			"Stage Wave index %d resolved to the wrong Substage."
+			% stage_wave_index
+		)
+		expect(
+			stage.get_wave_index_in_substage_for_stage_wave(
+				stage_wave_index
+			) == expected_wave_indexes[mapping_index],
+			"Stage Wave index %d resolved to the wrong Substage Wave."
+			% stage_wave_index
+		)
+		expect(
+			stage.get_wave_for_stage_index(
+				stage_wave_index
+			) == standard_wave,
+			"Stage Wave index %d did not resolve the standard Wave."
+			% stage_wave_index
+		)
+
 	expect(
-		is_instance_valid(last_wave),
-		"Guardian Grove last Wave slot is missing."
+		stage.get_substage_index_for_stage_wave(-1) == -1,
+		"Guardian Grove accepted negative Stage Wave mapping."
 	)
 	expect(
-		first_wave == last_wave,
-		"Guardian Grove wave slots do not reuse the same template."
+		stage.get_substage_index_for_stage_wave(1000) == -1,
+		"Guardian Grove accepted Stage Wave mapping 1000."
 	)
 	expect(
-		stage.get_wave_for_stage_index(100) == null,
-		"Guardian Grove accepted Wave index 100."
+		stage.get_wave_index_in_substage_for_stage_wave(-1) == -1,
+		"Guardian Grove accepted negative Substage Wave mapping."
+	)
+	expect(
+		stage.get_wave_index_in_substage_for_stage_wave(1000) == -1,
+		"Guardian Grove accepted Substage Wave mapping 1000."
+	)
+	expect(
+		stage.get_substage_start_wave_index(0) == 0,
+		"Substage 1 does not start at Stage Wave index 0."
+	)
+	expect(
+		stage.get_substage_start_wave_index(1) == 100,
+		"Substage 2 does not start at Stage Wave index 100."
+	)
+	expect(
+		stage.get_substage_start_wave_index(9) == 900,
+		"Substage 10 does not start at Stage Wave index 900."
+	)
+	expect(
+		stage.get_substage_start_wave_index(-1) == -1,
+		"Guardian Grove accepted a negative Substage start index."
+	)
+	expect(
+		stage.get_substage_start_wave_index(10) == -1,
+		"Guardian Grove accepted Substage start index 10."
 	)
 	expect(
 		stage.get_wave_for_stage_index(-1) == null,
 		"Guardian Grove accepted a negative Wave index."
 	)
+	expect(
+		stage.get_wave_for_stage_index(1000) == null,
+		"Guardian Grove accepted Wave index 1000."
+	)
 
-	if not is_instance_valid(first_wave):
-		return
+	var unique_waves: Array[WaveDefinition] = (
+		stage.get_unique_wave_definitions()
+	)
+	expect(
+		unique_waves.size() == 1,
+		"Guardian Grove does not expose one unique WaveDefinition."
+	)
+	if unique_waves.size() == 1:
+		expect(
+			unique_waves[0] == standard_wave,
+			"Guardian Grove unique Wave list returned the wrong Resource."
+		)
 
 	expect(
-		first_wave.wave_id == &"standard_bark_beetle",
+		standard_wave.wave_id == &"standard_bark_beetle",
 		"Standard Bark Beetle Wave ID is incorrect."
 	)
 	expect(
-		first_wave.is_valid_definition(),
+		standard_wave.is_valid_definition(),
 		"Standard Bark Beetle WaveDefinition is invalid."
 	)
+	var enemy_ids: Array[StringName] = standard_wave.get_enemy_ids()
 	expect(
-		first_wave.enemy_ids.has(&"bark_beetle"),
-		"Standard Wave does not contain Bark Beetle."
+		standard_wave.enemy_entries.size() == 1,
+		"Standard Wave does not contain exactly one enemy entry."
 	)
 	expect(
-		first_wave.get_enemy_count_for_id(&"bark_beetle") == 2,
-		"Standard Wave Bark Beetle base count is not 2."
+		enemy_ids.size() == 1
+		and enemy_ids[0] == &"bark_beetle",
+		"Standard Wave enemy ID order is not Bark Beetle."
+	)
+
+	var bark_beetle_entry: WaveEnemyEntryDefinition = (
+		standard_wave.get_enemy_entry(&"bark_beetle")
+	)
+	expect(
+		is_instance_valid(bark_beetle_entry),
+		"Standard Wave Bark Beetle entry is missing."
+	)
+
+	if is_instance_valid(bark_beetle_entry):
+		expect(
+			bark_beetle_entry.enemy_id == &"bark_beetle",
+			"Standard Wave entry has the wrong enemy ID."
+		)
+		expect(
+			bark_beetle_entry.base_count_per_side == 2,
+			"Standard Wave entry base count is not 2."
+		)
+		expect(
+			bark_beetle_entry.count_scaling_start_stage_wave == 1,
+			"Standard Wave entry scaling start is not 1."
+		)
+		expect(
+			bark_beetle_entry.count_increase_interval == 3,
+			"Standard Wave entry count interval is not 3."
+		)
+		expect(
+			bark_beetle_entry.count_increase_amount == 1,
+			"Standard Wave entry count amount is not 1."
+		)
+		expect(
+			bark_beetle_entry.maximum_count_per_side == 30,
+			"Standard Wave entry maximum count is not 30."
+		)
+		expect(
+			is_equal_approx(
+				bark_beetle_entry.health_multiplier,
+				1.0
+			),
+			"Standard Wave entry health multiplier is not 1.0."
+		)
+		expect(
+			is_equal_approx(
+				bark_beetle_entry.damage_multiplier,
+				1.0
+			),
+			"Standard Wave entry damage multiplier is not 1.0."
+		)
+
+	expect(
+		standard_wave.get_enemy_count_for_id(
+			&"bark_beetle",
+			1
+		) == 2,
+		"Standard Wave Stage Wave 1 count is not 2."
+	)
+	expect(
+		standard_wave.get_enemy_count_for_id(
+			&"bark_beetle",
+			3
+		) == 2,
+		"Standard Wave Stage Wave 3 count is not 2."
+	)
+	expect(
+		standard_wave.get_enemy_count_for_id(
+			&"bark_beetle",
+			4
+		) == 3,
+		"Standard Wave Stage Wave 4 count is not 3."
+	)
+	expect(
+		standard_wave.get_enemy_count_for_id(
+			&"bark_beetle",
+			100
+		) == 30,
+		"Standard Wave Stage Wave 100 count is not 30."
+	)
+	expect(
+		standard_wave.get_enemy_count_for_id(
+			&"missing_enemy",
+			1
+		) == 0,
+		"Standard Wave unknown enemy count is not 0."
+	)
+	expect(
+		standard_wave.get_total_enemies_per_side(1) == 2,
+		"Standard Wave Stage Wave 1 total count is not 2."
+	)
+	expect(
+		standard_wave.get_total_enemies_per_side(4) == 3,
+		"Standard Wave Stage Wave 4 total count is not 3."
+	)
+	expect(
+		standard_wave.get_total_enemies_per_side(100) == 30,
+		"Standard Wave Stage Wave 100 total count is not 30."
 	)
 	expect(
 		is_equal_approx(
-			first_wave.spawn_interval,
+			standard_wave.spawn_interval,
 			0.25
 		),
 		"Standard Wave spawn interval is not 0.25."
 	)
 	expect(
 		is_equal_approx(
-			first_wave.health_multiplier,
+			standard_wave.get_health_multiplier_for_id(
+				&"bark_beetle"
+			),
 			1.0
 		),
-		"Standard Wave health multiplier is not 1.0."
+		"Standard Wave Bark Beetle health multiplier is not 1.0."
 	)
 	expect(
 		is_equal_approx(
-			first_wave.damage_multiplier,
+			standard_wave.get_damage_multiplier_for_id(
+				&"bark_beetle"
+			),
 			1.0
 		),
-		"Standard Wave damage multiplier is not 1.0."
+		"Standard Wave Bark Beetle damage multiplier is not 1.0."
 	)
 	expect(
 		is_equal_approx(
-			first_wave.completion_message_duration,
+			standard_wave.get_health_multiplier_for_id(
+				&"missing_enemy"
+			),
+			1.0
+		),
+		"Standard Wave unknown health multiplier fallback is not 1.0."
+	)
+	expect(
+		is_equal_approx(
+			standard_wave.get_damage_multiplier_for_id(
+				&"missing_enemy"
+			),
+			1.0
+		),
+		"Standard Wave unknown damage multiplier fallback is not 1.0."
+	)
+	expect(
+		is_equal_approx(
+			standard_wave.completion_message_duration,
 			0.7
 		),
 		"Standard Wave completion message duration is not 0.7."
 	)
 	expect(
 		is_equal_approx(
-			first_wave.time_after_wave,
+			standard_wave.time_after_wave,
 			0.5
 		),
 		"Standard Wave time after Wave is not 0.5."
@@ -237,91 +714,72 @@ func test_stage_and_wave_definition() -> void:
 		"Stage test could not load Bark Beetle EnemyDefinition."
 	)
 
+	var stage_wave_counts: Array[int] = [2, 2, 2, 3]
+
+	for stage_wave_index in range(stage_wave_counts.size()):
+		var stage_wave: int = stage_wave_index + 1
+		expect(
+			stage.get_enemy_count_for_stage_wave(
+				standard_wave,
+				&"bark_beetle",
+				stage_wave
+			) == stage_wave_counts[stage_wave_index],
+			"Stage Wave %d Bark Beetle count is incorrect."
+			% stage_wave
+		)
+
 	expect(
-		stage.get_enemy_count_for_global_wave(
-			first_wave,
-			&"bark_beetle",
-			1
-		) == 2,
-		"Global Wave 1 Bark Beetle count is not 2."
-	)
-	expect(
-		stage.get_enemy_count_for_global_wave(
-			first_wave,
-			&"bark_beetle",
-			3
-		) == 2,
-		"Global Wave 3 Bark Beetle count is not 2."
-	)
-	expect(
-		stage.get_enemy_count_for_global_wave(
-			first_wave,
-			&"bark_beetle",
-			4
-		) == 3,
-		"Global Wave 4 Bark Beetle count is not 3."
-	)
-	expect(
-		stage.get_enemy_count_for_global_wave(
-			first_wave,
+		stage.get_enemy_count_for_stage_wave(
+			standard_wave,
 			&"bark_beetle",
 			100
 		) == 30,
-		"Global Wave 100 Bark Beetle count is not 30."
+		"Stage Wave 100 Bark Beetle count is not 30."
 	)
 	expect(
-		stage.get_enemy_count_for_global_wave(
-			first_wave,
-			&"bark_beetle",
-			101
-		) == 30,
-		"Global Wave 101 Bark Beetle count is not 30."
+		is_equal_approx(
+			stage.get_enemy_damage_multiplier(
+				standard_wave,
+				&"bark_beetle"
+			),
+			1.0
+		),
+		"Stage Bark Beetle damage multiplier is not 1.0."
 	)
 
 	if is_instance_valid(bark_beetle_definition):
+		var stage_wave_health: Array[float] = [
+			30.0,
+			33.0,
+			36.0,
+			39.0
+		]
+
+		for stage_wave_index in range(stage_wave_health.size()):
+			var stage_wave: int = stage_wave_index + 1
+			expect(
+				is_equal_approx(
+					stage.get_enemy_health_for_stage_wave(
+						standard_wave,
+						bark_beetle_definition,
+						stage_wave
+					),
+					stage_wave_health[stage_wave_index]
+				),
+				"Stage Wave %d Bark Beetle health is incorrect."
+				% stage_wave
+			)
+
 		expect(
 			is_equal_approx(
-				stage.get_enemy_health_for_global_wave(
-					first_wave,
+				stage.get_enemy_health_for_stage_wave(
+					standard_wave,
 					bark_beetle_definition,
-					1
+					100
 				),
-				30.0
+				327.0
 			),
-			"Global Wave 1 Bark Beetle health is not 30.0."
-		)
-		expect(
-			is_equal_approx(
-				stage.get_enemy_health_for_global_wave(
-					first_wave,
-					bark_beetle_definition,
-					2
-				),
-				33.0
-			),
-			"Global Wave 2 Bark Beetle health is not 33.0."
-		)
-		expect(
-			is_equal_approx(
-				stage.get_enemy_health_for_global_wave(
-					first_wave,
-					bark_beetle_definition,
-					3
-				),
-				36.0
-			),
-			"Global Wave 3 Bark Beetle health is not 36.0."
-		)
-		expect(
-			is_equal_approx(
-				stage.get_enemy_health_for_global_wave(
-					first_wave,
-					bark_beetle_definition,
-					4
-				),
-				39.0
-			),
-			"Global Wave 4 Bark Beetle health is not 39.0."
+			"Stage Wave 100 Bark Beetle health is not 327.0."
 		)
 
 	var indexed_wave: WaveDefinition = GameContent.get_wave(
@@ -329,9 +787,502 @@ func test_stage_and_wave_definition() -> void:
 		&"standard_bark_beetle"
 	)
 	expect(
-		indexed_wave == first_wave,
+		indexed_wave == standard_wave,
 		"Scoped Guardian Grove Wave lookup returned the wrong Resource."
 	)
+
+	print(
+		"STAGE/SUBSTAGE MAPPING TEST PASS: "
+		+ "substages=10, waves_per_substage=100, total_waves=1000"
+	)
+
+
+func test_wave_definition_multi_entry_data() -> void:
+	var bark_beetle_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	var runner_entry := WaveEnemyEntryDefinition.new()
+	runner_entry.enemy_id = &"test_runner"
+	runner_entry.base_count_per_side = 1
+	runner_entry.count_scaling_start_stage_wave = 1
+	runner_entry.count_increase_interval = 0
+	runner_entry.count_increase_amount = 0
+	runner_entry.maximum_count_per_side = 1
+	runner_entry.health_multiplier = 0.5
+	runner_entry.damage_multiplier = 1.25
+
+	var multi_entry_wave := WaveDefinition.new()
+	multi_entry_wave.wave_id = &"test_multi_entry_wave"
+	multi_entry_wave.display_name = "Test Multi-entry Wave"
+	var ordered_entries: Array[WaveEnemyEntryDefinition] = [
+		bark_beetle_entry,
+		runner_entry
+	]
+	multi_entry_wave.enemy_entries = ordered_entries
+
+	expect(
+		multi_entry_wave.is_valid_definition(),
+		"Valid in-memory multi-entry WaveDefinition was rejected."
+	)
+
+	var ordered_enemy_ids: Array[StringName] = (
+		multi_entry_wave.get_enemy_ids()
+	)
+	expect(
+		ordered_enemy_ids.size() == 2
+		and ordered_enemy_ids[0] == &"bark_beetle"
+		and ordered_enemy_ids[1] == &"test_runner",
+		"Multi-entry Wave did not preserve enemy block order."
+	)
+	expect(
+		multi_entry_wave.get_enemy_count_for_id(
+			&"bark_beetle",
+			4
+		) == 3,
+		"Multi-entry Wave Bark Beetle count is not independent."
+	)
+	expect(
+		multi_entry_wave.get_enemy_count_for_id(
+			&"test_runner",
+			4
+		) == 1,
+		"Multi-entry Wave test runner count is not fixed at 1."
+	)
+	expect(
+		multi_entry_wave.get_total_enemies_per_side(4) == 4,
+		"Multi-entry Wave total count is not 4."
+	)
+	expect(
+		is_equal_approx(
+			multi_entry_wave.get_health_multiplier_for_id(
+				&"bark_beetle"
+			),
+			1.0
+		),
+		"Multi-entry Wave Bark Beetle health multiplier changed."
+	)
+	expect(
+		is_equal_approx(
+			multi_entry_wave.get_health_multiplier_for_id(
+				&"test_runner"
+			),
+			0.5
+		),
+		"Multi-entry Wave test runner health multiplier is not 0.5."
+	)
+	expect(
+		is_equal_approx(
+			multi_entry_wave.get_damage_multiplier_for_id(
+				&"bark_beetle"
+			),
+			1.0
+		),
+		"Multi-entry Wave Bark Beetle damage multiplier changed."
+	)
+	expect(
+		is_equal_approx(
+			multi_entry_wave.get_damage_multiplier_for_id(
+				&"test_runner"
+			),
+			1.25
+		),
+		"Multi-entry Wave test runner damage multiplier is not 1.25."
+	)
+
+	runner_entry.health_multiplier = 0.75
+	expect(
+		is_equal_approx(
+			bark_beetle_entry.health_multiplier,
+			1.0
+		),
+		"Mutating one Wave enemy entry changed another entry."
+	)
+
+	var duplicate_entry: WaveEnemyEntryDefinition = (
+		_create_standard_test_enemy_entry()
+	)
+	var duplicate_wave := WaveDefinition.new()
+	duplicate_wave.wave_id = &"test_duplicate_entry_wave"
+	duplicate_wave.display_name = "Test Duplicate Entry Wave"
+	var duplicate_entries: Array[WaveEnemyEntryDefinition] = [
+		bark_beetle_entry,
+		duplicate_entry
+	]
+	duplicate_wave.enemy_entries = duplicate_entries
+	expect(
+		not duplicate_wave.is_valid_definition(),
+		"WaveDefinition accepted duplicate enemy IDs."
+	)
+
+	var null_entry_wave := WaveDefinition.new()
+	null_entry_wave.wave_id = &"test_null_entry_wave"
+	null_entry_wave.display_name = "Test Null Entry Wave"
+	var null_entries: Array[WaveEnemyEntryDefinition] = [
+		bark_beetle_entry,
+		null
+	]
+	null_entry_wave.enemy_entries = null_entries
+	expect(
+		not null_entry_wave.is_valid_definition(),
+		"WaveDefinition accepted a null enemy entry."
+	)
+
+	print(
+		"MULTI-ENTRY WAVE DATA TEST PASS: ordered entries=2"
+	)
+
+
+func test_substage_definition_validation() -> void:
+	var standard_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"standard_bark_beetle"
+	)
+
+	expect(
+		is_instance_valid(standard_wave),
+		"Substage validation test could not load the standard Wave."
+	)
+
+	if not is_instance_valid(standard_wave):
+		return
+
+	var valid_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	expect(
+		valid_substage.is_valid_definition(),
+		"Valid in-memory SubstageDefinition was rejected."
+	)
+
+	var empty_id_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	empty_id_substage.substage_id = &""
+	expect(
+		not empty_id_substage.is_valid_definition(),
+		"SubstageDefinition accepted an empty ID."
+	)
+
+	var empty_name_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	empty_name_substage.display_name = "   "
+	expect(
+		not empty_name_substage.is_valid_definition(),
+		"SubstageDefinition accepted an empty display name."
+	)
+
+	var empty_patterns_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	empty_patterns_substage.wave_patterns = []
+	expect(
+		not empty_patterns_substage.is_valid_definition(),
+		"SubstageDefinition accepted empty Wave patterns."
+	)
+
+	var null_pattern_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	var null_patterns: Array[WaveDefinition] = [null]
+	null_pattern_substage.wave_patterns = null_patterns
+	expect(
+		not null_pattern_substage.is_valid_definition(),
+		"SubstageDefinition accepted a null Wave pattern."
+	)
+
+	var negative_reward_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	negative_reward_substage.completion_essence_reward = -1
+	expect(
+		not negative_reward_substage.is_valid_definition(),
+		"SubstageDefinition accepted a negative completion reward."
+	)
+
+	var empty_effect_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	var empty_effect_ids: Array[StringName] = [&""]
+	empty_effect_substage.completion_effect_ids = empty_effect_ids
+	expect(
+		not empty_effect_substage.is_valid_definition(),
+		"SubstageDefinition accepted an empty completion effect ID."
+	)
+
+	var duplicate_effect_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	var duplicate_effect_ids: Array[StringName] = [
+		&"test_effect",
+		&"test_effect"
+	]
+	duplicate_effect_substage.completion_effect_ids = (
+		duplicate_effect_ids
+	)
+	expect(
+		not duplicate_effect_substage.is_valid_definition(),
+		"SubstageDefinition accepted duplicate completion effect IDs."
+	)
+
+	var repeated_wave_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	var repeated_patterns: Array[WaveDefinition] = [
+		standard_wave,
+		standard_wave
+	]
+	repeated_wave_substage.wave_patterns = repeated_patterns
+	expect(
+		repeated_wave_substage.is_valid_definition(),
+		"SubstageDefinition rejected a repeated identical Wave Resource."
+	)
+	expect(
+		repeated_wave_substage.get_unique_wave_definitions().size() == 1,
+		"SubstageDefinition did not deduplicate an identical Wave Resource."
+	)
+
+	var conflicting_wave := WaveDefinition.new()
+	conflicting_wave.wave_id = standard_wave.wave_id
+	conflicting_wave.display_name = "Conflicting Standard Wave"
+	var conflicting_entries: Array[WaveEnemyEntryDefinition] = [
+		_create_standard_test_enemy_entry()
+	]
+	conflicting_wave.enemy_entries = conflicting_entries
+
+	expect(
+		conflicting_wave.is_valid_definition(),
+		"In-memory conflicting WaveDefinition fixture is invalid."
+	)
+
+	var conflicting_wave_substage: SubstageDefinition = (
+		_create_test_substage(standard_wave)
+	)
+	var conflicting_patterns: Array[WaveDefinition] = [
+		standard_wave,
+		conflicting_wave
+	]
+	conflicting_wave_substage.wave_patterns = conflicting_patterns
+	expect(
+		not conflicting_wave_substage.is_valid_definition(),
+		(
+			"SubstageDefinition accepted different Wave Resources "
+			+ "with the same ID."
+		)
+	)
+
+
+func _create_test_substage(
+	wave_definition: WaveDefinition
+) -> SubstageDefinition:
+	var substage := SubstageDefinition.new()
+	substage.substage_id = &"test_substage"
+	substage.display_name = "Test Substage"
+	var patterns: Array[WaveDefinition] = [wave_definition]
+	substage.wave_patterns = patterns
+	return substage
+
+
+func test_wave_director_substage_queries() -> void:
+	var stage: StageDefinition = (
+		GameContent.get_stage(&"guardian_grove")
+	)
+	var standard_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"standard_bark_beetle"
+	)
+	var bark_beetle_definition: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_beetle")
+	)
+
+	expect(
+		is_instance_valid(stage),
+		"WaveDirector mapping test could not load Guardian Grove."
+	)
+	expect(
+		is_instance_valid(standard_wave),
+		"WaveDirector mapping test could not load the standard Wave."
+	)
+	expect(
+		is_instance_valid(bark_beetle_definition),
+		"WaveDirector mapping test could not load Bark Beetle."
+	)
+
+	if (
+		not is_instance_valid(stage)
+		or not is_instance_valid(standard_wave)
+		or not is_instance_valid(bark_beetle_definition)
+	):
+		return
+
+	var director := WaveDirector.new()
+	director.stage_definition = stage
+	director.enemy_definitions_by_id[&"bark_beetle"] = (
+		bark_beetle_definition
+	)
+
+	expect(
+		director.get_safe_substages_per_stage() == 10,
+		"WaveDirector does not expose 10 Substages per Stage."
+	)
+	expect(
+		director.get_safe_waves_per_substage() == 100,
+		"WaveDirector does not expose 100 Waves per Substage."
+	)
+	expect(
+		director.get_safe_waves_per_stage() == 1000,
+		"WaveDirector does not expose 1000 Waves per Stage."
+	)
+	expect(
+		director.get_current_progress_code() == "1-1-1",
+		"WaveDirector initial progress code is not 1-1-1."
+	)
+
+	var mappings: Array[Dictionary] = [
+		{
+			"global_wave": 1,
+			"stage": 1,
+			"substage": 1,
+			"wave": 1,
+			"stage_start": 1,
+			"substage_start": 1,
+			"code": "1-1-1"
+		},
+		{
+			"global_wave": 100,
+			"stage": 1,
+			"substage": 1,
+			"wave": 100,
+			"stage_start": 1,
+			"substage_start": 1,
+			"code": "1-1-100"
+		},
+		{
+			"global_wave": 101,
+			"stage": 1,
+			"substage": 2,
+			"wave": 1,
+			"stage_start": 1,
+			"substage_start": 101,
+			"code": "1-2-1"
+		},
+		{
+			"global_wave": 188,
+			"stage": 1,
+			"substage": 2,
+			"wave": 88,
+			"stage_start": 1,
+			"substage_start": 101,
+			"code": "1-2-88"
+		},
+		{
+			"global_wave": 247,
+			"stage": 1,
+			"substage": 3,
+			"wave": 47,
+			"stage_start": 1,
+			"substage_start": 201,
+			"code": "1-3-47"
+		},
+		{
+			"global_wave": 1000,
+			"stage": 1,
+			"substage": 10,
+			"wave": 100,
+			"stage_start": 1,
+			"substage_start": 901,
+			"code": "1-10-100"
+		},
+		{
+			"global_wave": 1001,
+			"stage": 2,
+			"substage": 1,
+			"wave": 1,
+			"stage_start": 1001,
+			"substage_start": 1001,
+			"code": "2-1-1"
+		},
+		{
+			"global_wave": 1047,
+			"stage": 2,
+			"substage": 1,
+			"wave": 47,
+			"stage_start": 1001,
+			"substage_start": 1001,
+			"code": "2-1-47"
+		}
+	]
+
+	for mapping in mappings:
+		var global_wave: int = int(mapping["global_wave"])
+		director.current_wave = global_wave
+
+		expect(
+			director.get_current_stage_number()
+			== int(mapping["stage"]),
+			"Global Wave %d resolved to the wrong Stage."
+			% global_wave
+		)
+		expect(
+			director.get_current_substage_number()
+			== int(mapping["substage"]),
+			"Global Wave %d resolved to the wrong Substage."
+			% global_wave
+		)
+		expect(
+			director.get_current_wave_in_substage()
+			== int(mapping["wave"]),
+			"Global Wave %d resolved to the wrong Substage Wave."
+			% global_wave
+		)
+		expect(
+			director.get_current_stage_start_wave()
+			== int(mapping["stage_start"]),
+			"Global Wave %d resolved to the wrong Stage start."
+			% global_wave
+		)
+		expect(
+			director.get_current_substage_start_wave()
+			== int(mapping["substage_start"]),
+			"Global Wave %d resolved to the wrong Substage start."
+			% global_wave
+		)
+		expect(
+			director.get_current_progress_code()
+			== String(mapping["code"]),
+			"Global Wave %d produced the wrong progress code."
+			% global_wave
+		)
+		expect(
+			director.get_current_wave_definition()
+			== standard_wave,
+			"Global Wave %d resolved the wrong WaveDefinition."
+			% global_wave
+		)
+
+	director.current_wave = 1001
+	expect(
+		director.get_current_wave_in_stage() == 1,
+		"Global Wave 1001 did not reset balance to Stage Wave 1."
+	)
+	expect(
+		director.get_current_enemies_per_side() == 2,
+		"Global Wave 1001 did not reset Bark Beetle count to 2."
+	)
+	expect(
+		is_equal_approx(
+			director.get_current_enemy_health(),
+			30.0
+		),
+		"Global Wave 1001 did not reset Bark Beetle health to 30."
+	)
+
+	print(
+		"WAVE DIRECTOR PROGRESS TEST PASS: "
+		+ "1-1-1 through 2-1-47 boundaries verified"
+	)
+
+	director.free()
 
 
 func test_enemy_spawn_request() -> void:

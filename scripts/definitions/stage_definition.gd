@@ -2,6 +2,9 @@ class_name StageDefinition
 extends Resource
 
 
+const SUBSTAGE_COUNT: int = 10
+
+
 @export_category("Identity")
 
 @export var stage_id: StringName = &""
@@ -17,26 +20,17 @@ var description: String = ""
 @export var icon: Texture2D
 
 
-@export_category("Waves")
+@export_category("Substages")
 
-@export var waves: Array[WaveDefinition] = []
+@export var substages: Array[SubstageDefinition] = []
 
 
 @export_category("Progression")
 
-@export_range(1, 1000000, 1)
-var wave_count: int = 100
-
 @export var repeat_indefinitely: bool = false
 
-@export_range(1, 1000000, 1)
-var enemies_per_side_increase_interval: int = 3
-
-@export_range(1, 1000000000, 1)
-var maximum_enemies_per_side: int = 30
-
 @export_range(0.0, 1000000000.0, 0.01)
-var health_increase_per_global_wave: float = 3.0
+var health_increase_per_stage_wave: float = 3.0
 
 @export_range(1.0, 1000000000.0, 1.0)
 var maximum_enemy_health: float = 1000000.0
@@ -52,55 +46,174 @@ var completion_essence_reward: int = 0
 @export var completion_effect_ids: Array[StringName] = []
 
 
-func get_wave(
-	wave_index: int
-) -> WaveDefinition:
-	if (
-		wave_index < 0
-		or wave_index >= wave_count
-		or waves.is_empty()
-	):
-		return null
-
-	return waves[
-		wave_index % waves.size()
-	]
+func get_substage_count() -> int:
+	return substages.size()
 
 
-func get_wave_for_stage_index(
-	wave_index: int
-) -> WaveDefinition:
-	return get_wave(wave_index)
+func get_required_substage_count() -> int:
+	return SUBSTAGE_COUNT
 
 
-func get_wave_count() -> int:
-	return max(
-		wave_count,
-		1
+func get_waves_per_substage() -> int:
+	return SubstageDefinition.WAVE_COUNT
+
+
+func get_total_wave_count() -> int:
+	return (
+		SUBSTAGE_COUNT
+		* SubstageDefinition.WAVE_COUNT
 	)
 
 
-func get_wave_pattern_count() -> int:
-	return waves.size()
+func get_wave_count() -> int:
+	return get_total_wave_count()
+
+
+func get_substage(
+	substage_index: int
+) -> SubstageDefinition:
+	if (
+		substage_index < 0
+		or substage_index >= SUBSTAGE_COUNT
+		or substage_index >= substages.size()
+	):
+		return null
+
+	return substages[substage_index]
+
+
+func get_substage_by_id(
+	substage_id: StringName
+) -> SubstageDefinition:
+	for substage in substages:
+		if not is_instance_valid(substage):
+			continue
+
+		if substage.substage_id == substage_id:
+			return substage
+
+	return null
+
+
+func get_substage_index_for_stage_wave(
+	stage_wave_index: int
+) -> int:
+	if (
+		stage_wave_index < 0
+		or stage_wave_index >= get_total_wave_count()
+	):
+		return -1
+
+	return int(
+		floor(
+			float(stage_wave_index)
+			/ float(SubstageDefinition.WAVE_COUNT)
+		)
+	)
+
+
+func get_wave_index_in_substage_for_stage_wave(
+	stage_wave_index: int
+) -> int:
+	if (
+		stage_wave_index < 0
+		or stage_wave_index >= get_total_wave_count()
+	):
+		return -1
+
+	return stage_wave_index % SubstageDefinition.WAVE_COUNT
+
+
+func get_substage_start_wave_index(
+	substage_index: int
+) -> int:
+	if substage_index < 0 or substage_index >= SUBSTAGE_COUNT:
+		return -1
+
+	return substage_index * SubstageDefinition.WAVE_COUNT
+
+
+func get_wave_for_stage_index(
+	stage_wave_index: int
+) -> WaveDefinition:
+	var substage_index: int = (
+		get_substage_index_for_stage_wave(
+			stage_wave_index
+		)
+	)
+	var wave_index_in_substage: int = (
+		get_wave_index_in_substage_for_stage_wave(
+			stage_wave_index
+		)
+	)
+
+	if substage_index < 0 or wave_index_in_substage < 0:
+		return null
+
+	var substage: SubstageDefinition = get_substage(
+		substage_index
+	)
+
+	if not is_instance_valid(substage):
+		return null
+
+	return substage.get_wave_for_index(
+		wave_index_in_substage
+	)
+
+
+func get_wave(
+	stage_wave_index: int
+) -> WaveDefinition:
+	return get_wave_for_stage_index(
+		stage_wave_index
+	)
+
+
+func get_unique_wave_definitions() -> Array[WaveDefinition]:
+	var unique_waves: Array[WaveDefinition] = []
+	var waves_by_id: Dictionary = {}
+
+	for substage in substages:
+		if not is_instance_valid(substage):
+			continue
+
+		for wave_definition in substage.wave_patterns:
+			if not is_instance_valid(wave_definition):
+				continue
+
+			var wave_id: StringName = wave_definition.wave_id
+
+			if wave_id == &"" or waves_by_id.has(wave_id):
+				continue
+
+			waves_by_id[wave_id] = wave_definition
+			unique_waves.append(wave_definition)
+
+	return unique_waves
 
 
 func get_wave_by_id(
 	wave_id: StringName
 ) -> WaveDefinition:
-	for wave in waves:
-		if wave == null:
+	for substage in substages:
+		if not is_instance_valid(substage):
 			continue
 
-		if wave.wave_id == wave_id:
-			return wave
+		var wave_definition: WaveDefinition = (
+			substage.get_wave_by_id(wave_id)
+		)
+
+		if is_instance_valid(wave_definition):
+			return wave_definition
 
 	return null
 
 
-func get_enemy_count_for_global_wave(
+func get_enemy_count_for_stage_wave(
 	wave_definition: WaveDefinition,
 	enemy_id: StringName,
-	global_wave: int
+	stage_wave: int
 ) -> int:
 	if (
 		not is_instance_valid(wave_definition)
@@ -108,46 +221,19 @@ func get_enemy_count_for_global_wave(
 	):
 		return 0
 
-	var base_enemy_count: int = (
-		wave_definition.get_enemy_count_for_id(
-			enemy_id
-		)
-	)
-
-	if base_enemy_count < 1:
-		return 0
-
-	var safe_global_wave: int = max(
-		global_wave,
-		1
-	)
-
-	var safe_interval: int = max(
-		enemies_per_side_increase_interval,
-		1
-	)
-
-	var additional_enemy_count: int = int(
-		floor(
-			float(safe_global_wave - 1)
-			/ float(safe_interval)
-		)
-	)
-
 	return max(
-		min(
-			base_enemy_count
-			+ additional_enemy_count,
-			maximum_enemies_per_side
+		wave_definition.get_enemy_count_for_id(
+			enemy_id,
+			stage_wave
 		),
 		0
 	)
 
 
-func get_enemy_health_for_global_wave(
+func get_enemy_health_for_stage_wave(
 	wave_definition: WaveDefinition,
 	enemy_definition: EnemyDefinition,
-	global_wave: int
+	stage_wave: int
 ) -> float:
 	if (
 		not is_instance_valid(wave_definition)
@@ -157,16 +243,28 @@ func get_enemy_health_for_global_wave(
 	):
 		return 1.0
 
-	var safe_global_wave: int = max(
-		global_wave,
+	var enemy_entry: WaveEnemyEntryDefinition = (
+		wave_definition.get_enemy_entry(
+			enemy_definition.enemy_id
+		)
+	)
+
+	if (
+		not is_instance_valid(enemy_entry)
+		or not enemy_entry.is_valid_definition()
+	):
+		return 1.0
+
+	var safe_stage_wave: int = max(
+		stage_wave,
 		1
 	)
 
 	var calculated_health: float = (
 		enemy_definition.maximum_health
-		* wave_definition.health_multiplier
-		+ health_increase_per_global_wave
-		* (safe_global_wave - 1)
+		* enemy_entry.health_multiplier
+		+ health_increase_per_stage_wave
+		* (safe_stage_wave - 1)
 	)
 
 	return min(
@@ -181,6 +279,21 @@ func get_enemy_health_for_global_wave(
 	)
 
 
+func get_enemy_damage_multiplier(
+	wave_definition: WaveDefinition,
+	enemy_id: StringName
+) -> float:
+	if (
+		not is_instance_valid(wave_definition)
+		or not wave_definition.is_valid_definition()
+	):
+		return 1.0
+
+	return wave_definition.get_damage_multiplier_for_id(
+		enemy_id
+	)
+
+
 func is_valid_definition() -> bool:
 	if stage_id == &"":
 		return false
@@ -188,19 +301,10 @@ func is_valid_definition() -> bool:
 	if display_name.strip_edges().is_empty():
 		return false
 
-	if waves.is_empty():
+	if substages.size() != SUBSTAGE_COUNT:
 		return false
 
-	if wave_count < 1:
-		return false
-
-	if enemies_per_side_increase_interval < 1:
-		return false
-
-	if maximum_enemies_per_side < 1:
-		return false
-
-	if health_increase_per_global_wave < 0.0:
+	if health_increase_per_stage_wave < 0.0:
 		return false
 
 	if maximum_enemy_health < 1.0:
@@ -209,23 +313,38 @@ func is_valid_definition() -> bool:
 	if completion_essence_reward < 0:
 		return false
 
+	var substages_by_id: Dictionary = {}
 	var waves_by_id: Dictionary = {}
 
-	for wave in waves:
-		if wave == null:
+	for substage in substages:
+		if not is_instance_valid(substage):
 			return false
 
-		if not wave.is_valid_definition():
+		if not substage.is_valid_definition():
 			return false
 
-		if waves_by_id.has(
-			wave.wave_id
-		):
+		if substage.substage_id == &"":
 			return false
 
-		waves_by_id[
-			wave.wave_id
-		] = wave
+		if substages_by_id.has(substage.substage_id):
+			return false
+
+		substages_by_id[substage.substage_id] = substage
+
+		for wave_definition in substage.wave_patterns:
+			var wave_id: StringName = wave_definition.wave_id
+
+			if waves_by_id.has(wave_id):
+				var indexed_wave: WaveDefinition = (
+					waves_by_id.get(wave_id) as WaveDefinition
+				)
+
+				if indexed_wave != wave_definition:
+					return false
+
+				continue
+
+			waves_by_id[wave_id] = wave_definition
 
 	if has_invalid_or_duplicate_ids(
 		completion_effect_ids

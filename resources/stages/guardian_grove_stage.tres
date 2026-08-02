@@ -1,20 +1,26 @@
 [gd_resource type="Resource" script_class="StageDefinition" format=3]
 
 [ext_resource type="Script" path="res://scripts/definitions/stage_definition.gd" id="1_stage"]
-[ext_resource type="Script" path="res://scripts/definitions/wave_definition.gd" id="2_wave"]
-[ext_resource type="Resource" path="res://resources/waves/standard_bark_beetle_wave.tres" id="3_standard_wave"]
+[ext_resource type="Script" path="res://scripts/definitions/substage_definition.gd" id="2_substage"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_01.tres" id="3_substage_01"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_02.tres" id="4_substage_02"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_03.tres" id="5_substage_03"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_04.tres" id="6_substage_04"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_05.tres" id="7_substage_05"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_06.tres" id="8_substage_06"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_07.tres" id="9_substage_07"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_08.tres" id="10_substage_08"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_09.tres" id="11_substage_09"]
+[ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_10.tres" id="12_substage_10"]
 
 [resource]
 script = ExtResource("1_stage")
 stage_id = &"guardian_grove"
 display_name = "Guardian Grove"
 description = "The repeating prototype Stage used for the current endless wave progression."
-waves = Array[ExtResource("2_wave")]([ExtResource("3_standard_wave")])
-wave_count = 100
+substages = Array[ExtResource("2_substage")]([ExtResource("3_substage_01"), ExtResource("4_substage_02"), ExtResource("5_substage_03"), ExtResource("6_substage_04"), ExtResource("7_substage_05"), ExtResource("8_substage_06"), ExtResource("9_substage_07"), ExtResource("10_substage_08"), ExtResource("11_substage_09"), ExtResource("12_substage_10")])
 repeat_indefinitely = true
-enemies_per_side_increase_interval = 3
-maximum_enemies_per_side = 30
-health_increase_per_global_wave = 3.0
+health_increase_per_stage_wave = 3.0
 maximum_enemy_health = 1000000.0
 completion_essence_reward = 0
 completion_effect_ids = Array[StringName]([])

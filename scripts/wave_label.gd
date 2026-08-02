@@ -18,13 +18,13 @@ func _ready() -> void:
 
 
 func _on_wave_changed(
-	new_wave: int,
+	_new_global_wave: int,
 	enemies_per_side: int
 ) -> void:
 	text = (
-		"Wave: %d\n"
+		"%s\n"
 		+ "Enemies per side: %d"
 	) % [
-		new_wave,
+		wave_manager.get_current_progress_code(),
 		enemies_per_side
 	]

@@ -112,6 +112,48 @@ func get_current_enemies_per_side() -> int:
 	return wave_director.get_current_enemies_per_side()
 
 
+func get_current_stage_number() -> int:
+	if not is_instance_valid(wave_director):
+		return 1
+
+	return wave_director.get_current_stage_number()
+
+
+func get_current_substage_number() -> int:
+	if not is_instance_valid(wave_director):
+		return 1
+
+	return wave_director.get_current_substage_number()
+
+
+func get_current_wave_in_substage() -> int:
+	if not is_instance_valid(wave_director):
+		return 1
+
+	return wave_director.get_current_wave_in_substage()
+
+
+func get_substages_per_stage() -> int:
+	if not is_instance_valid(wave_director):
+		return 10
+
+	return wave_director.get_safe_substages_per_stage()
+
+
+func get_waves_per_substage() -> int:
+	if not is_instance_valid(wave_director):
+		return 100
+
+	return wave_director.get_safe_waves_per_substage()
+
+
+func get_current_progress_code() -> String:
+	if not is_instance_valid(wave_director):
+		return "1-1-1"
+
+	return wave_director.get_current_progress_code()
+
+
 func _on_director_wave_changed(
 	new_wave: int,
 	enemies_per_side: int
@@ -142,6 +184,14 @@ func _on_tree_died() -> void:
 	if tree_defeated:
 		return
 
+	var failed_progress_code: String = (
+		get_current_progress_code()
+	)
+	var failed_stage: int = get_current_stage_number()
+	var failed_substage: int = (
+		get_current_substage_number()
+	)
+
 	tree_defeated = true
 
 	if is_instance_valid(wave_director):
@@ -159,23 +209,14 @@ func _on_tree_died() -> void:
 
 	remove_remaining_enemies()
 
-	var current_stage: int = 1
-	var current_wave_in_stage: int = 1
-
-	if is_instance_valid(wave_director):
-		current_stage = (
-			wave_director.get_current_stage_number()
-		)
-		current_wave_in_stage = (
-			wave_director.get_current_wave_in_stage()
-		)
-
 	print(
-		"Strom zemřel ve Stage ",
-		current_stage,
-		" | Wave ",
-		current_wave_in_stage,
-		" – po oživení začne Stage znovu"
+		"Strom zemřel v ",
+		failed_progress_code,
+		" – po oživení začne Substage ",
+		failed_stage,
+		"-",
+		failed_substage,
+		" znovu od Wave 1"
 	)
 
 
@@ -202,11 +243,17 @@ func _on_retry_requested() -> void:
 		)
 		return
 
+	var failed_progress_code: String = (
+		wave_director.get_current_progress_code()
+	)
 	var failed_stage: int = (
 		wave_director.get_current_stage_number()
 	)
-	var failed_wave_in_stage: int = (
-		wave_director.get_current_wave_in_stage()
+	var failed_substage: int = (
+		wave_director.get_current_substage_number()
+	)
+	var failed_wave: int = (
+		wave_director.get_current_wave_in_substage()
 	)
 
 	remove_remaining_enemies()
@@ -225,17 +272,19 @@ func _on_retry_requested() -> void:
 	tree_defeated = false
 
 	print(
-		"Strom byl oživen | selhání ve Stage ",
+		"Strom byl oživen | selhání v ",
+		failed_progress_code,
+		" (Wave ",
+		failed_wave,
+		") | pokračování od ",
 		failed_stage,
-		" | Wave ",
-		failed_wave_in_stage,
-		" | Stage ",
-		failed_stage,
-		" začíná znovu od Wave 1"
+		"-",
+		failed_substage,
+		"-1"
 	)
 
 	var restarted: bool = (
-		wave_director.restart_current_stage()
+		wave_director.restart_current_substage()
 	)
 
 	if restarted:
@@ -243,5 +292,5 @@ func _on_retry_requested() -> void:
 
 	tree_defeated = true
 	push_error(
-		"WaveManager could not restart the current Stage."
+		"WaveManager could not restart the current Substage."
 	)

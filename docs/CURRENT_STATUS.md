@@ -2,9 +2,9 @@
 
 Updated: 2026-08-02
 
-Implementation parent for this checkpoint: `ffdb880a9d3558c8b0167f9754d9005c42089c4b` (`Add current project status handoff`)
+Implementation parent for this checkpoint: `0bbf455ae076cc444f8ee5d7ce2406d24e981a53` (`Refactor enemy and wave runtime to data-driven architecture`)
 
-Checkpoint commit: `Refactor enemy and wave runtime to data-driven architecture`
+Checkpoint commit: `Add stage substages and per-enemy wave entries`
 
 Baseline branch: `main`
 
@@ -25,7 +25,7 @@ The main loop is functional:
 - Branch XP increases Branch Level. Talent Points are awarded at configured Branch Levels and are spent independently by each branch instance.
 - Forest Essence buys branch and tree upgrades. Current upgrade levels remain mutable state on the individual runtime node, not in shared Resources.
 - Age increases only after completing a new highest global wave. Replaying already completed waves after a death does not farm Age.
-- Tree death stops the active combat cycle and opens a defeat panel. The player can retry immediately, or the tree revives automatically after a 10-second countdown. The stage restarts at Wave 1.
+- Tree death stops the active combat cycle and opens a defeat panel. The player can retry immediately, or the tree revives automatically after a 10-second countdown. The current Substage restarts at its Wave 1.
 - Normal death preserves in-memory long-term run progression: Age, Forest Essence, Branch XP and levels, purchased branch upgrades and talents, tree upgrades, and the selected Tree Soul and rank.
 
 The prototype has no save/load system, so this preserved state lasts only for the running game process.
@@ -76,7 +76,9 @@ The project uses typed custom Resources for content data and Node scripts for mu
 - `TalentTreeDefinition`
 - `TreeSoulDefinition` and `TreeSoulBonusDefinition`
 - `EnemyDefinition`
+- `WaveEnemyEntryDefinition`
 - `WaveDefinition`
+- `SubstageDefinition`
 - `StageDefinition`
 - `StatusEffectDefinition`
 - `TargetingProfile`
@@ -96,6 +98,8 @@ Completed implementation-plan items:
 - 22 — Bark Beetle `EnemyDefinition` plus runtime configuration from registered data.
 - 23 — spawn and wave orchestration split into `SpawnDirector` and `WaveDirector`.
 - 24 — Stage/Wave Resource-driven runtime, including typed multi-request spawn batches.
+- 25A — Stage/Substage/Wave hierarchy with 10 Substages, 100 Waves per Substage, and player-facing `X-Y-Z` progress codes.
+- 25B — ordered per-enemy Wave entries with independent count, health, and damage scaling data.
 - 40 — enemy runtime smoke test partially completed; it covers the current runtime foundation but is not yet a full combat-integration test scene.
 
 Current runtime ownership:
@@ -105,7 +109,7 @@ Current runtime ownership:
 - `EnemyHealthComponent`, `EnemyAttackComponent`, and `EnemyMovementComponent` own their isolated mechanics.
 - `EnemySpawnRequest` is the typed, validated spawn-batch input.
 - `SpawnDirector` owns instantiation, shared lane counters, queue order, cadence, and crowd formation.
-- `WaveDirector` owns global wave/stage state, Resource-driven scaling and timing, enemy waiting, and asynchronous cycle cancellation.
+- `WaveDirector` owns global wave/stage/substage state, Resource-driven scaling and timing, enemy waiting, and asynchronous cycle cancellation. Its `current_wave` and `highest_completed_wave` values remain global.
 - `WaveManager` coordinates tree death, retry, enemy cleanup, Age side effects, and public UI signal relay.
 - `EnemyDefinition`, `WaveDefinition`, `StageDefinition`, and `ContentRegistry` provide the registered data and lookups.
 
@@ -114,8 +118,13 @@ Current authored enemy/wave data:
 - Enemy ID: `bark_beetle`.
 - Stage ID: `guardian_grove`.
 - Wave template ID: `standard_bark_beetle`.
-- Guardian Grove has 100 wave slots and repeats indefinitely as consecutively numbered Stages.
-- Enemy counts, HP, damage multiplier, spawn interval, completion-message duration, and time after each wave are Resource-driven.
+- Campaign is not implemented yet. The current `StageDefinition` requires exactly 10 Substages, each `SubstageDefinition` requires exactly 100 Waves, and one Stage therefore contains 1,000 Waves.
+- Guardian Grove has ten ordered Substage Resources. All ten currently use the same shared `standard_bark_beetle` WaveDefinition.
+- Player-facing progression uses `X-Y-Z` for Stage, Substage, and Wave within the Substage. Death restarts the current Substage, while `current_wave`, Age progression, and `highest_completed_wave` remain global.
+- `WaveDefinition` owns ordered `enemy_entries`; their order defines deterministic spawn blocks. Each `WaveEnemyEntryDefinition` owns its stable `enemy_id`, base count per side, scaling start, count interval, count increase, maximum count, health multiplier, and damage multiplier.
+- Enemy count and HP scaling use the Wave within the current Stage, from 1 through 1,000. When the prototype repeats Guardian Grove as the next numbered Stage, balance resets to Stage Wave 1 while Age and highest completion remain global.
+- Spawn interval, completion-message duration, and time after each Wave remain Resource-driven.
+- Only one real enemy type currently exists: Bark Beetle.
 
 ## 5. ContentRegistry and GameContent
 
@@ -138,11 +147,11 @@ Talent tree IDs remain global. The first valid item wins when a duplicate is enc
 - top-level definition types, validity, empty IDs, and duplicate IDs;
 - Branch scenes, targeting profiles, scoped upgrades, and upgrade validity;
 - optional talent trees, globally stable talent tree IDs, scoped talents, prerequisites, conflicts, overlap between prerequisite/conflict IDs, and prerequisite cycles;
-- Stage and Wave structure, procedural progression fields, scoped Wave IDs, enemy/count array consistency, timing and multiplier values;
+- Stage/Substage/Wave structure, exact hierarchy sizes, scoped Substage and Wave IDs, ordered per-enemy entries, count-scaling fields, timing, and per-entry multiplier values;
 - Wave-to-Enemy references and Enemy-to-immune-Status-Effect references;
 - deterministic de-duplication of identical validation messages while preserving order.
 
-Null entries, empty IDs, missing references, mismatched Wave arrays, duplicates, and prerequisite cycles are handled without relying on unsafe indexes. The supplied manual run reported no ContentValidator errors for the current registered data.
+Null entries, empty IDs, missing references, invalid or mismatched count-scaling fields, duplicates, and prerequisite cycles are handled without relying on unsafe indexes. The current Godot 4.7.1 editor/import and runtime checks reported no ContentValidator errors.
 
 ## 7. Tree Souls
 
@@ -196,16 +205,25 @@ The user completed a visual Godot 4.7.1 regression pass and confirmed correct tw
 Automated regression evidence for this checkpoint:
 
 - Godot 4.7.1 headless editor/import completed successfully.
-- The enemy runtime smoke test passed five consecutive runs. Each run covered `EnemyDefinition`, `StageDefinition`, `WaveDefinition`, `EnemySpawnRequest`, all three enemy components, `EnemyTracker`, `LaneRegistry`, and a two-request `SpawnDirector` fixture with 20 enemies and 20 unique side/lane/queue-order keys.
-- MainWorld progression confirmed Wave 1–4 values: 2/30 HP, 2/33 HP, 2/36 HP, and 3/39 HP per side respectively; Bark Beetle damage remains 5 through EnemyDefinition × WaveDefinition multiplier.
-- Death/retry confirmed cancellation during an active wave, restart at Wave 1 of the numbered Stage, no Age gain from replayed completed waves, and one Age gain when the next new highest wave was first completed.
-- Shutdown race tests during initial spawning, active combat, and a wave boundary all exited cleanly without a late spawn, late attack, false completion, or SceneTree stack trace.
+- The final enemy runtime smoke test passed two consecutive runs without parser, Resource, ContentValidator, orphan, or stack-trace errors. Both runs covered `EnemyDefinition`, `StageDefinition`, `SubstageDefinition`, `WaveDefinition`, `WaveEnemyEntryDefinition`, `EnemySpawnRequest`, all three enemy components, `EnemyTracker`, `LaneRegistry`, and a two-request `SpawnDirector` fixture with 20 enemies and 20 unique side/lane/queue-order keys.
+- Stage/Substage boundary mapping confirmed 10 Substages, 100 Waves per Substage, and 1,000 Waves per Stage. `X-Y-Z` mapping was checked across boundaries from `1-1-1` through `2-1-47`, including `1-10-100` and `2-1-1`.
+- Wave enemy entry tests confirmed standard scaling at Stage Waves 1, 2, 3, 4, 6, 7, 100, and 1,000; delayed scaling beginning at Stage Wave 101; and negative fixtures for every entry validation rule.
+- An in-memory multi-entry Wave test confirmed ordered IDs, independent counts and multipliers, total count, duplicate-ID rejection, and null-entry rejection without adding a second real enemy.
+- Stage Wave scaling confirmed count/HP values of 2/30, 2/33, 2/36, 3/39, and 30/327 at Stage Waves 1, 2, 3, 4, and 100. Global Wave 1001 mapped to Stage 2 and reset balance to Stage Wave 1 at 2/30 while global progression state remained global.
+- MainWorld progression confirmed `1-1-1` through `1-1-4`: 2/30 HP, 2/33 HP, 2/36 HP, and 3/39 HP per side respectively; Bark Beetle damage remained 5. Timing data remained 0.25 seconds between spawns, 0.7 seconds for the completion message, and 0.5 seconds after a Wave.
+- A shutdown during active Wave `1-1-4` exited with code 0 without a late spawn, late attack, orphan warning, or SceneTree stack trace.
+- The automated checkpoint did not visually verify the rendered `X-Y-Z` HUD; that remains a manual check.
 
 ## 9. Known Gaps and Limitations
 
 - There is no save/load system; all progression is process-local.
 - Blossom has no talent tree or talents.
+- There is no `CampaignDefinition`.
+- Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
 - Only one real enemy type currently exists.
+- Every current Substage pattern uses only the single shared `standard_bark_beetle` Wave template.
+- Automated tests did not physically play all 1,000 Waves in a Stage.
+- The `X-Y-Z` HUD mapping is covered by data/runtime tests, but its rendered presentation still needs manual visual confirmation.
 - The two-request automated fixture reuses Bark Beetle as two logical request blocks; a real multi-enemy Wave has not yet been visually tested.
 - Plan item 40 is only partially complete because the smoke test validates the enemy runtime foundation rather than a full combat-integration scene.
 - No StatusEffect definitions are registered yet.
@@ -234,9 +252,14 @@ Automated regression evidence for this checkpoint:
 
 The next recommended implementation-plan item is:
 
-- 25 — add a second real enemy type and a real multi-enemy `WaveDefinition`.
+- 25C — add `CampaignDefinition` and a data-driven order of real Stage Resources.
 
-This will exercise the typed multi-request batch with distinct runtime scenes and provide the missing visual validation of mixed enemy waves. Save/load, prestige integration, complete Strength/Blossom talent trees, Status Effects, and the persistent Tree Soul orb remain later known gaps.
+Then continue with:
+
+- 25D — add a deterministic Substage Wave schedule.
+- 25E — add a second real enemy and the first mixed Waves.
+
+Save/load, prestige integration, complete Strength/Blossom talent trees, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
 ## 12. Handoff Checklist
 
@@ -245,10 +268,10 @@ This will exercise the typed multi-request batch with distinct runtime scenes an
 - Run `git status --short` and verify the working tree is clean before starting a new task.
 - Run `git log -1 --oneline` and review the current HEAD.
 - Expected baseline branch: `main`.
-- Implementation parent for this checkpoint: `ffdb880a9d3558c8b0167f9754d9005c42089c4b`.
+- Implementation parent for this checkpoint: `0bbf455ae076cc444f8ee5d7ce2406d24e981a53`.
 - Verify that the current HEAD contains this implementation baseline or is a descendant of it.
-- Baseline working tree before this document: clean.
-- After this document is committed and pushed, the working tree should be clean before new development begins.
+- The 25A and 25B implementation was accumulated in the working tree before this checkpoint document and committed as one focused package.
+- After the checkpoint commit, the working tree should be clean before new development begins.
 - Before changing code, read the relevant scenes, scripts, Resources, and service definitions and verify actual paths, signals, methods, and fields.
 - Change only files explicitly allowed by the current task.
 - Run `git diff --check` and review the complete diff after each focused task.
@@ -259,7 +282,7 @@ This will exercise the typed multi-request batch with distinct runtime scenes an
 - Verify each branch instance owns independent XP, Talent Points, talents, and upgrade levels.
 - Recheck the first upgrade costs and one-level deltas listed in Sections 3 and 8.
 - Recheck Sweeping Strike, Rebuff, and Marked Prey without changing their current balance.
-- Kill the tree and confirm immediate/automatic retry, Wave 1 stage restart, and preservation of in-memory progression.
+- Kill the tree and confirm immediate/automatic retry, restart at Wave 1 of the current Substage, and preservation of in-memory progression.
 - Confirm replayed waves do not grant additional Age and a newly completed highest wave does.
 - At the Age 199/200/300 boundaries, verify Soul Rank 0/1/2, deferred selection, status-panel reopening, modifier isolation, and non-blocking rank-up notification behavior.
 - Before committing this document or later work, ensure the diff contains only explicitly intended files and no generated UID changes.
