@@ -1,6 +1,9 @@
 [gd_scene format=3 uid="uid://bq6epklbpqjum"]
 
 [ext_resource type="Script" uid="uid://dcr5grc0qqchi" path="res://scripts/bark_beetle.gd" id="1_oij6s"]
+[ext_resource type="Script" path="res://scripts/enemies/components/enemy_health_component.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/enemies/components/enemy_attack_component.gd" id="3_attack"]
+[ext_resource type="Script" path="res://scripts/enemies/components/enemy_movement_component.gd" id="4_movement"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_oij6s"]
 radius = 32.0
@@ -16,13 +19,22 @@ collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_oij6s")
 
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health")
+
+[node name="AttackComponent" type="Node" parent="."]
+script = ExtResource("3_attack")
+
+[node name="AttackTimer" type="Timer" parent="AttackComponent" unique_id=1894351484]
+wait_time = 1.5
+
+[node name="MovementComponent" type="Node" parent="."]
+script = ExtResource("4_movement")
+
 [node name="Visual" type="Node2D" parent="." unique_id=296908097]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226018101]
 shape = SubResource("CircleShape2D_oij6s")
-
-[node name="AttackTimer" type="Timer" parent="." unique_id=1894351484]
-wait_time = 1.5
 
 [node name="HealthBar" type="ProgressBar" parent="." unique_id=1791347527]
 offset_left = -35.0

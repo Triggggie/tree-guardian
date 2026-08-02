@@ -773,6 +773,48 @@ static func validate_stage_content(
 				% stage_label
 			)
 
+		if stage.wave_count < 1:
+			errors.append(
+				"%s has a wave count below 1."
+				% stage_label
+			)
+
+		if stage.enemies_per_side_increase_interval < 1:
+			errors.append(
+				(
+					"%s has an enemy increase "
+					+ "interval below 1."
+				)
+				% stage_label
+			)
+
+		if stage.maximum_enemies_per_side < 1:
+			errors.append(
+				(
+					"%s has maximum enemies "
+					+ "per side below 1."
+				)
+				% stage_label
+			)
+
+		if stage.health_increase_per_global_wave < 0.0:
+			errors.append(
+				(
+					"%s has a negative health increase "
+					+ "per global wave."
+				)
+				% stage_label
+			)
+
+		if stage.maximum_enemy_health < 1.0:
+			errors.append(
+				(
+					"%s has maximum enemy health "
+					+ "below 1."
+				)
+				% stage_label
+			)
+
 		if stage.completion_essence_reward < 0:
 			errors.append(
 				(

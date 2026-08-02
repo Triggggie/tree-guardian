@@ -38,22 +38,26 @@ var knockback_resistance: float = 0.0
 @export var death_duration: float = 0.22
 @export var death_scale_multiplier: float = 0.15
 
-@onready var attack_timer: Timer = $AttackTimer
+@onready var health_component: EnemyHealthComponent = (
+	$HealthComponent
+)
+@onready var attack_component: EnemyAttackComponent = (
+	$AttackComponent
+)
+@onready var movement_component: EnemyMovementComponent = (
+	$MovementComponent
+)
 @onready var health_bar: ProgressBar = $HealthBar
 
-var current_health: float
+var enemy_definition: EnemyDefinition
 var target_tree: Node2D
+var enemy_tracker: EnemyTracker
+var lane_registry: LaneRegistry
 
 var formation_side: float = 1.0
 var lane_index: int = 0
-var lane_y: float = 818.0
 var queue_order: int = 0
 
-var speed_multiplier: float = 1.0
-var depth_jitter: float = 0.0
-var crowd_scale_multiplier: float = 1.0
-
-var formation_initialized: bool = false
 var combat_enabled: bool = true
 var is_dying: bool = false
 
@@ -64,10 +68,86 @@ var hit_tween: Tween
 var death_tween: Tween
 
 
+func configure_from_definition(
+	definition: EnemyDefinition,
+	maximum_health_override: float = -1.0,
+	attack_damage_multiplier: float = 1.0
+) -> bool:
+	if (
+		not is_instance_valid(definition)
+		or not definition.is_valid_definition()
+	):
+		push_error(
+			"Bark Beetle cannot configure from an invalid "
+			+ "EnemyDefinition."
+		)
+		return false
+
+	enemy_definition = definition
+	move_speed = definition.movement_speed
+	attack_damage = max(
+		definition.attack_damage
+		* max(
+			attack_damage_multiplier,
+			0.0
+		),
+		0.0
+	)
+	attack_cooldown = definition.attack_interval
+	stopping_distance = definition.attack_range
+	forest_essence_reward = definition.essence_reward
+	xp_reward = definition.experience_reward
+
+	var configured_maximum_health: float = (
+		maximum_health_override
+		if maximum_health_override > 0.0
+		else definition.maximum_health
+	)
+
+	max_health = max(
+		configured_maximum_health,
+		1.0
+	)
+
+	return true
+
+
 func _ready() -> void:
 	add_to_group("enemies")
 
-	current_health = max_health
+	if not is_instance_valid(enemy_definition):
+		push_warning(
+			"Bark Beetle started without EnemyDefinition; "
+			+ "using scene/script fallback values."
+		)
+
+	enemy_tracker = (
+		get_tree().get_first_node_in_group(
+			"enemy_tracker"
+		)
+		as EnemyTracker
+	)
+
+	if is_instance_valid(enemy_tracker):
+		enemy_tracker.register_enemy(self)
+	else:
+		push_warning(
+			"Bark Beetle could not find EnemyTracker; "
+			+ "continuing with the enemies group."
+		)
+
+	lane_registry = (
+		get_tree().get_first_node_in_group(
+			"lane_registry"
+		)
+		as LaneRegistry
+	)
+
+	if not is_instance_valid(lane_registry):
+		push_warning(
+			"Bark Beetle could not find LaneRegistry; "
+			+ "using enemies group queue fallback."
+		)
 
 	target_tree = (
 		get_tree().get_first_node_in_group("tree")
@@ -77,15 +157,54 @@ func _ready() -> void:
 	resting_rotation = rotation
 	resting_scale = scale
 
-	attack_timer.wait_time = attack_cooldown
-	attack_timer.timeout.connect(
-		_on_attack_timer_timeout
+	attack_component.attack_requested.connect(
+		_on_attack_requested
+	)
+	attack_component.initialize(
+		attack_damage,
+		attack_cooldown
 	)
 
-	health_bar.min_value = 0.0
-	health_bar.max_value = max_health
-	health_bar.value = current_health
-	health_bar.hide()
+	health_component.health_changed.connect(
+		_on_health_changed
+	)
+	health_component.initialize(max_health)
+
+	var movement_initialized: bool = (
+		movement_component.initialize(
+			self,
+			target_tree,
+			move_speed,
+			stopping_distance,
+			arrival_distance,
+			lane_change_speed,
+			column_spacing
+		)
+	)
+
+	if not movement_initialized:
+		combat_enabled = false
+		attack_component.set_enabled(false)
+		movement_component.set_enabled(false)
+
+
+func _exit_tree() -> void:
+	unregister_from_enemy_tracker()
+	unregister_from_lane_registry()
+
+
+func unregister_from_enemy_tracker() -> void:
+	if not is_instance_valid(enemy_tracker):
+		return
+
+	enemy_tracker.unregister_enemy(self)
+
+
+func unregister_from_lane_registry() -> void:
+	if not is_instance_valid(lane_registry):
+		return
+
+	lane_registry.unregister_enemy(self)
 
 
 func setup_crowd_formation(
@@ -99,25 +218,50 @@ func setup_crowd_formation(
 ) -> void:
 	formation_side = new_formation_side
 	lane_index = new_lane_index
-	lane_y = new_lane_y
 	queue_order = new_queue_order
 
-	speed_multiplier = new_speed_multiplier
-	depth_jitter = new_depth_jitter
-	crowd_scale_multiplier = new_scale_multiplier
+	var formation_success: bool = (
+		movement_component.configure_formation(
+			new_formation_side,
+			new_lane_y,
+			new_speed_multiplier,
+			new_depth_jitter,
+			new_scale_multiplier
+		)
+	)
 
-	formation_initialized = true
+	if not formation_success:
+		push_error(
+			"Bark Beetle could not configure its movement formation."
+		)
+		return
 
-	apply_crowd_depth()
+	resting_scale = scale
+	register_with_lane_registry()
+
+
+func register_with_lane_registry() -> void:
+	if not is_instance_valid(lane_registry):
+		return
+
+	lane_registry.register_enemy(
+		self,
+		formation_side,
+		lane_index,
+		queue_order
+	)
 
 func is_targetable() -> bool:
 	return (
 		is_inside_tree()
 		and not is_queued_for_deletion()
-		and formation_initialized
+		and is_instance_valid(movement_component)
+		and movement_component.is_formation_configured()
 		and combat_enabled
 		and not is_dying
-		and current_health > 0.0
+		and is_instance_valid(health_component)
+		and health_component.is_initialized()
+		and not health_component.is_depleted()
 		and is_in_group("enemies")
 	)
 
@@ -125,75 +269,60 @@ func is_targetable() -> bool:
 func get_lane_index() -> int:
 	return lane_index
 
-func apply_crowd_depth() -> void:
-	scale = Vector2.ONE * crowd_scale_multiplier
-	resting_scale = scale
-
-	z_index = int(lane_y)
-
-
 func _physics_process(delta: float) -> void:
 	if is_dying:
-		velocity = Vector2.ZERO
+		movement_component.stop()
 		return
 
 	if not combat_enabled:
-		velocity = Vector2.ZERO
+		movement_component.stop()
 		stop_attacking()
 		return
 
-	if not formation_initialized:
-		velocity = Vector2.ZERO
+	if not movement_component.is_formation_configured():
+		movement_component.stop()
+		stop_attacking()
 		return
 
 	if not is_instance_valid(target_tree):
-		velocity = Vector2.ZERO
+		movement_component.stop()
 		stop_attacking()
 		return
 
-	global_position.y = move_toward(
-		global_position.y,
-		lane_y,
-		lane_change_speed * delta
-	)
-
-	z_index = int(global_position.y)
-
 	var current_column: int = get_current_queue_column()
-	var target_x: float = get_target_x(current_column)
-
-	var horizontal_distance: float = (
-		target_x - global_position.x
+	var reached_queue_position: bool = (
+		movement_component.physics_step(
+			delta,
+			current_column
+		)
 	)
 
-	if abs(horizontal_distance) <= arrival_distance:
-		global_position.x = target_x
-		velocity = Vector2.ZERO
-
-		if current_column == 0:
-			start_attacking()
-		else:
-			stop_attacking()
-
+	if not reached_queue_position:
+		stop_attacking()
 		return
 
-	stop_attacking()
-
-	var movement_direction: float = sign(
-		horizontal_distance
-	)
-
-	velocity = Vector2(
-		movement_direction
-		* move_speed
-		* speed_multiplier,
-		0.0
-	)
-
-	move_and_slide()
+	if current_column == 0:
+		start_attacking()
+	else:
+		stop_attacking()
 
 
 func get_current_queue_column() -> int:
+	if (
+		is_instance_valid(lane_registry)
+		and lane_registry.is_enemy_registered(self)
+	):
+		var queue_column: int = (
+			lane_registry.get_queue_column(self)
+		)
+
+		if queue_column >= 0:
+			return queue_column
+
+	return get_current_queue_column_fallback()
+
+
+func get_current_queue_column_fallback() -> int:
 	var current_column: int = 0
 
 	for enemy in get_tree().get_nodes_in_group("enemies"):
@@ -231,26 +360,6 @@ func is_ahead_in_crowd_queue(
 	)
 
 
-func get_target_x(
-	current_column: int
-) -> float:
-	var distance_from_tree: float = (
-		stopping_distance
-		+ current_column * column_spacing
-		+ depth_jitter
-	)
-
-	distance_from_tree = max(
-		distance_from_tree,
-		stopping_distance - 15.0
-	)
-
-	return (
-		target_tree.global_position.x
-		+ formation_side * distance_from_tree
-	)
-
-
 func start_attacking() -> void:
 	if is_dying:
 		return
@@ -258,17 +367,17 @@ func start_attacking() -> void:
 	if not combat_enabled:
 		return
 
-	if not attack_timer.is_stopped():
-		return
-
-	attack_timer.start()
+	attack_component.start_attacking()
 
 
 func stop_attacking() -> void:
-	attack_timer.stop()
+	if not is_instance_valid(attack_component):
+		return
+
+	attack_component.stop_attacking()
 
 
-func _on_attack_timer_timeout() -> void:
+func _on_attack_requested() -> void:
 	if is_dying:
 		return
 
@@ -284,7 +393,9 @@ func _on_attack_timer_timeout() -> void:
 		return
 
 	if target_tree.has_method("take_damage"):
-		target_tree.take_damage(attack_damage)
+		target_tree.take_damage(
+			attack_component.get_attack_damage()
+		)
 
 
 func take_damage(
@@ -300,22 +411,29 @@ func take_damage(
 	if amount <= 0.0:
 		return
 
-	current_health = max(
-		current_health - amount,
-		0.0
+	var damage_applied: bool = (
+		health_component.apply_damage(
+			amount,
+			damage_source
+		)
 	)
 
-	update_health_bar()
+	if not damage_applied:
+		return
+
+	var remaining_health: float = (
+		health_component.get_current_health()
+	)
 
 	print(
 		name,
 		" dostal zásah: ",
 		amount,
 		" | zbývá HP: ",
-		current_health
+		remaining_health
 	)
 
-	if current_health <= 0.0:
+	if health_component.is_depleted():
 		die(damage_source)
 		return
 
@@ -348,18 +466,25 @@ func apply_knockback(
 		return
 
 	stop_attacking()
-	velocity = Vector2.ZERO
+	movement_component.stop()
 
 	global_position.x += (
 		formation_side
 		* actual_distance
 	)
 
-func update_health_bar() -> void:
-	health_bar.max_value = max_health
+func _on_health_changed(
+	current_health: float,
+	maximum_health: float
+) -> void:
+	health_bar.min_value = 0.0
+	health_bar.max_value = maximum_health
 	health_bar.value = current_health
 
-	if current_health < max_health:
+	if (
+		current_health < maximum_health
+		and current_health > 0.0
+	):
 		health_bar.show()
 	else:
 		health_bar.hide()
@@ -423,11 +548,15 @@ func die(killer: Node = null) -> void:
 
 	is_dying = true
 	combat_enabled = false
-	velocity = Vector2.ZERO
 
+	attack_component.set_enabled(false)
 	stop_attacking()
+	movement_component.set_enabled(false)
+	movement_component.stop()
 	health_bar.hide()
 	remove_from_group("enemies")
+	unregister_from_enemy_tracker()
+	unregister_from_lane_registry()
 
 	if is_instance_valid(hit_tween):
 		hit_tween.kill()
@@ -524,8 +653,10 @@ func stop_combat() -> void:
 		return
 
 	combat_enabled = false
-	velocity = Vector2.ZERO
+	attack_component.set_enabled(false)
 	stop_attacking()
+	movement_component.set_enabled(false)
+	movement_component.stop()
 
 	if is_instance_valid(hit_tween):
 		hit_tween.kill()

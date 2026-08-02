@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/bark_beetle.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_enemy")
+enemy_id = &"bark_beetle"
+display_name = "Bark Beetle"
+description = "A basic melee enemy that advances in a lane and attacks the Guardian Tree."
+enemy_scene = ExtResource("2_scene")
+movement_speed = 120.0
+maximum_health = 30.0
+attack_damage = 5.0
+attack_interval = 1.5
+attack_range = 130.0
+essence_reward = 1
+experience_reward = 1
+tags = Array[StringName]([])
+immune_status_effect_ids = Array[StringName]([])

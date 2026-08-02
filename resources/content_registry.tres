@@ -12,9 +12,13 @@
 [ext_resource type="Resource" uid="uid://cagbmmbd3w8vv" path="res://resources/tree_souls/verdant_tree_soul.tres" id="10_efp16"]
 [ext_resource type="Resource" path="res://resources/branches/strength_branch_definition.tres" id="11_strength"]
 [ext_resource type="Resource" path="res://resources/branches/blossom_branch_definition.tres" id="12_blossom"]
+[ext_resource type="Resource" path="res://resources/enemies/bark_beetle_definition.tres" id="13_bark_beetle"]
+[ext_resource type="Resource" path="res://resources/stages/guardian_grove_stage.tres" id="14_guardian_grove"]
 
 [resource]
 script = ExtResource("3_4duaa")
 branches = Array[ExtResource("1_2lhgq")]([ExtResource("11_strength"), ExtResource("12_blossom")])
 tree_souls = Array[ExtResource("6_5v1wl")]([ExtResource("7_18yq4"), ExtResource("8_5v1wl"), ExtResource("9_ehhbu"), ExtResource("10_efp16")])
+enemies = Array[ExtResource("2_y02xv")]([ExtResource("13_bark_beetle")])
+stages = Array[ExtResource("4_eq0p3")]([ExtResource("14_guardian_grove")])
 metadata/_custom_type_script = "uid://1kll8tn5uhyj"
