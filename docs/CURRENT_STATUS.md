@@ -64,6 +64,8 @@ The current mapping is:
 
 Blossom is a support/ranged branch with its own scene. It heals the tree for 3 HP every 2.0 seconds and fires petals for 3 base damage every 2.0 seconds. Its targeting profile permits any lane.
 
+Blossom rendering is separated into the direct child node `BlossomBranchVisual`. The visual node owns the exported dimensions, growth formula, flower count, and drawing, while `blossom_branch.gd` continues to own healing, projectile combat, targeting, upgrades, and combat orchestration. The runtime synchronizes Branch Level, Tree growth factor, and facing direction to the visual node and delegates growth progress, length, and thickness to it. Projectile spawning uses the length provided by the visual node, while ranged-attack feedback still tweens the Blossom root scale. No gameplay or balance values changed during this separation.
+
 Each Blossom Branch uses its own runtime healing-effect ID in the form `blossom_healing_<instance_id>`. Reapplying healing from the same Blossom refreshes only its own effect, while multiple Blossom HoTs stack independently. Two base Blossom Branches therefore heal 6 HP together every 2.0 seconds.
 
 Its Resource-defined upgrades are ordered as follows:
@@ -298,10 +300,18 @@ Automated regression evidence for this checkpoint:
 - The Godot 4.7.1 headless editor/import completed successfully without parser, Resource, ContentValidator, invalid-UID, orphan, or stack-trace errors.
 - The user manually verified all three talents and their combination in MainWorld: Sweeping primary and secondary hits, Rebuff on both struck targets, Marked Prey growth and reset, and an independent second Strength instance without purchased talents.
 
+### Blossom Visual Separation Checkpoint
+
+- The Blossom visual smoke test passed two final runs against the real Blossom scene.
+- The Blossom healing stack smoke test passed two final runs with combined healing from 90 to 93 to 96 HP.
+- The Strength visual smoke test, Strength talent effects smoke test, and TALENTS smoke test each passed two final runs. The enemy runtime smoke test also passed its final regression run.
+- The Godot 4.7.1 headless editor/import completed successfully without parser, Resource, ContentValidator, invalid-UID, orphan, or stack-trace errors.
+- The user manually verified the left and right Blossom instances, mirroring, length and thickness growth, one through seven flowers, Tree growth scaling, projectile spawning at the correct branch end, root-scale attack feedback, `3 + 3` healing stacking, all three Blossom upgrades, and unchanged UI in MainWorld.
+
 ## 9. Known Gaps and Limitations
 
 - There is no save/load system; all progression is process-local.
-- Blossom has no talent tree or talents.
+- Blossom still has no TalentTree or runtime talent effects.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
 - All ten Guardian Grove Substages currently share one schedule; later Substages are not yet differentiated.
@@ -312,7 +322,8 @@ Automated regression evidence for this checkpoint:
 - Plan item 40 is only partially complete because the smoke test validates the enemy runtime foundation rather than a full combat-integration scene.
 - No StatusEffect definitions are registered yet.
 - Strength runtime talent effects are separated and dispatched through `TalentDefinition.effect_ids`; the dispatcher remains Strength-specific rather than a global universal effect system.
-- Strength visual separation is complete; equivalent Blossom visual separation has not yet been completed.
+- Strength and Blossom both have separated visual layers.
+- A shared Branch visual base does not yet exist and is not needed for the current two implementations.
 - The Tree Soul orb described in project guidance as visible from Age 1 is not a persistent world-space element; only the hidden-by-default SOUL panel and selection cards draw orb glyphs.
 - A service-level prestige reset hook exists, but there is no integrated player-facing prestige flow.
 - Gameplay scripts contain extensive prototype debug logging.
@@ -341,9 +352,9 @@ Enemy HP and damage now scale proportionally from each enemy's base values. The 
 
 The next recommended steps are:
 
-1. Complete Strength as the reference implementation and evaluate whether its dispatcher should remain Strength-specific or gain a small shared Branch talent-effect base.
-2. Separate Blossom visuals from combat and support logic.
-3. Then begin preparing a third Branch archetype.
+1. Design a third Branch archetype, including its role, base attack, three upgrades, and first talent paths.
+2. Implement the third Branch from the start with separate runtime and visual nodes.
+3. Then add a Blossom TalentTree and runtime talent effects.
 
 Save/load, prestige integration, complete Strength/Blossom talent trees, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
