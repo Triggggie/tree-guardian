@@ -76,7 +76,13 @@ Its Resource-defined upgrades are ordered as follows:
 | Healing Speed | -0.10 s healing interval | 11 | 13 levels, also limited by Branch Level; 0.75 s runtime floor applies |
 | Petal Damage | +1.0 flat damage | 8 | Dynamic Branch Level limit |
 
-Blossom currently has no TalentTree. Each left/right Strength or Blossom node keeps its own Branch XP, level, Talent Points, purchases, and upgrade levels; buying an upgrade on one instance does not mutate the other instance or its shared definition Resource.
+Blossom now has a Resource-defined TalentTree with three Level 2, one-point talents. Purchased talents activate runtime behavior only through `TalentDefinition.effect_ids`. Each Blossom instance owns its own `BlossomTalentEffectSet`, while the shared Resources retain immutable content data. The Blossom-specific dispatcher maps the active effect IDs as follows:
+
+- `abundant_bloom` → `BlossomAbundantBloomEffect`: increases the final healing per tick by 50% after flat upgrades and healing-power calculation.
+- `quickening_pollen` → `BlossomQuickeningPollenEffect`: reduces the calculated healing tick interval by 20% without bypassing the 0.75-second minimum.
+- `twin_petals` → `BlossomTwinPetalsEffect`: launches a second projectile at another valid target for 60% of the current petal damage.
+
+Each left/right Strength or Blossom node keeps its own Branch XP, level, Talent Points, purchases, talent-effect dispatcher, and upgrade levels; buying a talent or upgrade on one instance does not mutate the other instance or its shared definition Resource.
 
 ## 4. Content Resource Architecture
 
@@ -308,10 +314,16 @@ Automated regression evidence for this checkpoint:
 - The Godot 4.7.1 headless editor/import completed successfully without parser, Resource, ContentValidator, invalid-UID, orphan, or stack-trace errors.
 - The user manually verified the left and right Blossom instances, mirroring, length and thickness growth, one through seven flowers, Tree growth scaling, projectile spawning at the correct branch end, root-scale attack feedback, `3 + 3` healing stacking, all three Blossom upgrades, and unchanged UI in MainWorld.
 
+### Blossom Talent Runtime Effects Checkpoint
+
+- The Blossom talent effects smoke test passed two final runs, and the updated TALENTS smoke test passed two final runs against the real MainWorld and all four equipped Branch instances.
+- The Blossom healing stack smoke test passed with combined healing from 90 to 93 to 96 HP. The Blossom visual, Strength talent effects, Strength visual, and enemy runtime smoke tests also passed their final regression runs.
+- The Godot 4.7.1 headless editor/import completed successfully without parser, Resource, ContentValidator, invalid-UID, orphan, or stack-trace errors.
+- The user manually verified Abundant Bloom healing of 4.5, Twin Petals primary and secondary damage of 3.0 and 1.8, successful Quickening Pollen purchase, and continued gameplay without a runtime error.
+
 ## 9. Known Gaps and Limitations
 
 - There is no save/load system; all progression is process-local.
-- Blossom still has no TalentTree or runtime talent effects.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
 - All ten Guardian Grove Substages currently share one schedule; later Substages are not yet differentiated.
@@ -321,9 +333,9 @@ Automated regression evidence for this checkpoint:
 - `bark_runner.gd` currently inherits the shared runtime behavior from the Bark Beetle root script and overrides only drawing; separating a generic enemy root base is outside this checkpoint.
 - Plan item 40 is only partially complete because the smoke test validates the enemy runtime foundation rather than a full combat-integration scene.
 - No StatusEffect definitions are registered yet.
-- Strength runtime talent effects are separated and dispatched through `TalentDefinition.effect_ids`; the dispatcher remains Strength-specific rather than a global universal effect system.
-- Strength and Blossom both have separated visual layers.
+- Strength and Blossom both have separated visual and talent-effect layers. Their runtime dispatchers remain Branch-specific rather than a global universal effect system.
 - A shared Branch visual base does not yet exist and is not needed for the current two implementations.
+- There is no Apex slot, Branch rarity/category data, legendary-Branch loot unlock, or legendary Branch runtime yet.
 - The Tree Soul orb described in project guidance as visible from Age 1 is not a persistent world-space element; only the hidden-by-default SOUL panel and selection cards draw orb glyphs.
 - A service-level prestige reset hook exists, but there is no integrated player-facing prestige flow.
 - Gameplay scripts contain extensive prototype debug logging.
@@ -334,6 +346,15 @@ Automated regression evidence for this checkpoint:
 ### Balance Note
 
 Enemy HP and damage now scale proportionally from each enemy's base values. The approved no-upgrade playtest reached Wave 47, within the intended early-game wall of approximately Waves 40–50. The next balance evidence should come from a normal run with natural upgrade purchases and from reviewing the Forest Essence economy under the higher enemy counts.
+
+### Approved Long-term Branch Plan
+
+The approved roster target is 20 Branch archetypes: 13 standard Branches and seven legendary Branches. Slots 1–4 accept only standard Branches. Slot 5 is the Apex Slot: it accepts exactly one legendary Branch, places it at the top of the tree, always affects both sides, and must provide a prominent gameplay and visual “WOW” effect. Legendary Branch Seeds are planned as enemy loot or unlocks.
+
+The first legendary concepts are:
+
+- Thorn Crown: a two-sided thorn explosion and the first candidate for implementing the Apex system.
+- Spirit Branch: summons forest spirits on both sides. Spirits advance toward enemies; on contact both units stop and fight, and the enemy resumes moving toward the tree only after defeating the spirit.
 
 ## 10. Architecture Decisions to Preserve
 
@@ -352,11 +373,13 @@ Enemy HP and damage now scale proportionally from each enemy's base values. The 
 
 The next recommended steps are:
 
-1. Design a third Branch archetype, including its role, base attack, three upgrades, and first talent paths.
-2. Implement the third Branch from the start with separate runtime and visual nodes.
-3. Then add a Blossom TalentTree and runtime talent effects.
+1. Add Branch rarity/category data for standard and legendary Branches.
+2. Add the real Apex attachment point and Slot 5 rules.
+3. Add the foundational unlock/loot model for legendary Branch Seeds.
+4. Implement Thorn Crown as the first legendary Apex Branch.
+5. Later prepare defender/summon runtime support for Spirit Branch.
 
-Save/load, prestige integration, complete Strength/Blossom talent trees, Status Effects, and the persistent Tree Soul orb remain later known gaps.
+Save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
 ## 12. Handoff Checklist
 
