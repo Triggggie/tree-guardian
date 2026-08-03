@@ -22,6 +22,18 @@ const HEALING_EFFECT_ID_PREFIX: String = "blossom_healing"
 @export var ranged_attack_range: float = 650.0
 
 
+@export_category("Talent Balance")
+
+@export_range(1.0, 5.0, 0.05)
+var abundant_bloom_healing_multiplier: float = 1.50
+
+@export_range(0.1, 1.0, 0.05)
+var quickening_pollen_interval_multiplier: float = 0.80
+
+@export_range(0.0, 2.0, 0.05)
+var twin_petals_damage_multiplier: float = 0.60
+
+
 @onready var branch_visual: BlossomBranchVisual = $Visual
 
 
@@ -33,6 +45,7 @@ var healing_refresh_time_remaining: float = 0.0
 var attack_time_remaining: float = 0.0
 var healing_effect_id: StringName = &""
 var has_warned_missing_branch_visual: bool = false
+var talent_effect_set: BlossomTalentEffectSet
 
 
 func _ready() -> void:
@@ -40,6 +53,7 @@ func _ready() -> void:
 	branch_id = &"blossom_branch"
 
 	super._ready()
+	initialize_talent_effects()
 
 	add_to_group("blossom_branch")
 
@@ -53,6 +67,35 @@ func _ready() -> void:
 	attack_time_remaining = 0.0
 
 	sync_visual_state()
+
+
+func initialize_talent_effects() -> void:
+	talent_effect_set = BlossomTalentEffectSet.new()
+
+	talent_effect_set.configure(
+		self,
+		abundant_bloom_healing_multiplier,
+		quickening_pollen_interval_multiplier,
+		twin_petals_damage_multiplier
+	)
+
+	sync_active_talent_effects()
+
+
+func sync_active_talent_effects() -> void:
+	if not is_instance_valid(talent_effect_set):
+		return
+
+	talent_effect_set.set_active_effect_ids(
+		get_active_talent_effect_ids()
+	)
+
+
+func on_talent_purchased(
+	_talent_id: StringName
+) -> void:
+	sync_active_talent_effects()
+	refresh_healing_effect()
 
 
 func _process(delta: float) -> void:
@@ -120,31 +163,75 @@ func get_healing_effect_id() -> StringName:
 
 
 func get_current_healing_per_tick() -> float:
+	return get_healing_per_tick_for_upgrade_level(
+		healing_per_tick_upgrade_level
+	)
+
+
+func get_healing_per_tick_for_upgrade_level(
+	upgrade_level: int
+) -> float:
 	var current_base_healing: float = (
 		base_healing_per_tick
-		+ healing_per_tick_upgrade_level
+		+ max(upgrade_level, 0)
 		* get_upgrade_value_per_level(
 			UPGRADE_HEALING_PER_TICK
 		)
 	)
 
-	return BranchStatCalculator.apply_healing_power(
-		current_base_healing
-	)
-
-
-func get_current_healing_tick_interval() -> float:
-	var calculated_interval: float = (
-		base_healing_tick_interval
-		- healing_speed_upgrade_level
-		* get_upgrade_value_per_level(
-			UPGRADE_HEALING_SPEED
+	var current_healing: float = (
+		BranchStatCalculator.apply_healing_power(
+			current_base_healing
 		)
 	)
+
+	if is_instance_valid(talent_effect_set):
+		current_healing = (
+			talent_effect_set.apply_healing_per_tick(
+				current_healing
+			)
+		)
+
+	return current_healing
+
+
+func get_healing_tick_interval_before_talents(
+	upgrade_level: int
+) -> float:
+	return max(
+		base_healing_tick_interval
+		- max(upgrade_level, 0)
+		* get_upgrade_value_per_level(
+			UPGRADE_HEALING_SPEED
+		),
+		0.0
+	)
+
+
+func get_healing_tick_interval_for_upgrade_level(
+	upgrade_level: int
+) -> float:
+	var calculated_interval: float = (
+		get_healing_tick_interval_before_talents(
+			upgrade_level
+		)
+	)
+
+	if is_instance_valid(talent_effect_set):
+		return talent_effect_set.apply_healing_tick_interval(
+			calculated_interval,
+			minimum_healing_tick_interval
+		)
 
 	return max(
 		calculated_interval,
 		minimum_healing_tick_interval
+	)
+
+
+func get_current_healing_tick_interval() -> float:
+	return get_healing_tick_interval_for_upgrade_level(
+		healing_speed_upgrade_level
 	)
 
 
@@ -246,7 +333,8 @@ func find_best_ranged_target() -> Node2D:
 
 
 func find_best_target_on_side(
-	target_side: int
+	target_side: int,
+	excluded_target: Node2D = null
 ) -> Node2D:
 	if not is_instance_valid(tree_node):
 		return null
@@ -257,6 +345,9 @@ func find_best_target_on_side(
 	for enemy in get_tree().get_nodes_in_group(
 		"enemies"
 	):
+		if enemy == excluded_target:
+			continue
+
 		if not is_valid_ranged_target(enemy):
 			continue
 
@@ -292,9 +383,55 @@ func perform_ranged_attack(
 	if not is_valid_ranged_target(target):
 		return
 
+	var secondary_target: Node2D = null
+	var primary_damage: float = get_current_petal_damage()
+
+	if is_instance_valid(talent_effect_set):
+		secondary_target = (
+			talent_effect_set.find_secondary_petal_target(
+				target
+			)
+		)
+
+	if not spawn_petal_projectile(
+		target,
+		primary_damage
+	):
+		return
+
+	if (
+		is_valid_ranged_target(secondary_target)
+		and is_instance_valid(talent_effect_set)
+	):
+		var secondary_damage: float = (
+			talent_effect_set.get_secondary_petal_damage(
+				primary_damage
+			)
+		)
+
+		spawn_petal_projectile(
+			secondary_target,
+			secondary_damage
+		)
+
+	play_ranged_attack_feedback()
+
+
+func spawn_petal_projectile(
+	target: Node2D,
+	damage: float
+) -> bool:
+	if not is_valid_ranged_target(target):
+		return false
+
+	var projectile_parent: Node = get_tree().current_scene
+
+	if not is_instance_valid(projectile_parent):
+		return false
+
 	var projectile := BlossomProjectile.new()
 
-	get_tree().current_scene.add_child(
+	projectile_parent.add_child(
 		projectile
 	)
 
@@ -304,12 +441,11 @@ func perform_ranged_attack(
 
 	projectile.setup(
 		target,
-		get_current_petal_damage(),
+		max(damage, 0.0),
 		self
 	)
 
-	play_ranged_attack_feedback()
-
+	return true
 
 
 func get_projectile_spawn_position() -> Vector2:
@@ -463,7 +599,9 @@ func purchase_healing_speed_upgrade() -> bool:
 		return false
 
 	if (
-		get_current_healing_tick_interval()
+		get_healing_tick_interval_before_talents(
+			healing_speed_upgrade_level
+		)
 		<= minimum_healing_tick_interval
 	):
 		return false
@@ -605,9 +743,8 @@ func get_upgrade_next_value_text(
 	match upgrade_id:
 		UPGRADE_HEALING_PER_TICK:
 			var next_healing: float = (
-				get_current_healing_per_tick()
-				+ get_upgrade_value_per_level(
-					UPGRADE_HEALING_PER_TICK
+				get_healing_per_tick_for_upgrade_level(
+					healing_per_tick_upgrade_level + 1
 				)
 			)
 
@@ -621,13 +758,10 @@ func get_upgrade_next_value_text(
 				healing_speed_upgrade_level + 1
 			)
 
-			var next_interval: float = max(
-				base_healing_tick_interval
-					- next_level
-					* get_upgrade_value_per_level(
-						UPGRADE_HEALING_SPEED
-					),
-				minimum_healing_tick_interval
+			var next_interval: float = (
+				get_healing_tick_interval_for_upgrade_level(
+					next_level
+				)
 			)
 
 			var next_speed: float = 0.0
@@ -693,12 +827,18 @@ func _on_tree_growth_changed(
 func stop_combat() -> void:
 	super.stop_combat()
 
+	if is_instance_valid(talent_effect_set):
+		talent_effect_set.reset_runtime_state()
+
 	healing_refresh_time_remaining = 0.0
 	attack_time_remaining = 0.0
 
 
 func resume_combat() -> void:
 	super.resume_combat()
+
+	if is_instance_valid(talent_effect_set):
+		talent_effect_set.reset_runtime_state()
 
 	healing_refresh_time_remaining = 0.0
 	attack_time_remaining = 0.0

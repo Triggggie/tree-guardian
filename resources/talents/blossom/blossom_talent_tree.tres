@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentTreeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+[ext_resource type="Script" path="res://scripts/definitions/talent_tree_definition.gd" id="2_tree"]
+[ext_resource type="Resource" path="res://resources/talents/blossom/abundant_bloom.tres" id="3_abundant"]
+[ext_resource type="Resource" path="res://resources/talents/blossom/quickening_pollen.tres" id="4_quickening"]
+[ext_resource type="Resource" path="res://resources/talents/blossom/twin_petals.tres" id="5_twin"]
+
+[resource]
+script = ExtResource("2_tree")
+talent_tree_id = &"blossom_talent_tree"
+display_name = "Blossom Talents"
+description = "Talent tree for the Blossom Branch."
+talents = Array[ExtResource("1_talent")]([ExtResource("3_abundant"), ExtResource("4_quickening"), ExtResource("5_twin")])
