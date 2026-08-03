@@ -1,8 +1,9 @@
 extends Panel
 
 
-const BRANCH_SLOT_COUNT: int = 5
-const CROWN_SLOT_ARRAY_INDEX: int = 4
+const APEX_SLOT_ARRAY_INDEX: int = (
+	BranchSlotRules.APEX_SLOT - 1
+)
 
 
 @onready var branch_name_label: Label = (
@@ -36,13 +37,7 @@ const CROWN_SLOT_ARRAY_INDEX: int = 4
 
 var tree_node: Node
 
-var branches_by_slot: Array[Node] = [
-	null,
-	null,
-	null,
-	null,
-	null
-]
+var branches_by_slot: Array[Node] = []
 
 var upgrade_buttons: Array[Button] = []
 
@@ -114,13 +109,10 @@ func connect_tree_signals() -> void:
 
 
 func find_available_branches() -> void:
-	branches_by_slot = [
-		null,
-		null,
-		null,
-		null,
-		null
-	]
+	branches_by_slot.clear()
+	branches_by_slot.resize(
+		BranchSlotRules.TOTAL_SLOT_COUNT
+	)
 
 	var found_branches: Array[Node] = (
 		get_tree().get_nodes_in_group(
@@ -132,6 +124,18 @@ func find_available_branches() -> void:
 		if not is_instance_valid(branch):
 			continue
 
+		if not branch.has_method(
+			"is_slot_assignment_valid"
+		):
+			continue
+
+		if not bool(
+			branch.call(
+				"is_slot_assignment_valid"
+			)
+		):
+			continue
+
 		var physical_slot_index: int = (
 			get_branch_slot_index(branch)
 		)
@@ -140,10 +144,8 @@ func find_available_branches() -> void:
 			physical_slot_index - 1
 		)
 
-		if (
-			slot_array_index < 0
-			or slot_array_index
-			>= BRANCH_SLOT_COUNT
+		if not BranchSlotRules.is_valid_slot_index(
+			physical_slot_index
 		):
 			push_warning(
 				"%s has invalid slot_index %d. "
@@ -338,9 +340,9 @@ func update_branch_slot_buttons() -> void:
 		if not is_instance_valid(branch):
 			if (
 				slot_array_index
-				== CROWN_SLOT_ARRAY_INDEX
+				== APEX_SLOT_ARRAY_INDEX
 			):
-				slot_button.text = "CROWN"
+				slot_button.text = "APEX"
 			else:
 				slot_button.text = "EMPTY"
 

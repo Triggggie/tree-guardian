@@ -80,10 +80,12 @@ var purchased_talents: Dictionary = {}
 var combat_enabled: bool = true
 var tree_node: Node2D
 var branch_definition: BranchDefinition
+var has_warned_invalid_slot_assignment: bool = false
 
 
 func _ready() -> void:
 	load_branch_definition()
+	validate_slot_assignment()
 	add_to_group("combat_branch")
 	find_tree_node()
 
@@ -110,6 +112,51 @@ func load_branch_definition() -> void:
 		return
 
 	talent_tree_definition = branch_definition.talent_tree
+
+
+func is_slot_assignment_valid() -> bool:
+	return BranchSlotRules.can_place_definition(
+		branch_definition,
+		slot_index
+	)
+
+
+func get_branch_category_id() -> StringName:
+	if not is_instance_valid(branch_definition):
+		return &""
+
+	return branch_definition.category_id
+
+
+func is_legendary_branch() -> bool:
+	if not is_instance_valid(branch_definition):
+		return false
+
+	return branch_definition.is_legendary_branch()
+
+
+func validate_slot_assignment() -> void:
+	if is_slot_assignment_valid():
+		return
+
+	combat_enabled = false
+	warn_invalid_slot_assignment_once()
+
+
+func warn_invalid_slot_assignment_once() -> void:
+	if has_warned_invalid_slot_assignment:
+		return
+
+	has_warned_invalid_slot_assignment = true
+
+	push_warning(
+		"%s: BranchDefinition category '%s' cannot use slot %d."
+		% [
+			branch_display_name,
+			get_branch_category_id(),
+			slot_index
+		]
+	)
 
 
 func find_tree_node() -> void:
@@ -654,6 +701,11 @@ func stop_combat() -> void:
 
 
 func resume_combat() -> void:
+	if not is_slot_assignment_valid():
+		combat_enabled = false
+		warn_invalid_slot_assignment_once()
+		return
+
 	combat_enabled = true
 
 
@@ -667,6 +719,9 @@ func get_branch_display_name() -> String:
 
 
 func get_branch_side_name() -> String:
+	if BranchSlotRules.is_apex_slot(slot_index):
+		return "Apex"
+
 	if facing_side == 0:
 		return "Left"
 

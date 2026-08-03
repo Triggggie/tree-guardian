@@ -40,6 +40,9 @@ position = Vector2(20, -170)
 facing_side = 1
 slot_index = 3
 
+[node name="Apex" type="Marker2D" parent="AttachmentPoints"]
+position = Vector2(0, -95)
+
 [node name="Roots" type="Node2D" parent="." unique_id=210533633]
 
 [node name="Systems" type="Node2D" parent="." unique_id=200228229]

@@ -2,6 +2,10 @@ class_name BranchDefinition
 extends Resource
 
 
+const CATEGORY_STANDARD: StringName = &"standard"
+const CATEGORY_LEGENDARY: StringName = &"legendary"
+
+
 @export_category("Identity")
 
 @export var branch_id: StringName = &""
@@ -10,6 +14,11 @@ extends Resource
 
 @export_multiline
 var description: String = ""
+
+
+@export_category("Classification")
+
+@export var category_id: StringName = CATEGORY_STANDARD
 
 
 @export_category("Presentation")
@@ -61,8 +70,32 @@ func get_upgrade_ids() -> Array[StringName]:
 	return upgrade_ids
 
 
+func is_standard_branch() -> bool:
+	return category_id == CATEGORY_STANDARD
+
+
+func is_legendary_branch() -> bool:
+	return category_id == CATEGORY_LEGENDARY
+
+
+func get_category_display_name() -> String:
+	if is_standard_branch():
+		return "Standard"
+
+	if is_legendary_branch():
+		return "Legendary"
+
+	return "Unknown"
+
+
 func is_valid_definition() -> bool:
 	if branch_id == &"":
+		return false
+
+	if not (
+		is_standard_branch()
+		or is_legendary_branch()
+	):
 		return false
 
 	if display_name.strip_edges().is_empty():
