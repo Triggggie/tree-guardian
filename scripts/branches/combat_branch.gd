@@ -349,6 +349,37 @@ func has_talent(
 	)
 
 
+func get_active_talent_effect_ids() -> Array[StringName]:
+	var active_effect_ids: Array[StringName] = []
+	var seen_effect_ids: Dictionary = {}
+
+	if not is_instance_valid(
+		talent_tree_definition
+	):
+		return active_effect_ids
+
+	for talent_definition in talent_tree_definition.talents:
+		if not is_instance_valid(talent_definition):
+			continue
+
+		if not has_talent(
+			talent_definition.talent_id
+		):
+			continue
+
+		for effect_id in talent_definition.effect_ids:
+			if effect_id == &"":
+				continue
+
+			if seen_effect_ids.has(effect_id):
+				continue
+
+			seen_effect_ids[effect_id] = true
+			active_effect_ids.append(effect_id)
+
+	return active_effect_ids
+
+
 func can_purchase_talent(
 	talent_id: StringName
 ) -> bool:

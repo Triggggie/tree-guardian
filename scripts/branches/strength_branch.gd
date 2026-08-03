@@ -1,9 +1,5 @@
 extends CombatBranch
 
-const TALENT_SWEEPING_STRIKE: StringName = &"sweeping_strike"
-const TALENT_REBUFF: StringName = &"rebuff"
-const TALENT_MARKED_PREY: StringName = &"marked_prey"
-
 const UPGRADE_DAMAGE: StringName = &"damage"
 const UPGRADE_ATTACK_SPEED: StringName = &"attack_speed"
 const UPGRADE_RANGE: StringName = &"range"
@@ -49,8 +45,7 @@ var attack_speed_upgrade_level: int = 0
 var range_upgrade_level: int = 0
 var resting_rotation: float
 var current_target: Node2D
-var marked_prey_target_id: int = 0
-var marked_prey_stacks: int = 0
+var talent_effect_set: StrengthTalentEffectSet
 var has_warned_missing_branch_visual: bool = false
 
 var targeting_profile: TargetingProfile = (
@@ -76,6 +71,7 @@ func _ready() -> void:
 	)
 
 	super._ready()
+	initialize_talent_effects()
 	add_to_group("strength_branch")
 	resting_rotation = rotation
 	if is_instance_valid(tree_node):
@@ -86,6 +82,36 @@ func _ready() -> void:
 	sync_visual_state()
 	if cooldown_timer.is_stopped():
 		cooldown_timer.start()
+
+
+func initialize_talent_effects() -> void:
+	talent_effect_set = StrengthTalentEffectSet.new()
+
+	talent_effect_set.configure(
+		self,
+		sweeping_strike_damage_multiplier,
+		sweeping_strike_search_radius,
+		rebuff_distance,
+		marked_prey_damage_per_stack,
+		marked_prey_maximum_stacks
+	)
+
+	sync_active_talent_effects()
+
+
+func sync_active_talent_effects() -> void:
+	if not is_instance_valid(talent_effect_set):
+		return
+
+	talent_effect_set.set_active_effect_ids(
+		get_active_talent_effect_ids()
+	)
+
+
+func on_talent_purchased(
+	_talent_id: StringName
+) -> void:
+	sync_active_talent_effects()
 
 func get_branch_growth_progress() -> float:
 	if not is_instance_valid(branch_visual):
@@ -450,22 +476,26 @@ func perform_strength_hit(
 		return
 
 	var secondary_target: Node2D = null
+	var primary_damage: float = get_current_damage()
 
-	if has_talent(
-		TALENT_SWEEPING_STRIKE
-	):
+	if is_instance_valid(talent_effect_set):
 		secondary_target = (
-			find_sweeping_strike_target(
+			talent_effect_set.find_secondary_target(
 				primary_target
+			)
+		)
+
+		primary_damage = (
+			talent_effect_set.get_primary_damage(
+				primary_target,
+				primary_damage
 			)
 		)
 
 	var primary_context := AttackContext.new(
 		self,
 		primary_target,
-		get_marked_prey_damage(
-			primary_target
-		)
+		primary_damage
 	)
 
 	primary_context.attack_id = (
@@ -486,8 +516,11 @@ func perform_strength_hit(
 		)
 	)
 
-	if primary_hit_resolved:
-		apply_rebuff_to_target(
+	if (
+		primary_hit_resolved
+		and is_instance_valid(talent_effect_set)
+	):
+		talent_effect_set.apply_after_resolved_hit(
 			primary_target
 		)
 
@@ -502,16 +535,6 @@ func perform_strength_hit(
 		get_current_damage()
 	)
 
-	secondary_context.attack_id = (
-		&"strength_sweeping_strike"
-	)
-
-	secondary_context.damage_multiplier = (
-		sweeping_strike_damage_multiplier
-	)
-
-	secondary_context.is_secondary_attack = true
-
 	secondary_context.add_tag(
 		&"strength"
 	)
@@ -520,8 +543,8 @@ func perform_strength_hit(
 		&"secondary_attack"
 	)
 
-	secondary_context.add_tag(
-		TALENT_SWEEPING_STRIKE
+	talent_effect_set.configure_secondary_context(
+		secondary_context
 	)
 
 	var secondary_hit_resolved: bool = (
@@ -530,168 +553,13 @@ func perform_strength_hit(
 		)
 	)
 
-	if secondary_hit_resolved:
-		apply_rebuff_to_target(
+	if (
+		secondary_hit_resolved
+		and is_instance_valid(talent_effect_set)
+	):
+		talent_effect_set.apply_after_resolved_hit(
 			secondary_target
 		)
-
-func get_marked_prey_damage(
-	target: Node2D
-) -> float:
-	var base_attack_damage: float = (
-		get_current_damage()
-	)
-
-	if not has_talent(
-		TALENT_MARKED_PREY
-	):
-		reset_marked_prey()
-		return base_attack_damage
-
-	if not is_instance_valid(target):
-		reset_marked_prey()
-		return base_attack_damage
-
-	var target_id: int = (
-		target.get_instance_id()
-	)
-
-	if marked_prey_target_id != target_id:
-		marked_prey_target_id = target_id
-		marked_prey_stacks = 0
-	else:
-		marked_prey_stacks = min(
-			marked_prey_stacks + 1,
-			marked_prey_maximum_stacks
-		)
-
-	var damage_multiplier: float = (
-		1.0
-		+ marked_prey_stacks
-		* marked_prey_damage_per_stack
-	)
-
-	return (
-		base_attack_damage
-		* damage_multiplier
-	)
-
-
-func reset_marked_prey() -> void:
-	marked_prey_target_id = 0
-	marked_prey_stacks = 0
-
-func apply_rebuff_to_target(
-	target: Node2D
-) -> void:
-	if not has_talent(
-		TALENT_REBUFF
-	):
-		return
-
-	if not is_valid_attack_target(
-		target
-	):
-		return
-
-	if not target.has_method(
-		"apply_knockback"
-	):
-		return
-
-	target.apply_knockback(
-		rebuff_distance
-	)
-
-
-func find_sweeping_strike_target(
-	primary_target: Node2D
-) -> Node2D:
-	if not is_valid_attack_target(
-		primary_target
-	):
-		return null
-
-	var best_target: Node2D = null
-	var best_lane_difference: int = 999
-
-	var closest_distance: float = (
-		sweeping_strike_search_radius
-		+ 0.001
-	)
-
-	var primary_lane_index: int = -1
-
-	if primary_target.has_method(
-		"get_lane_index"
-	):
-		primary_lane_index = int(
-			primary_target.call(
-				"get_lane_index"
-			)
-		)
-
-	for enemy in get_tree().get_nodes_in_group(
-		"enemies"
-	):
-		if enemy == primary_target:
-			continue
-
-		if not is_valid_attack_target(enemy):
-			continue
-
-		var enemy_node := enemy as Node2D
-
-		var distance_from_primary: float = (
-			enemy_node.global_position.distance_to(
-				primary_target.global_position
-			)
-		)
-
-		if (
-			distance_from_primary
-			> sweeping_strike_search_radius
-		):
-			continue
-
-		var lane_difference: int = 999
-
-		if (
-			primary_lane_index >= 0
-			and enemy.has_method(
-				"get_lane_index"
-			)
-		):
-			var enemy_lane_index: int = int(
-				enemy.call(
-					"get_lane_index"
-				)
-			)
-
-			lane_difference = abs(
-				enemy_lane_index
-				- primary_lane_index
-			)
-
-		if (
-			lane_difference
-			> best_lane_difference
-		):
-			continue
-
-		if (
-			lane_difference
-			== best_lane_difference
-			and distance_from_primary
-			>= closest_distance
-		):
-			continue
-
-		best_lane_difference = lane_difference
-		closest_distance = distance_from_primary
-		best_target = enemy_node
-
-	return best_target
 
 func on_branch_level_changed() -> void:
 	sync_visual_state()
@@ -708,7 +576,8 @@ func on_branch_level_changed() -> void:
 func stop_combat() -> void:
 	super.stop_combat()
 	current_target = null
-	reset_marked_prey()
+	if is_instance_valid(talent_effect_set):
+		talent_effect_set.reset_runtime_state()
 	cooldown_timer.stop()
 	var active_tween: Tween = create_tween()
 	active_tween.tween_property(self, "rotation", resting_rotation, 0.1)
@@ -716,7 +585,8 @@ func stop_combat() -> void:
 func resume_combat() -> void:
 	super.resume_combat()
 	current_target = null
-	reset_marked_prey()
+	if is_instance_valid(talent_effect_set):
+		talent_effect_set.reset_runtime_state()
 	rotation = resting_rotation
 	update_attack_cooldown()
 	if cooldown_timer.is_stopped():
