@@ -53,6 +53,7 @@ var enemy_definition: EnemyDefinition
 var target_tree: Node2D
 var enemy_tracker: EnemyTracker
 var lane_registry: LaneRegistry
+var branch_seed_service: BranchSeedService
 
 var formation_side: float = 1.0
 var lane_index: int = 0
@@ -60,6 +61,7 @@ var queue_order: int = 0
 
 var combat_enabled: bool = true
 var is_dying: bool = false
+var has_warned_missing_branch_seed_service: bool = false
 
 var resting_rotation: float
 var resting_scale: Vector2
@@ -119,6 +121,12 @@ func _ready() -> void:
 		push_warning(
 			"Bark Beetle started without EnemyDefinition; "
 			+ "using scene/script fallback values."
+		)
+
+	if not is_instance_valid(branch_seed_service):
+		branch_seed_service = (
+			get_node_or_null("/root/BranchSeeds")
+			as BranchSeedService
 		)
 
 	enemy_tracker = (
@@ -574,8 +582,35 @@ func die(killer: Node = null) -> void:
 	drop_forest_essence(
 		actual_essence_reward
 	)
+	process_branch_seed_loot()
 
 	play_death_feedback()
+
+
+func process_branch_seed_loot() -> void:
+	if not is_instance_valid(enemy_definition):
+		return
+
+	if not enemy_definition.is_valid_definition():
+		return
+
+	if enemy_definition.branch_seed_drops.is_empty():
+		return
+
+	if not is_instance_valid(branch_seed_service):
+		if not has_warned_missing_branch_seed_service:
+			has_warned_missing_branch_seed_service = true
+			push_warning(
+				"Enemy '%s' has Branch Seed drops but BranchSeeds is unavailable."
+				% enemy_definition.enemy_id
+			)
+
+		return
+
+	branch_seed_service.process_enemy_defeat(
+		enemy_definition,
+		global_position
+	)
 
 
 func play_death_feedback() -> void:

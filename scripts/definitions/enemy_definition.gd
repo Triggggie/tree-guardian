@@ -51,6 +51,8 @@ var essence_reward: int = 0
 @export_range(0, 1000000000, 1)
 var experience_reward: int = 1
 
+@export var branch_seed_drops: Array[BranchSeedDropDefinition] = []
+
 
 @export_category("Classification")
 
@@ -89,6 +91,24 @@ func is_valid_definition() -> bool:
 
 	if experience_reward < 0:
 		return false
+
+	var branch_seed_drop_ids: Dictionary = {}
+
+	for branch_seed_drop in branch_seed_drops:
+		if not is_instance_valid(branch_seed_drop):
+			return false
+
+		if not branch_seed_drop.is_valid_definition():
+			return false
+
+		var branch_id: StringName = (
+			branch_seed_drop.branch_definition.branch_id
+		)
+
+		if branch_seed_drop_ids.has(branch_id):
+			return false
+
+		branch_seed_drop_ids[branch_id] = true
 
 	if has_invalid_or_duplicate_ids(
 		tags

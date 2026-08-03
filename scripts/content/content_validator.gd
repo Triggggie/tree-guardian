@@ -54,6 +54,11 @@ static func validate_registry(
 		errors
 	)
 
+	validate_enemy_branch_seed_drops(
+		registry,
+		errors
+	)
+
 	validate_global_talent_tree_ids(
 		registry,
 		errors
@@ -75,6 +80,127 @@ static func validate_registry(
 	)
 
 	return remove_duplicate_errors(errors)
+
+
+static func validate_enemy_branch_seed_drops(
+	registry: ContentRegistry,
+	errors: Array[String]
+) -> void:
+	var registered_branches_by_id: Dictionary = {}
+
+	for registered_branch in registry.branches:
+		if not is_instance_valid(registered_branch):
+			continue
+
+		if registered_branch.branch_id == &"":
+			continue
+
+		if registered_branches_by_id.has(
+			registered_branch.branch_id
+		):
+			continue
+
+		registered_branches_by_id[
+			registered_branch.branch_id
+		] = registered_branch
+
+	for enemy_index in range(registry.enemies.size()):
+		var enemy: EnemyDefinition = registry.enemies[enemy_index]
+
+		if not is_instance_valid(enemy):
+			continue
+
+		var enemy_label: String = (
+			"Enemy '%s'" % enemy.enemy_id
+			if enemy.enemy_id != &""
+			else "Enemy entry %d" % enemy_index
+		)
+		var used_branch_ids: Dictionary = {}
+
+		for drop_index in range(
+			enemy.branch_seed_drops.size()
+		):
+			var branch_seed_drop: BranchSeedDropDefinition = (
+				enemy.branch_seed_drops[drop_index]
+			)
+
+			if not is_instance_valid(branch_seed_drop):
+				errors.append(
+					"%s has an empty Branch Seed drop at index %d."
+					% [enemy_label, drop_index]
+				)
+				continue
+
+			var branch: BranchDefinition = (
+				branch_seed_drop.branch_definition
+			)
+
+			if not is_instance_valid(branch):
+				errors.append(
+					"Branch Seed drop %d in %s has no Branch definition."
+					% [drop_index, enemy_label]
+				)
+				continue
+
+			var branch_id: StringName = branch.branch_id
+
+			if branch_id == &"":
+				errors.append(
+					"Branch Seed drop %d in %s references a Branch with an empty ID."
+					% [drop_index, enemy_label]
+				)
+				continue
+
+			if used_branch_ids.has(branch_id):
+				errors.append(
+					"Duplicate Branch Seed drop for Branch '%s' in %s."
+					% [branch_id, enemy_label]
+				)
+			else:
+				used_branch_ids[branch_id] = true
+
+			var registered_branch: BranchDefinition = (
+				registered_branches_by_id.get(branch_id)
+				as BranchDefinition
+			)
+
+			if not is_instance_valid(registered_branch):
+				errors.append(
+					"Branch Seed drop in %s references unregistered Branch '%s'."
+					% [enemy_label, branch_id]
+				)
+				continue
+
+			if registered_branch != branch:
+				errors.append(
+					"Branch Seed drop in %s references an unregistered Branch definition for ID '%s'."
+					% [enemy_label, branch_id]
+				)
+				continue
+
+			if not branch.is_valid_definition():
+				errors.append(
+					"Branch Seed drop in %s references invalid Branch '%s'."
+					% [enemy_label, branch_id]
+				)
+
+			if not branch.is_legendary_branch():
+				errors.append(
+					"Branch Seed drop in %s references standard Branch '%s'; only legendary Branches can drop seeds."
+					% [enemy_label, branch_id]
+				)
+
+			if drop_chance_is_invalid(branch_seed_drop.drop_chance):
+				errors.append(
+					"Branch Seed drop for Branch '%s' in %s has an invalid drop chance."
+					% [branch_id, enemy_label]
+				)
+
+
+static func drop_chance_is_invalid(
+	drop_chance: float
+) -> bool:
+	return drop_chance < 0.0 or drop_chance > 1.0
 
 
 static func validate_definition_list(
