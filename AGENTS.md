@@ -13,6 +13,7 @@ Tree Guardian is a 2D idle / tower-defense game built in Godot 4.7 with GDScript
   - `RunModifiers`
   - `TreeSouls`
   - `GameContent`
+  - `BranchSeeds`
 
 Read the relevant scene, scripts, resources, and service definitions before changing code. Never infer node paths, signals, methods, or resource fields without verifying them in the repository.
 
@@ -66,6 +67,8 @@ Current and planned definition types include:
 Use `ContentRegistry` and `GameContent` for content lookup. Do not hardcode content lists into gameplay or UI scripts when the registry already provides them.
 
 Use reusable modifiers/effects for mechanics that may apply to more than one branch, enemy, talent, or Soul. Do not hardcode a reusable mechanic into one branch script merely because that branch is the first user.
+
+Branch Seed unlocks are persistent meta-progression stored as stable legendary Branch IDs. Normal death and prestige runs do not clear them. Run modifiers and shared Resources must never mutate Branch Seed unlock state.
 
 ## Run modifier IDs
 
