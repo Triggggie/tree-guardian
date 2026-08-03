@@ -36,7 +36,7 @@ The prototype has no save/load system, so this preserved state lasts only for th
 
 Strength is a close-range offensive branch using preferred-lane targeting with fallback behavior. Its base attack deals 10 damage with a 1.5-second cooldown; the runtime minimum cooldown remains 0.45 seconds.
 
-Strength rendering is separated into the direct child node `StrengthBranchVisual`. The visual node owns the visual exports, growth formulas, and drawing, while `strength_branch.gd` continues to own combat, progression, upgrades, and the current hardcoded talent effects. The runtime synchronizes Branch Level, Tree growth factor, and facing direction to the visual node. Attack range uses the length provided by the visual node, and the attack tween still rotates the Strength root so the complete visual moves as before. No combat or balance values changed during this separation.
+Strength rendering is separated into the direct child node `StrengthBranchVisual`. The visual node owns the visual exports, growth formulas, and drawing, while `strength_branch.gd` continues to own combat orchestration, progression, and upgrades. The runtime synchronizes Branch Level, Tree growth factor, and facing direction to the visual node. Attack range uses the length provided by the visual node, and the attack tween still rotates the Strength root so the complete visual moves as before. No combat or balance values changed during this separation.
 
 Its Resource-defined upgrades are ordered as follows:
 
@@ -52,7 +52,13 @@ Strength has one Resource-defined talent tree with three Level 2, one-point tale
 - Warden — Rebuff: the struck enemy is pushed 35 units away from the tree.
 - Duelist — Marked Prey: repeated hits on the same target gain up to five stacks, each adding 10% damage.
 
-Talent metadata comes from `TalentDefinition` Resources, but these three combat effects are still implemented directly in `strength_branch.gd`; `effect_ids` are not yet dispatched by a generic effect system.
+Purchased Strength talents now activate runtime behavior through `TalentDefinition.effect_ids`. `CombatBranch.get_active_talent_effect_ids()` reads the effect IDs of purchased talents in TalentTree Resource order, while `StrengthTalentEffectSet` dispatches the three Strength-specific runtime effects. Each Strength instance owns its own effect set and its own Marked Prey state; Resources continue to contain immutable content data only. The Strength root orchestrates the basic attack, and the effect set contributes talent behavior.
+
+The current mapping is:
+
+- `sweeping_strike` → `StrengthSweepingStrikeEffect`: second target, 60% damage, 120-unit search radius.
+- `rebuff` → `StrengthRebuffEffect`: 35-unit knockback after a successfully resolved hit.
+- `marked_prey` → `StrengthMarkedPreyEffect`: 10% damage per stack, up to five stacks.
 
 ### Blossom
 
@@ -285,6 +291,13 @@ Automated regression evidence for this checkpoint:
 - The user manually verified the left and right Strength visuals, growth, shoots, attack animation, attack range, TALENTS visibility and opening, and Strength to Blossom to Strength switching in MainWorld.
 - The reported TALENTS incident was not a production UI regression. The button remained present, visible, enabled, and functional; the apparent disappearance came from the embedded game display and clipped viewport in the Godot editor. Production UI was not changed, and the regression smoke test now covers this flow.
 
+### Strength Talent Runtime Effects Checkpoint
+
+- The Strength talent effects smoke test passed two final runs against the real Strength scene. It verifies Resource-driven effect dispatch, base attacks, all three individual effects, their combined behavior, independent per-Strength Marked Prey state, AttackContext data, stop/resume resets, and cleanup.
+- The Strength visual smoke test, TALENTS smoke test, and Blossom healing stack smoke test each passed two final runs. The enemy runtime smoke test also passed its final regression run.
+- The Godot 4.7.1 headless editor/import completed successfully without parser, Resource, ContentValidator, invalid-UID, orphan, or stack-trace errors.
+- The user manually verified all three talents and their combination in MainWorld: Sweeping primary and secondary hits, Rebuff on both struck targets, Marked Prey growth and reset, and an independent second Strength instance without purchased talents.
+
 ## 9. Known Gaps and Limitations
 
 - There is no save/load system; all progression is process-local.
@@ -298,7 +311,7 @@ Automated regression evidence for this checkpoint:
 - `bark_runner.gd` currently inherits the shared runtime behavior from the Bark Beetle root script and overrides only drawing; separating a generic enemy root base is outside this checkpoint.
 - Plan item 40 is only partially complete because the smoke test validates the enemy runtime foundation rather than a full combat-integration scene.
 - No StatusEffect definitions are registered yet.
-- Talent `effect_ids` are data only. Strength talent execution remains hardcoded in `strength_branch.gd`.
+- Strength runtime talent effects are separated and dispatched through `TalentDefinition.effect_ids`; the dispatcher remains Strength-specific rather than a global universal effect system.
 - Strength visual separation is complete; equivalent Blossom visual separation has not yet been completed.
 - The Tree Soul orb described in project guidance as visible from Age 1 is not a persistent world-space element; only the hidden-by-default SOUL panel and selection cards draw orb glyphs.
 - A service-level prestige reset hook exists, but there is no integrated player-facing prestige flow.
@@ -328,9 +341,9 @@ Enemy HP and damage now scale proportionally from each enemy's base values. The 
 
 The next recommended steps are:
 
-1. Move the three Strength talent effects into separate runtime effects dispatched through `TalentDefinition.effect_ids`.
-2. Complete Strength as the reference implementation for other branches.
-3. Then move Blossom in the same architectural direction.
+1. Complete Strength as the reference implementation and evaluate whether its dispatcher should remain Strength-specific or gain a small shared Branch talent-effect base.
+2. Separate Blossom visuals from combat and support logic.
+3. Then begin preparing a third Branch archetype.
 
 Save/load, prestige integration, complete Strength/Blossom talent trees, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
