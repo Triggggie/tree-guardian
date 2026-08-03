@@ -41,20 +41,8 @@ var marked_prey_damage_per_stack: float = 0.10
 @export_range(1, 20, 1)
 var marked_prey_maximum_stacks: int = 5
 
-@export_category("Visual Growth")
-@export_range(2, 50, 1)
-var mature_branch_level: int = 10
-@export var bud_length: float = 38.0
-@export var bud_thickness: float = 10.0
-@export var mature_length: float = 185.0
-@export var mature_thickness: float = 30.0
-@export var first_shoot_level: int = 3
-@export var shoot_length: float = 27.0
-@export var shoot_thickness: float = 6.0
-@export var maximum_shoots: int = 5
-@export var bud_radius: float = 6.0
-
 @onready var cooldown_timer: Timer = $CooldownTimer
+@onready var branch_visual: StrengthBranchVisual = $Visual
 
 var damage_upgrade_level: int = 0
 var attack_speed_upgrade_level: int = 0
@@ -63,6 +51,7 @@ var resting_rotation: float
 var current_target: Node2D
 var marked_prey_target_id: int = 0
 var marked_prey_stacks: int = 0
+var has_warned_missing_branch_visual: bool = false
 
 var targeting_profile: TargetingProfile = (
 	TargetingProfile.new()
@@ -94,18 +83,16 @@ func _ready() -> void:
 			tree_node.growth_changed.connect(_on_tree_growth_changed)
 	cooldown_timer.timeout.connect(_on_cooldown_timer_timeout)
 	update_attack_cooldown()
-	queue_redraw()
+	sync_visual_state()
 	if cooldown_timer.is_stopped():
 		cooldown_timer.start()
 
 func get_branch_growth_progress() -> float:
-	var safe_mature_level: int = max(mature_branch_level, 2)
-	var raw_progress: float = clamp(
-		float(branch_level - 1) / float(safe_mature_level - 1),
-		0.0,
-		1.0
-	)
-	return 1.0 - pow(1.0 - raw_progress, 2.0)
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return 0.0
+
+	return branch_visual.get_branch_growth_progress()
 
 func get_tree_growth_factor() -> float:
 	if not is_instance_valid(tree_node):
@@ -115,25 +102,47 @@ func get_tree_growth_factor() -> float:
 	return 1.0
 
 func get_current_length() -> float:
-	var branch_length: float = lerp(
-		bud_length,
-		mature_length,
-		get_branch_growth_progress()
-	)
-	return branch_length * get_tree_growth_factor()
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return 0.0
+
+	return branch_visual.get_current_length()
 
 func get_current_thickness() -> float:
-	var branch_thickness: float = lerp(
-		bud_thickness,
-		mature_thickness,
-		get_branch_growth_progress()
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return 0.0
+
+	return branch_visual.get_current_thickness()
+
+
+func sync_visual_state() -> void:
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return
+
+	branch_visual.set_branch_level(
+		branch_level
 	)
-	var tree_thickness_factor: float = lerp(
-		0.88,
-		1.0,
+
+	branch_visual.set_tree_growth_factor(
 		get_tree_growth_factor()
 	)
-	return branch_thickness * tree_thickness_factor
+
+	branch_visual.set_facing_direction(
+		get_facing_direction()
+	)
+
+
+func warn_missing_branch_visual_once() -> void:
+	if has_warned_missing_branch_visual:
+		return
+
+	has_warned_missing_branch_visual = true
+
+	push_warning(
+		"Strength Branch: Visual node is missing."
+	)
 
 func get_current_damage() -> float:
 	var current_base_damage: float = (
@@ -273,93 +282,14 @@ func print_upgrade_result(
 func update_attack_cooldown() -> void:
 	cooldown_timer.wait_time = get_current_attack_cooldown()
 
-func _draw() -> void:
-	var current_length: float = get_current_length()
-	var current_thickness: float = get_current_thickness()
-	var facing_direction: float = get_facing_direction()
-	var branch_color := Color("6b4423")
-	var young_shoot_color := Color("76502b")
-	var bud_color := Color("789447")
-	draw_main_branch(
-		current_length,
-		current_thickness,
-		facing_direction,
-		branch_color,
-		bud_color
-	)
-	draw_natural_shoots(
-		current_length,
-		facing_direction,
-		young_shoot_color,
-		bud_color
-	)
-
-func draw_main_branch(
-	current_length: float,
-	current_thickness: float,
-	facing_direction: float,
-	branch_color: Color,
-	bud_color: Color
-) -> void:
-	var branch_end := Vector2(facing_direction * current_length, 0.0)
-	draw_line(
-		Vector2.ZERO,
-		branch_end,
-		branch_color,
-		current_thickness,
-		true
-	)
-	if branch_level <= 2:
-		var current_bud_radius: float = bud_radius + (2 - branch_level) * 2.0
-		draw_circle(branch_end, current_bud_radius, bud_color)
-	else:
-		draw_circle(branch_end, current_thickness * 0.45, branch_color)
-
-func draw_natural_shoots(
-	current_length: float,
-	facing_direction: float,
-	shoot_color: Color,
-	bud_color: Color
-) -> void:
-	if branch_level < first_shoot_level:
-		return
-	var unlocked_shoots: int = branch_level - first_shoot_level + 1
-	var shoot_count: int = min(unlocked_shoots, maximum_shoots)
-	for shoot_index in range(shoot_count):
-		var relative_position: float = (
-			float(shoot_index + 1)
-			/ float(shoot_count + 1)
-		)
-		var distance_from_trunk: float = (
-			current_length
-			* lerp(0.30, 0.76, relative_position)
-		)
-		var shoot_points_up: bool = shoot_index % 2 == 0
-		var direction_y: float = -1.0 if shoot_points_up else 1.0
-		var branch_position := Vector2(
-			facing_direction * distance_from_trunk,
-			0.0
-		)
-		var tree_factor: float = get_tree_growth_factor()
-		var current_shoot_length: float = shoot_length * tree_factor
-		var shoot_tip := Vector2(
-			branch_position.x
-			+ facing_direction
-			* current_shoot_length
-			* 0.45,
-			direction_y * current_shoot_length
-		)
-		draw_line(
-			branch_position,
-			shoot_tip,
-			shoot_color,
-			shoot_thickness * tree_factor,
-			true
-		)
-		draw_circle(shoot_tip, bud_radius * tree_factor, bud_color)
-
 func _on_tree_growth_changed(_growth_factor: float) -> void:
-	queue_redraw()
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return
+
+	branch_visual.set_tree_growth_factor(
+		_growth_factor
+	)
 
 func is_valid_attack_target(target: Node) -> bool:
 	if not is_instance_valid(target):
@@ -764,7 +694,7 @@ func find_sweeping_strike_target(
 	return best_target
 
 func on_branch_level_changed() -> void:
-	queue_redraw()
+	sync_visual_state()
 	print(
 		branch_display_name,
 		" stats | Damage: ",

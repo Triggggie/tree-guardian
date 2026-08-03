@@ -1,11 +1,13 @@
 [gd_scene format=3 uid="uid://i3e2ifeg4itl"]
 
 [ext_resource type="Script" uid="uid://bdg6ucrh3dr0u" path="res://scripts/branches/strength_branch.gd" id="1_se3xx"]
+[ext_resource type="Script" path="res://scripts/branches/strength_branch_visual.gd" id="2_visual"]
 
 [node name="StrengthBranch" type="Node2D" unique_id=769172115]
 script = ExtResource("1_se3xx")
 
 [node name="Visual" type="Node2D" parent="." unique_id=1143745195]
+script = ExtResource("2_visual")
 
 [node name="AttackOrigin" type="Marker2D" parent="." unique_id=126429593]
 
