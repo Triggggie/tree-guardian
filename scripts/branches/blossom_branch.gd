@@ -22,21 +22,7 @@ const HEALING_EFFECT_ID_PREFIX: String = "blossom_healing"
 @export var ranged_attack_range: float = 650.0
 
 
-@export_category("Visual Growth")
-@export_range(2, 50, 1)
-var mature_branch_level: int = 10
-
-@export var bud_length: float = 34.0
-@export var mature_length: float = 155.0
-
-@export var bud_thickness: float = 8.0
-@export var mature_thickness: float = 22.0
-
-@export var first_flower_level: int = 1
-@export var maximum_flowers: int = 7
-
-@export var flower_radius: float = 8.0
-@export var flower_center_radius: float = 3.0
+@onready var branch_visual: BlossomBranchVisual = $Visual
 
 
 var healing_per_tick_upgrade_level: int = 0
@@ -46,6 +32,7 @@ var petal_damage_upgrade_level: int = 0
 var healing_refresh_time_remaining: float = 0.0
 var attack_time_remaining: float = 0.0
 var healing_effect_id: StringName = &""
+var has_warned_missing_branch_visual: bool = false
 
 
 func _ready() -> void:
@@ -65,7 +52,7 @@ func _ready() -> void:
 	healing_refresh_time_remaining = 0.0
 	attack_time_remaining = 0.0
 
-	queue_redraw()
+	sync_visual_state()
 
 
 func _process(delta: float) -> void:
@@ -362,22 +349,11 @@ func play_ranged_attack_feedback() -> void:
 
 
 func get_branch_growth_progress() -> float:
-	var safe_mature_level: int = max(
-		mature_branch_level,
-		2
-	)
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return 0.0
 
-	var raw_progress: float = clamp(
-		float(branch_level - 1)
-		/ float(safe_mature_level - 1),
-		0.0,
-		1.0
-	)
-
-	return 1.0 - pow(
-		1.0 - raw_progress,
-		2.0
-	)
+	return branch_visual.get_branch_growth_progress()
 
 
 func get_tree_growth_factor() -> float:
@@ -393,143 +369,47 @@ func get_tree_growth_factor() -> float:
 
 
 func get_current_length() -> float:
-	var current_length: float = lerp(
-		bud_length,
-		mature_length,
-		get_branch_growth_progress()
-	)
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return 0.0
 
-	return (
-		current_length
-		* get_tree_growth_factor()
-	)
+	return branch_visual.get_current_length()
 
 
 func get_current_thickness() -> float:
-	var current_thickness: float = lerp(
-		bud_thickness,
-		mature_thickness,
-		get_branch_growth_progress()
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return 0.0
+
+	return branch_visual.get_current_thickness()
+
+
+func sync_visual_state() -> void:
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return
+
+	branch_visual.set_branch_level(
+		branch_level
 	)
 
-	return (
-		current_thickness
-		* get_tree_growth_factor()
+	branch_visual.set_tree_growth_factor(
+		get_tree_growth_factor()
 	)
 
-
-func _draw() -> void:
-	var current_length: float = (
-		get_current_length()
-	)
-
-	var current_thickness: float = (
-		get_current_thickness()
-	)
-
-	var facing_direction: float = (
+	branch_visual.set_facing_direction(
 		get_facing_direction()
 	)
 
-	var branch_end := Vector2(
-		facing_direction * current_length,
-		0.0
-	)
 
-	draw_line(
-		Vector2.ZERO,
-		branch_end,
-		Color("6f5532"),
-		current_thickness,
-		true
-	)
-
-	draw_flowers(
-		current_length,
-		facing_direction
-	)
-
-
-func draw_flowers(
-	current_length: float,
-	facing_direction: float
-) -> void:
-	if branch_level < first_flower_level:
+func warn_missing_branch_visual_once() -> void:
+	if has_warned_missing_branch_visual:
 		return
 
-	var flower_count: int = clamp(
-		branch_level
-		- first_flower_level
-		+ 1,
-		1,
-		maximum_flowers
-	)
+	has_warned_missing_branch_visual = true
 
-	for flower_index in range(flower_count):
-		var progress: float = (
-			float(flower_index + 1)
-			/ float(flower_count + 1)
-		)
-
-		var vertical_offset: float = 10.0
-
-		if flower_index % 2 == 0:
-			vertical_offset = -10.0
-
-		var flower_position := Vector2(
-			facing_direction
-			* current_length
-			* lerp(
-				0.25,
-				0.95,
-				progress
-			),
-			vertical_offset
-		)
-
-		draw_flower(flower_position)
-
-
-func draw_flower(
-	flower_position: Vector2
-) -> void:
-	var petal_color := Color("ef9fc2")
-	var flower_center_color := Color("f2c94c")
-
-	var petal_distance: float = (
-		flower_radius * 0.65
-	)
-
-	var petal_radius: float = (
-		flower_radius * 0.55
-	)
-
-	for petal_index in range(5):
-		var angle: float = (
-			TAU
-			* float(petal_index)
-			/ 5.0
-		)
-
-		var petal_position := (
-			flower_position
-			+ Vector2(
-				cos(angle),
-				sin(angle)
-			)
-			* petal_distance
-		)
-
-		draw_circle(
-			petal_position,
-			petal_radius,
-			petal_color
-		)
-
-	draw_circle(
-		flower_position,
-		flower_center_radius,
-		flower_center_color
+	push_warning(
+		"Blossom Branch: Visual node is missing."
 	)
 
 
@@ -795,13 +675,19 @@ func purchase_upgrade(
 
 
 func on_branch_level_changed() -> void:
-	queue_redraw()
+	sync_visual_state()
 
 
 func _on_tree_growth_changed(
 	_growth_factor: float
 ) -> void:
-	queue_redraw()
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return
+
+	branch_visual.set_tree_growth_factor(
+		_growth_factor
+	)
 
 
 func stop_combat() -> void:
