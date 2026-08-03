@@ -56,7 +56,10 @@ func run_test() -> void:
 		) as Array
 
 		for branch in available_branches:
-			if branch is StrengthBranchVisual:
+			if (
+				branch is StrengthBranchVisual
+				or branch is BlossomBranchVisual
+			):
 				visual_mistaken_for_branch = true
 
 	print(
@@ -230,30 +233,31 @@ func test_branch_detection(
 
 	expect(
 		not visual_mistaken_for_branch,
-		"StrengthBranchVisual was mistaken for a branch."
+		"A Branch visual node was mistaken for a branch."
 	)
 
 	var left_strength: Node = null
 	var right_strength: Node = null
+	var left_blossom: Node = null
+	var right_blossom: Node = null
 
 	for branch in available_branches:
 		if branch is not CombatBranch:
 			continue
 
-		if branch.get("branch_id") != &"strength_branch":
-			continue
+		var branch_id: StringName = branch.get("branch_id")
+		var facing_side: int = int(branch.get("facing_side"))
 
-		if int(branch.get("facing_side")) == 0:
-			left_strength = branch
-		else:
-			right_strength = branch
-
-	var blossom_branch: Node = null
-
-	for branch in available_branches:
-		if branch.get("branch_id") == &"blossom_branch":
-			blossom_branch = branch
-			break
+		if branch_id == &"strength_branch":
+			if facing_side == 0:
+				left_strength = branch
+			else:
+				right_strength = branch
+		elif branch_id == &"blossom_branch":
+			if facing_side == 0:
+				left_blossom = branch
+			else:
+				right_blossom = branch
 
 	expect(
 		is_instance_valid(left_strength),
@@ -266,8 +270,13 @@ func test_branch_detection(
 	)
 
 	expect(
-		is_instance_valid(blossom_branch),
-		"TalentScreen did not accept an equipped Blossom root."
+		is_instance_valid(left_blossom),
+		"TalentScreen did not accept the left Blossom root."
+	)
+
+	expect(
+		is_instance_valid(right_blossom),
+		"TalentScreen did not accept the right Blossom root."
 	)
 
 	for strength_branch in [
@@ -328,7 +337,63 @@ func test_branch_detection(
 			"TalentScreen rejected an equipped Strength root."
 		)
 
-	if is_instance_valid(blossom_branch):
+	for blossom_branch in [
+		left_blossom,
+		right_blossom
+	]:
+		if not is_instance_valid(blossom_branch):
+			continue
+
+		expect(
+			blossom_branch is CombatBranch,
+			"Selected Blossom root is not a CombatBranch."
+		)
+		expect(
+			is_instance_valid(
+				blossom_branch.get(
+					"talent_tree_definition"
+				)
+			),
+			"Blossom root has no TalentTreeDefinition."
+		)
+
+		var blossom_talent_ids: Array[StringName] = (
+			blossom_branch.call(
+				"get_talent_ids"
+			) as Array[StringName]
+		)
+		var expected_blossom_talent_ids: Array[StringName] = [
+			&"abundant_bloom",
+			&"quickening_pollen",
+			&"twin_petals"
+		]
+		var expected_blossom_display_names: Array[String] = [
+			"Abundant Bloom",
+			"Quickening Pollen",
+			"Twin Petals"
+		]
+
+		expect(
+			blossom_talent_ids
+			== expected_blossom_talent_ids,
+			"Blossom talent order changed."
+		)
+
+		for talent_index in range(
+			expected_blossom_talent_ids.size()
+		):
+			expect(
+				blossom_branch.call(
+					"get_talent_display_name",
+					expected_blossom_talent_ids[
+						talent_index
+					]
+				) == expected_blossom_display_names[
+					talent_index
+				],
+				"Blossom talent display name changed."
+			)
+
 		talent_screen.call(
 			"select_branch",
 			blossom_branch
@@ -338,6 +403,69 @@ func test_branch_detection(
 			talent_screen.get("selected_branch")
 			== blossom_branch,
 			"TalentScreen rejected an equipped Blossom root."
+		)
+
+		var visible_talent_names: Array[String] = []
+		var talent_nodes: Control = talent_screen.get(
+			"talent_nodes"
+		) as Control
+
+		if is_instance_valid(talent_nodes):
+			for talent_node in talent_nodes.get_children():
+				if talent_node.is_queued_for_deletion():
+					continue
+
+				if talent_node is Button:
+					var button_lines: PackedStringArray = (
+						(talent_node as Button).text.split("\n")
+					)
+
+					if button_lines.size() >= 2:
+						visible_talent_names.append(
+							button_lines[1]
+						)
+
+		expect(
+			visible_talent_names
+			== expected_blossom_display_names,
+			"TalentScreen did not display the three Blossom talents "
+			+ "in Resource order."
+		)
+
+	if (
+		is_instance_valid(left_blossom)
+		and is_instance_valid(right_blossom)
+	):
+		left_blossom.set("branch_level", 2)
+		left_blossom.set("available_talent_points", 1)
+		talent_screen.call("select_branch", left_blossom)
+
+		expect(
+			bool(
+				left_blossom.call(
+					"purchase_talent",
+					&"abundant_bloom"
+				)
+			),
+			"Could not purchase Abundant Bloom on left Blossom."
+		)
+		expect(
+			bool(
+				left_blossom.call(
+					"has_talent",
+					&"abundant_bloom"
+				)
+			),
+			"Left Blossom did not retain its purchased talent."
+		)
+		expect(
+			not bool(
+				right_blossom.call(
+					"has_talent",
+					&"abundant_bloom"
+				)
+			),
+			"Purchasing on left Blossom changed right Blossom."
 		)
 
 	if is_instance_valid(left_strength):
