@@ -1,6 +1,6 @@
 # Tree Guardian — Current Project Status
 
-Updated: 2026-08-02
+Updated: 2026-08-03
 
 Implementation parent for this checkpoint: `db33f5f4a7effa19adbf5af5e0bd1e5955ee0ca5` (`Add Bark Runner enemy`)
 
@@ -35,6 +35,8 @@ The prototype has no save/load system, so this preserved state lasts only for th
 ### Strength
 
 Strength is a close-range offensive branch using preferred-lane targeting with fallback behavior. Its base attack deals 10 damage with a 1.5-second cooldown; the runtime minimum cooldown remains 0.45 seconds.
+
+Strength rendering is separated into the direct child node `StrengthBranchVisual`. The visual node owns the visual exports, growth formulas, and drawing, while `strength_branch.gd` continues to own combat, progression, upgrades, and the current hardcoded talent effects. The runtime synchronizes Branch Level, Tree growth factor, and facing direction to the visual node. Attack range uses the length provided by the visual node, and the attack tween still rotates the Strength root so the complete visual moves as before. No combat or balance values changed during this separation.
 
 Its Resource-defined upgrades are ordered as follows:
 
@@ -274,6 +276,15 @@ Automated regression evidence for this checkpoint:
 - Blossom healing uses a per-instance runtime ID. Two final Blossom smoke runs confirmed stable per-source refresh, two simultaneous effects, unchanged petal values, and combined healing from 90 to 96 HP in one tick.
 - The later approved MainWorld playtest reached Wave 47 with two Strength Branches, two Blossom Branches, no upgrades, and a normal Wave 1 start.
 
+### Strength Visual Separation Checkpoint
+
+- The Strength visual smoke test passed two final runs. It verifies the real Strength scene, visual growth at key Branch Levels, Tree growth scaling, facing direction, root API delegation, attack range, root-transform inheritance, and cleanup.
+- The TALENTS smoke test passed two final runs against the real MainWorld and equipped Branch instances. It verifies the visible and functional TALENTS button, both Strength instances, the three Strength talents, Blossom selection, return to Strength, and exclusion of `StrengthBranchVisual` from branch detection.
+- The Blossom healing stack smoke test passed two final runs with combined healing from 90 to 93 to 96 HP. The enemy runtime smoke test also passed its final regression run.
+- The Godot 4.7.1 headless editor/import completed successfully without parser, Resource, invalid-UID, orphan, or stack-trace errors.
+- The user manually verified the left and right Strength visuals, growth, shoots, attack animation, attack range, TALENTS visibility and opening, and Strength to Blossom to Strength switching in MainWorld.
+- The reported TALENTS incident was not a production UI regression. The button remained present, visible, enabled, and functional; the apparent disappearance came from the embedded game display and clipped viewport in the Godot editor. Production UI was not changed, and the regression smoke test now covers this flow.
+
 ## 9. Known Gaps and Limitations
 
 - There is no save/load system; all progression is process-local.
@@ -288,6 +299,7 @@ Automated regression evidence for this checkpoint:
 - Plan item 40 is only partially complete because the smoke test validates the enemy runtime foundation rather than a full combat-integration scene.
 - No StatusEffect definitions are registered yet.
 - Talent `effect_ids` are data only. Strength talent execution remains hardcoded in `strength_branch.gd`.
+- Strength visual separation is complete; equivalent Blossom visual separation has not yet been completed.
 - The Tree Soul orb described in project guidance as visible from Age 1 is not a persistent world-space element; only the hidden-by-default SOUL panel and selection cards draw orb glyphs.
 - A service-level prestige reset hook exists, but there is no integrated player-facing prestige flow.
 - Gameplay scripts contain extensive prototype debug logging.
@@ -316,9 +328,9 @@ Enemy HP and damage now scale proportionally from each enemy's base values. The 
 
 The next recommended steps are:
 
-1. Run a normal playtest with natural upgrade purchases.
-2. Review the Forest Essence economy under the higher enemy counts.
-3. Later decide whether Retry should replay the current Wave or restart the current Substage.
+1. Move the three Strength talent effects into separate runtime effects dispatched through `TalentDefinition.effect_ids`.
+2. Complete Strength as the reference implementation for other branches.
+3. Then move Blossom in the same architectural direction.
 
 Save/load, prestige integration, complete Strength/Blossom talent trees, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
