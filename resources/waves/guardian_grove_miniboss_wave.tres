@@ -1,15 +1,11 @@
-[gd_resource type="Resource" script_class="WaveDefinition" format=3]
+[gd_resource type="Resource" script_class="WaveDefinition" format=3 uid="uid://1sw1epm1bc7m"]
 
-[ext_resource type="Script" path="res://scripts/definitions/wave_definition.gd" id="1_wave"]
-[ext_resource type="Script" path="res://scripts/definitions/wave_enemy_entry_definition.gd" id="2_entry"]
+[ext_resource type="Script" uid="uid://d13s4hu6scyoe" path="res://scripts/definitions/wave_definition.gd" id="1_wave"]
+[ext_resource type="Script" uid="uid://bvmrh5nj17jav" path="res://scripts/definitions/wave_enemy_entry_definition.gd" id="2_entry"]
 
 [sub_resource type="Resource" id="Resource_warden_entry"]
 script = ExtResource("2_entry")
 enemy_id = &"bark_warden"
-base_count_per_side = 1
-count_increase_interval = 0
-count_increase_amount = 0
-maximum_count_per_side = 1
 
 [resource]
 script = ExtResource("1_wave")
@@ -17,6 +13,3 @@ wave_id = &"guardian_grove_miniboss"
 display_name = "Guardian Grove Miniboss"
 description = "One Bark Warden attacks from each side."
 enemy_entries = Array[ExtResource("2_entry")]([SubResource("Resource_warden_entry")])
-spawn_interval = 0.25
-completion_message_duration = 0.7
-time_after_wave = 0.5

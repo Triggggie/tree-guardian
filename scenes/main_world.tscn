@@ -17,11 +17,11 @@
 [ext_resource type="PackedScene" uid="uid://c7t6jb4idtkrd" path="res://scenes/ui/TalentScreen.tscn" id="14_liqfm"]
 [ext_resource type="Script" uid="uid://c1a77oh0r7f3g" path="res://scripts/tree_soul_selection_screen.gd" id="15_liqfm"]
 [ext_resource type="Script" uid="uid://sehhqrxk388v" path="res://scripts/tree_soul_status_panel.gd" id="16_8v7ug"]
-[ext_resource type="Script" path="res://scripts/tree_soul_rank_up_notification.gd" id="17_rank_up"]
-[ext_resource type="Script" path="res://scripts/enemy_tracker.gd" id="18_enemy_tracker"]
-[ext_resource type="Script" path="res://scripts/lane_registry.gd" id="19_lane_registry"]
-[ext_resource type="Script" path="res://scripts/waves/spawn_director.gd" id="20_spawn_director"]
-[ext_resource type="Script" path="res://scripts/waves/wave_director.gd" id="21_wave_director"]
+[ext_resource type="Script" uid="uid://bluwty0404baq" path="res://scripts/tree_soul_rank_up_notification.gd" id="17_rank_up"]
+[ext_resource type="Script" uid="uid://b5bmvdecsq626" path="res://scripts/enemy_tracker.gd" id="18_enemy_tracker"]
+[ext_resource type="Script" uid="uid://b5x7ryg570lno" path="res://scripts/lane_registry.gd" id="19_lane_registry"]
+[ext_resource type="Script" uid="uid://deokn77e7i2u5" path="res://scripts/waves/spawn_director.gd" id="20_spawn_director"]
+[ext_resource type="Script" uid="uid://crsyw0dxswihm" path="res://scripts/waves/wave_director.gd" id="21_wave_director"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
@@ -282,7 +282,7 @@ offset_right = 1850.0
 offset_bottom = 885.0
 script = ExtResource("16_8v7ug")
 
-[node name="TreeSoulRankUpNotification" type="Control" parent="UI"]
+[node name="TreeSoulRankUpNotification" type="Control" parent="UI" unique_id=1025931021]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
@@ -295,21 +295,22 @@ enabled = false
 
 [node name="Developer" type="Node2D" parent="." unique_id=1336045314]
 
-[node name="EnemyTracker" type="Node" parent="."]
+[node name="EnemyTracker" type="Node" parent="." unique_id=1458620695]
 script = ExtResource("18_enemy_tracker")
 
-[node name="LaneRegistry" type="Node" parent="."]
+[node name="LaneRegistry" type="Node" parent="." unique_id=476432180]
 script = ExtResource("19_lane_registry")
 
-[node name="SpawnDirector" type="Node" parent="."]
+[node name="SpawnDirector" type="Node" parent="." unique_id=890952258]
 script = ExtResource("20_spawn_director")
 lane_spacing = 12.0
 lane_center_y_offset = 20.0
 lane_y_jitter = 2.0
 lane_scale_step = 0.02
 
-[node name="WaveDirector" type="Node" parent="."]
+[node name="WaveDirector" type="Node" parent="." unique_id=1562890971]
 script = ExtResource("21_wave_director")
+debug_start_global_wave = 100
 
 [node name="WaveManager" type="Node" parent="." unique_id=300043025]
 script = ExtResource("5_wy0bs")

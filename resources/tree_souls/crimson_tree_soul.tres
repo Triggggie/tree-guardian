@@ -16,6 +16,5 @@ tree_soul_id = &"crimson_tree_soul"
 display_name = "Crimson Soul"
 description = "Increases damage dealt by all offensive branches."
 soul_color = Color(1, 0.078431375, 0, 1)
-awakening_age = 200
 bonuses = Array[ExtResource("1_c6yab")]([SubResource("Resource_38hwk")])
 metadata/_custom_type_script = "uid://bkilv1ae3o77"

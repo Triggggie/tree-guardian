@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyDefinition" format=3 uid="uid://bgajw64dqv8qr"]
 
-[ext_resource type="Script" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/bark_beetle.tscn" id="2_scene"]
+[ext_resource type="Script" uid="uid://bt5acqnt8giii" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
+[ext_resource type="PackedScene" uid="uid://bq6epklbpqjum" path="res://scenes/enemies/bark_beetle.tscn" id="2_scene"]
 
 [resource]
 script = ExtResource("1_enemy")
@@ -15,9 +15,3 @@ attack_damage = 1.5
 attack_interval = 1.5
 attack_range = 130.0
 essence_reward = 1
-experience_reward = 1
-branch_seed_roll_chance = 0.0
-branch_seed_pity_points = 0
-encounter_rank_id = &"normal"
-tags = Array[StringName]([])
-immune_status_effect_ids = Array[StringName]([])

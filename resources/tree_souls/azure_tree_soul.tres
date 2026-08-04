@@ -16,6 +16,5 @@ tree_soul_id = &"azure_tree_soul"
 display_name = "Azure Soul"
 description = "Increases the attack speed of all offensive branches."
 soul_color = Color(0.047058824, 0, 1, 1)
-awakening_age = 200
 bonuses = Array[ExtResource("1_ah85l")]([SubResource("Resource_urd7q")])
 metadata/_custom_type_script = "uid://bkilv1ae3o77"

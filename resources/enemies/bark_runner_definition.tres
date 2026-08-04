@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyDefinition" format=3 uid="uid://clpgka04saqfn"]
 
-[ext_resource type="Script" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
+[ext_resource type="Script" uid="uid://bt5acqnt8giii" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/bark_runner.tscn" id="2_scene"]
 
 [resource]
@@ -12,12 +12,5 @@ enemy_scene = ExtResource("2_scene")
 movement_speed = 185.0
 maximum_health = 7.0
 attack_damage = 0.75
-attack_interval = 1.0
 attack_range = 110.0
 essence_reward = 1
-experience_reward = 1
-branch_seed_roll_chance = 0.0
-branch_seed_pity_points = 0
-encounter_rank_id = &"normal"
-tags = Array[StringName]([])
-immune_status_effect_ids = Array[StringName]([])

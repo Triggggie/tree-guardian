@@ -24,6 +24,5 @@ tree_soul_id = &"verdant_tree_soul"
 display_name = "Verdant Soul"
 description = "Increases maximum health and regenerates a percentage of maximum health each second."
 soul_color = Color(0.73333335, 1, 0, 1)
-awakening_age = 200
 bonuses = Array[ExtResource("1_bp14v")]([SubResource("Resource_mfql4"), SubResource("Resource_j3oi6")])
 metadata/_custom_type_script = "uid://bkilv1ae3o77"

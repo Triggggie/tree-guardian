@@ -6,7 +6,6 @@
 [ext_resource type="Resource" uid="uid://m0swravpgwga" path="res://resources/waves/bark_runner_intro_wave.tres" id="4_intro"]
 [ext_resource type="Resource" uid="uid://bhxf8hu7xy8fl" path="res://resources/waves/bark_beetle_runner_mixed_wave.tres" id="5_mixed"]
 [ext_resource type="Resource" uid="uid://d126m3yd457aa" path="res://resources/waves/bark_runner_rush_wave.tres" id="6_rush"]
-[ext_resource type="Resource" uid="uid://bfj6820m7mjnv" path="res://resources/waves/guardian_grove_substage_finale_wave.tres" id="7_finale"]
 [ext_resource type="Resource" path="res://resources/waves/guardian_grove_miniboss_wave.tres" id="8_miniboss"]
 [ext_resource type="Resource" path="res://resources/waves/guardian_grove_boss_wave.tres" id="9_boss"]
 

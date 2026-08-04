@@ -10,13 +10,13 @@
 [ext_resource type="Resource" uid="uid://t2wm2ej7pgxl" path="res://resources/tree_souls/azure_tree_soul.tres" id="8_5v1wl"]
 [ext_resource type="Resource" uid="uid://dxmx7nora4lk8" path="res://resources/tree_souls/golden_tree_soul.tres" id="9_ehhbu"]
 [ext_resource type="Resource" uid="uid://cagbmmbd3w8vv" path="res://resources/tree_souls/verdant_tree_soul.tres" id="10_efp16"]
-[ext_resource type="Resource" path="res://resources/branches/strength_branch_definition.tres" id="11_strength"]
-[ext_resource type="Resource" path="res://resources/branches/blossom_branch_definition.tres" id="12_blossom"]
-[ext_resource type="Resource" path="res://resources/enemies/bark_beetle_definition.tres" id="13_bark_beetle"]
-[ext_resource type="Resource" path="res://resources/enemies/bark_runner_definition.tres" id="14_bark_runner"]
+[ext_resource type="Resource" uid="uid://d05vh23x5t0x1" path="res://resources/branches/strength_branch_definition.tres" id="11_strength"]
+[ext_resource type="Resource" uid="uid://rt0cci8k4u8y" path="res://resources/branches/blossom_branch_definition.tres" id="12_blossom"]
+[ext_resource type="Resource" uid="uid://bgajw64dqv8qr" path="res://resources/enemies/bark_beetle_definition.tres" id="13_bark_beetle"]
+[ext_resource type="Resource" uid="uid://clpgka04saqfn" path="res://resources/enemies/bark_runner_definition.tres" id="14_bark_runner"]
+[ext_resource type="Resource" uid="uid://dt401x3biva4f" path="res://resources/stages/guardian_grove_stage.tres" id="14_guardian_grove"]
 [ext_resource type="Resource" path="res://resources/enemies/bark_warden_definition.tres" id="15_bark_warden"]
 [ext_resource type="Resource" path="res://resources/enemies/ancient_bark_colossus_definition.tres" id="16_colossus"]
-[ext_resource type="Resource" path="res://resources/stages/guardian_grove_stage.tres" id="14_guardian_grove"]
 
 [resource]
 script = ExtResource("3_4duaa")

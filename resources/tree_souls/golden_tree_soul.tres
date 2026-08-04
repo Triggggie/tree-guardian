@@ -16,6 +16,5 @@ tree_soul_id = &"golden_tree_soul"
 display_name = "Golden Soul"
 description = "Increases all Essence gained during the run."
 soul_color = Color(1, 0.84313726, 0, 1)
-awakening_age = 200
 bonuses = Array[ExtResource("1_lhu7q")]([SubResource("Resource_stn5k")])
 metadata/_custom_type_script = "uid://bkilv1ae3o77"
