@@ -127,6 +127,9 @@ func test_definition_data() -> BranchDefinition:
 	legendary_definition.category_id = (
 		BranchDefinition.CATEGORY_LEGENDARY
 	)
+	legendary_definition.legendary_tier = (
+		BranchDefinition.LEGENDARY_TIER_1
+	)
 	expect(
 		legendary_definition.is_valid_definition(),
 		"A legendary copy of Strength is invalid."

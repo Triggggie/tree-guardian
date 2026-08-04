@@ -13,6 +13,7 @@ func _ready() -> void:
 	test_enemy_definition()
 	test_bark_runner_definition()
 	await test_bark_runner_scene()
+	await test_guardian_grove_boss_definitions_and_scenes()
 	test_wave_enemy_entry_definition()
 	test_guardian_grove_schedule_and_waves()
 	test_stage_and_wave_definition()
@@ -720,7 +721,7 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		{"wave": 40, "wave_id": &"bark_runner_rush"},
 		{"wave": 41, "wave_id": &"standard_bark_beetle"},
 		{"wave": 49, "wave_id": &"standard_bark_beetle"},
-		{"wave": 50, "wave_id": &"bark_beetle_runner_mixed"},
+		{"wave": 50, "wave_id": &"guardian_grove_miniboss"},
 		{"wave": 51, "wave_id": &"standard_bark_beetle"},
 		{"wave": 59, "wave_id": &"standard_bark_beetle"},
 		{"wave": 60, "wave_id": &"bark_runner_rush"},
@@ -735,7 +736,7 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		{"wave": 90, "wave_id": &"bark_beetle_runner_mixed"},
 		{"wave": 91, "wave_id": &"standard_bark_beetle"},
 		{"wave": 99, "wave_id": &"standard_bark_beetle"},
-		{"wave": 100, "wave_id": &"guardian_grove_substage_finale"}
+		{"wave": 100, "wave_id": &"guardian_grove_boss"}
 	]
 
 	for boundary in schedule_boundaries:
@@ -782,16 +783,21 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		&"guardian_grove",
 		&"bark_runner_rush"
 	)
-	var finale_wave: WaveDefinition = GameContent.get_wave(
+	var miniboss_wave: WaveDefinition = GameContent.get_wave(
 		&"guardian_grove",
-		&"guardian_grove_substage_finale"
+		&"guardian_grove_miniboss"
+	)
+	var boss_wave: WaveDefinition = GameContent.get_wave(
+		&"guardian_grove",
+		&"guardian_grove_boss"
 	)
 	var scheduled_waves: Array[WaveDefinition] = [
 		standard_wave,
 		intro_wave,
 		mixed_wave,
 		rush_wave,
-		finale_wave
+		miniboss_wave,
+		boss_wave
 	]
 
 	for wave_definition in scheduled_waves:
@@ -811,7 +817,8 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		or not is_instance_valid(intro_wave)
 		or not is_instance_valid(mixed_wave)
 		or not is_instance_valid(rush_wave)
-		or not is_instance_valid(finale_wave)
+		or not is_instance_valid(miniboss_wave)
+		or not is_instance_valid(boss_wave)
 	):
 		return
 
@@ -887,35 +894,6 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		1,
 		12
 	)
-	_expect_wave_identity_and_timing(
-		finale_wave,
-		&"guardian_grove_substage_finale",
-		"Guardian Grove Substage Finale",
-		0.12,
-		0.5,
-		0.4
-	)
-	_expect_wave_entry_data(
-		finale_wave,
-		0,
-		&"bark_beetle",
-		7,
-		100,
-		100,
-		1,
-		14
-	)
-	_expect_wave_entry_data(
-		finale_wave,
-		1,
-		&"bark_runner",
-		4,
-		100,
-		100,
-		1,
-		10
-	)
-
 	for substage_index in range(10):
 		var substage: SubstageDefinition = stage.get_substage(
 			substage_index
@@ -955,8 +933,13 @@ func test_guardian_grove_schedule_and_waves() -> void:
 			% (substage_index + 1)
 		)
 		expect(
-			substage.get_wave_for_index(99) == finale_wave,
-			"Substage %d index 99 is not the Finale."
+			substage.get_wave_for_index(49) == miniboss_wave,
+			"Substage %d index 49 is not the Miniboss."
+			% (substage_index + 1)
+		)
+		expect(
+			substage.get_wave_for_index(99) == boss_wave,
+			"Substage %d index 99 is not the Boss."
 			% (substage_index + 1)
 		)
 
@@ -1047,12 +1030,12 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		)
 
 	expect(
-		finale_wave.get_enemy_count_for_id(&"bark_beetle", 100) == 7,
-		"Finale Stage Wave 100 Bark Beetle count is not 7."
+		miniboss_wave.get_enemy_count_for_id(&"bark_warden", 999) == 1,
+		"Miniboss count changed with later Stage Waves."
 	)
 	expect(
-		finale_wave.get_enemy_count_for_id(&"bark_runner", 100) == 4,
-		"Finale Stage Wave 100 Bark Runner count is not 4."
+		boss_wave.get_enemy_count_for_id(&"ancient_bark_colossus", 999) == 1,
+		"Boss count changed with later Stage Waves."
 	)
 
 	var total_health_fixtures: Array[Dictionary] = [
@@ -1062,7 +1045,7 @@ func test_guardian_grove_schedule_and_waves() -> void:
 		{"wave": 29, "health": 85.2},
 		{"wave": 30, "health": 88.97},
 		{"wave": 49, "health": 144.48},
-		{"wave": 50, "health": 140.535}
+		{"wave": 50, "health": 208.2}
 	]
 
 	for health_fixture in total_health_fixtures:
@@ -1100,18 +1083,18 @@ func test_guardian_grove_schedule_and_waves() -> void:
 			)
 
 	expect(
-		enemies_per_side_waves_1_to_50 == 254,
-		"Waves 1-50 do not spawn 254 enemies per side."
+		enemies_per_side_waves_1_to_50 == 247,
+		"Waves 1-50 do not spawn 247 enemies per side."
 	)
 
 	print(
 		"SUBSTAGE SCHEDULE TEST PASS: entries=19, coverage=1-100"
 	)
 	print(
-		"PRODUCTION WAVE DATA TEST PASS: new_waves=4, ordered mixed entries"
+		"PRODUCTION WAVE DATA TEST PASS: scheduled_waves=6, ordered mixed entries"
 	)
 	print(
-		"EARLY BALANCE TEST PASS: counts, continuity, total_spawned_1_50=508"
+		"EARLY BALANCE TEST PASS: counts, continuity, total_spawned_1_50=494"
 	)
 
 
@@ -1430,11 +1413,11 @@ func test_stage_and_wave_definition() -> void:
 	]
 	var expected_wave_ids: Array[StringName] = [
 		&"standard_bark_beetle",
-		&"guardian_grove_substage_finale",
+		&"guardian_grove_boss",
 		&"standard_bark_beetle",
 		&"standard_bark_beetle",
 		&"standard_bark_beetle",
-		&"guardian_grove_substage_finale"
+		&"guardian_grove_boss"
 	]
 
 	for mapping_index in range(stage_wave_indexes.size()):
@@ -1515,10 +1498,10 @@ func test_stage_and_wave_definition() -> void:
 		stage.get_unique_wave_definitions()
 	)
 	expect(
-		unique_waves.size() == 5,
-		"Guardian Grove does not expose five unique WaveDefinitions."
+		unique_waves.size() == 6,
+		"Guardian Grove does not expose six unique WaveDefinitions."
 	)
-	if unique_waves.size() == 5:
+	if unique_waves.size() == 6:
 		expect(
 			unique_waves[0] == standard_wave,
 			"Guardian Grove unique Wave list does not start with standard."
@@ -1527,8 +1510,8 @@ func test_stage_and_wave_definition() -> void:
 			unique_waves[1].wave_id == &"bark_runner_intro"
 			and unique_waves[2].wave_id == &"bark_beetle_runner_mixed"
 			and unique_waves[3].wave_id == &"bark_runner_rush"
-			and unique_waves[4].wave_id
-			== &"guardian_grove_substage_finale",
+			and unique_waves[4].wave_id == &"guardian_grove_miniboss"
+			and unique_waves[5].wave_id == &"guardian_grove_boss",
 			"Guardian Grove unique Wave list has the wrong first-use order."
 		)
 
@@ -2623,7 +2606,7 @@ func test_wave_director_substage_queries() -> void:
 			)
 			and director.get_current_wave_definition().wave_id
 			== (
-				&"guardian_grove_substage_finale"
+				&"guardian_grove_boss"
 				if int(mapping["wave"]) == 100
 				else &"standard_bark_beetle"
 			),
@@ -2692,24 +2675,102 @@ func test_wave_director_substage_queries() -> void:
 	director.free()
 
 
+func test_guardian_grove_boss_definitions_and_scenes() -> void:
+	var expected_data: Array[Dictionary] = [
+		{
+			"id": &"bark_warden",
+			"rank": EnemyDefinition.ENCOUNTER_RANK_MINIBOSS,
+			"speed": 85.0,
+			"health": 120.0,
+			"damage": 4.0,
+			"interval": 1.4,
+			"range": 145.0,
+			"essence": 8,
+			"xp": 8,
+			"chance": 0.05,
+			"pity": 1
+		},
+		{
+			"id": &"ancient_bark_colossus",
+			"rank": EnemyDefinition.ENCOUNTER_RANK_BOSS,
+			"speed": 60.0,
+			"health": 300.0,
+			"damage": 7.0,
+			"interval": 1.8,
+			"range": 165.0,
+			"essence": 20,
+			"xp": 20,
+			"chance": 0.15,
+			"pity": 3
+		}
+	]
+	var stage: StageDefinition = GameContent.get_stage(&"guardian_grove")
+
+	for expected in expected_data:
+		var definition: EnemyDefinition = GameContent.get_enemy(expected["id"])
+		expect(is_instance_valid(definition), "Boss EnemyDefinition is missing.")
+		if not is_instance_valid(definition):
+			continue
+
+		expect(definition.is_valid_definition(), "Boss EnemyDefinition is invalid.")
+		expect(definition.encounter_rank_id == expected["rank"], "Boss rank differs.")
+		expect(is_equal_approx(definition.movement_speed, expected["speed"]), "Boss speed differs.")
+		expect(is_equal_approx(definition.maximum_health, expected["health"]), "Boss health differs.")
+		expect(is_equal_approx(definition.attack_damage, expected["damage"]), "Boss damage differs.")
+		expect(is_equal_approx(definition.attack_interval, expected["interval"]), "Boss interval differs.")
+		expect(is_equal_approx(definition.attack_range, expected["range"]), "Boss range differs.")
+		expect(definition.essence_reward == expected["essence"], "Boss Essence differs.")
+		expect(definition.experience_reward == expected["xp"], "Boss XP differs.")
+		expect(is_equal_approx(definition.branch_seed_roll_chance, expected["chance"]), "Boss seed chance differs.")
+		expect(definition.branch_seed_pity_points == expected["pity"], "Boss pity differs.")
+
+		var enemy: Node = definition.enemy_scene.instantiate()
+		expect(enemy is CharacterBody2D, "Boss scene root is not CharacterBody2D.")
+		expect(enemy.has_node("HealthComponent"), "Boss has no HealthComponent.")
+		expect(enemy.has_node("AttackComponent"), "Boss has no AttackComponent.")
+		expect(enemy.has_node("MovementComponent"), "Boss has no MovementComponent.")
+		expect(
+			bool(enemy.call("configure_from_definition", definition))
+			and bool(enemy.call("configure_stage_context", stage)),
+			"Boss scene rejected definition or Stage context."
+		)
+		expect(enemy.get("stage_definition") == stage, "Boss did not retain Stage context.")
+		enemy.free()
+
+	var schedule: SubstageWaveScheduleDefinition = preload(
+		"res://resources/wave_schedules/guardian_grove_standard_schedule.tres"
+	)
+	expect(
+		schedule.get_wave_for_number(50).wave_id == &"guardian_grove_miniboss",
+		"Guardian Grove Wave 50 is not the miniboss Wave."
+	)
+	expect(
+		schedule.get_wave_for_number(100).wave_id == &"guardian_grove_boss",
+		"Guardian Grove Wave 100 is not the boss Wave."
+	)
+	print("GUARDIAN GROVE BOSS DEFINITIONS TEST PASS")
+
+
 func test_enemy_spawn_request() -> void:
 	var definition: EnemyDefinition = (
 		GameContent.get_enemy(&"bark_beetle")
 	)
+	var stage: StageDefinition = GameContent.get_stage(&"guardian_grove")
 
 	expect(
 		is_instance_valid(definition),
 		"Spawn request test could not load Bark Beetle definition."
 	)
 
-	if not is_instance_valid(definition):
+	if not is_instance_valid(definition) or not is_instance_valid(stage):
 		return
 
 	var valid_request := EnemySpawnRequest.new(
 		definition,
 		2,
 		definition.maximum_health,
-		1.0
+		1.0,
+		stage
 	)
 
 	expect(
@@ -2743,25 +2804,36 @@ func test_enemy_spawn_request() -> void:
 		null,
 		2,
 		12.0,
-		1.0
+		1.0,
+		stage
 	)
 	var zero_count_request := EnemySpawnRequest.new(
 		definition,
 		0,
 		12.0,
-		1.0
+		1.0,
+		stage
 	)
 	var zero_health_request := EnemySpawnRequest.new(
 		definition,
 		2,
 		0.0,
-		1.0
+		1.0,
+		stage
 	)
 	var zero_damage_request := EnemySpawnRequest.new(
 		definition,
 		2,
 		12.0,
-		0.0
+		0.0,
+		stage
+	)
+	var missing_stage_request := EnemySpawnRequest.new(
+		definition,
+		2,
+		12.0,
+		1.0,
+		null
 	)
 
 	expect(
@@ -2784,10 +2856,15 @@ func test_enemy_spawn_request() -> void:
 		not zero_damage_request.is_valid_request(),
 		"EnemySpawnRequest accepted zero damage multiplier."
 	)
-
-	var stage: StageDefinition = GameContent.get_stage(
-		&"guardian_grove"
+	expect(
+		not missing_stage_request.is_valid_request(),
+		"EnemySpawnRequest accepted a missing StageDefinition."
 	)
+	expect(
+		valid_request.stage_definition == stage,
+		"EnemySpawnRequest did not retain the StageDefinition instance."
+	)
+
 	var mixed_wave: WaveDefinition = GameContent.get_wave(
 		&"guardian_grove",
 		&"bark_beetle_runner_mixed"
@@ -2832,7 +2909,8 @@ func test_enemy_spawn_request() -> void:
 					mixed_wave,
 					&"bark_beetle",
 					stage_wave
-				)
+				),
+				stage
 			),
 			EnemySpawnRequest.new(
 				bark_runner,
@@ -2850,7 +2928,8 @@ func test_enemy_spawn_request() -> void:
 					mixed_wave,
 					&"bark_runner",
 					stage_wave
-				)
+				),
+				stage
 			)
 		]
 		var beetle_request: EnemySpawnRequest = production_requests[0]
@@ -3417,13 +3496,14 @@ func test_spawn_director_multi_request_batch() -> void:
 	var definition: EnemyDefinition = (
 		GameContent.get_enemy(&"bark_beetle")
 	)
+	var stage: StageDefinition = GameContent.get_stage(&"guardian_grove")
 
 	expect(
 		is_instance_valid(definition),
 		"Multi-request fixture could not load Bark Beetle definition."
 	)
 
-	if not is_instance_valid(definition):
+	if not is_instance_valid(definition) or not is_instance_valid(stage):
 		return
 
 	var fixture := Node2D.new()
@@ -3478,13 +3558,15 @@ func test_spawn_director_multi_request_batch() -> void:
 			definition,
 			6,
 			30.0,
-			1.0
+			1.0,
+			stage
 		),
 		EnemySpawnRequest.new(
 			definition,
 			4,
 			30.0,
-			1.0
+			1.0,
+			stage
 		)
 	]
 
@@ -3512,6 +3594,10 @@ func test_spawn_director_multi_request_batch() -> void:
 	var queue_keys: Dictionary = {}
 
 	for enemy in spawned_enemies:
+		expect(
+			enemy.get("stage_definition") == stage,
+			"SpawnDirector did not preserve the exact StageDefinition."
+		)
 		var formation_side: float = float(
 			enemy.get("formation_side")
 		)
@@ -3631,6 +3717,13 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 	var bark_runner: EnemyDefinition = (
 		GameContent.get_enemy(&"bark_runner")
 	)
+	var bark_warden: EnemyDefinition = (
+		GameContent.get_enemy(&"bark_warden")
+	)
+	var ancient_bark_colossus: EnemyDefinition = (
+		GameContent.get_enemy(&"ancient_bark_colossus")
+	)
+	var stage: StageDefinition = GameContent.get_stage(&"guardian_grove")
 
 	expect(
 		is_instance_valid(bark_beetle),
@@ -3640,10 +3733,21 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 		is_instance_valid(bark_runner),
 		"Mixed fixture could not load Bark Runner."
 	)
+	expect(
+		is_instance_valid(bark_warden),
+		"Mixed fixture could not load Bark Warden."
+	)
+	expect(
+		is_instance_valid(ancient_bark_colossus),
+		"Mixed fixture could not load Ancient Bark Colossus."
+	)
 
 	if (
 		not is_instance_valid(bark_beetle)
 		or not is_instance_valid(bark_runner)
+		or not is_instance_valid(bark_warden)
+		or not is_instance_valid(ancient_bark_colossus)
+		or not is_instance_valid(stage)
 	):
 		return
 
@@ -3699,13 +3803,29 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 			bark_beetle,
 			1,
 			bark_beetle.maximum_health,
-			1.0
+			1.0,
+			stage
 		),
 		EnemySpawnRequest.new(
 			bark_runner,
 			1,
 			bark_runner.maximum_health,
-			1.0
+			1.0,
+			stage
+		),
+		EnemySpawnRequest.new(
+			bark_warden,
+			1,
+			bark_warden.maximum_health,
+			1.0,
+			stage
+		),
+		EnemySpawnRequest.new(
+			ancient_bark_colossus,
+			1,
+			ancient_bark_colossus.maximum_health,
+			1.0,
+			stage
 		)
 	]
 
@@ -3724,22 +3844,28 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 
 	var spawned_enemies: Array[Node] = entities.get_children()
 	expect(
-		spawned_enemies.size() == 4,
-		"Mixed fixture did not spawn exactly 4 enemies."
+		spawned_enemies.size() == 8,
+		"Mixed fixture did not spawn exactly 8 enemies."
 	)
 	expect(
-		enemy_tracker.get_enemy_count() == 4,
+		enemy_tracker.get_enemy_count() == 8,
 		"Mixed fixture did not register all enemies with EnemyTracker."
 	)
 
 	var bark_beetle_count: int = 0
 	var bark_runner_count: int = 0
+	var bark_warden_count: int = 0
+	var ancient_bark_colossus_count: int = 0
 	var left_enemy_count: int = 0
 	var right_enemy_count: int = 0
 	var queue_keys: Dictionary = {}
 
 	for enemy_index in range(spawned_enemies.size()):
 		var enemy: Node = spawned_enemies[enemy_index]
+		expect(
+			enemy.get("stage_definition") == stage,
+			"Mixed SpawnDirector lost the exact StageDefinition."
+		)
 		var enemy_definition: EnemyDefinition = (
 			enemy.get("enemy_definition") as EnemyDefinition
 		)
@@ -3758,12 +3884,20 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 			bark_beetle_count += 1
 		elif enemy_id == &"bark_runner":
 			bark_runner_count += 1
+		elif enemy_id == &"bark_warden":
+			bark_warden_count += 1
+		elif enemy_id == &"ancient_bark_colossus":
+			ancient_bark_colossus_count += 1
 
-		var expected_enemy_id: StringName = (
-			&"bark_beetle"
-			if enemy_index < 2
-			else &"bark_runner"
-		)
+		var expected_enemy_ids: Array[StringName] = [
+			&"bark_beetle",
+			&"bark_runner",
+			&"bark_warden",
+			&"ancient_bark_colossus"
+		]
+		var expected_enemy_id: StringName = expected_enemy_ids[
+			floori(enemy_index / 2.0)
+		]
 		expect(
 			enemy_id == expected_enemy_id,
 			"Mixed fixture did not preserve request block order."
@@ -3827,21 +3961,29 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 		"Mixed fixture did not spawn 2 Bark Runners."
 	)
 	expect(
-		left_enemy_count == 2,
-		"Mixed fixture did not spawn 2 left enemies."
+		bark_warden_count == 2,
+		"Mixed fixture did not spawn 2 Bark Wardens."
 	)
 	expect(
-		right_enemy_count == 2,
-		"Mixed fixture did not spawn 2 right enemies."
+		ancient_bark_colossus_count == 2,
+		"Mixed fixture did not spawn 2 Ancient Bark Colossus enemies."
 	)
 	expect(
-		queue_keys.size() == 4,
-		"Mixed fixture did not produce 4 unique queue keys."
+		left_enemy_count == 4,
+		"Mixed fixture did not spawn 4 left enemies."
+	)
+	expect(
+		right_enemy_count == 4,
+		"Mixed fixture did not spawn 4 right enemies."
+	)
+	expect(
+		queue_keys.size() == 8,
+		"Mixed fixture did not produce 8 unique queue keys."
 	)
 
 	print(
-		"BARK RUNNER MIXED SPAWN TEST PASS: "
-		+ "beetles=2, runners=2, unique_queue_keys=4"
+		"MIXED ENEMY SPAWN TEST PASS: "
+		+ "beetles=2, runners=2, wardens=2, colossus=2"
 	)
 
 	for enemy in spawned_enemies:
