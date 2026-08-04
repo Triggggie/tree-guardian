@@ -1,6 +1,6 @@
 # Tree Guardian — Current Project Status
 
-Updated: 2026-08-03
+Updated: 2026-08-04
 
 Implementation parent for this checkpoint: `db33f5f4a7effa19adbf5af5e0bd1e5955ee0ca5` (`Add Bark Runner enemy`)
 
@@ -12,7 +12,7 @@ Baseline branch: `main`
 
 Tree Guardian is a playable 2D idle/tower-defense prototype built for Godot 4.7.1 with GDScript 2 and Forward Plus rendering. The project configuration declares Godot feature level 4.7, a 1920 × 1080 base viewport, and `res://scenes/main_world.tscn` as the main scene.
 
-The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. The tree also exposes an empty central `AttachmentPoints/Apex` marker for the future legendary Slot 5. Global content, run, and persistent Branch Seed services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, and `BranchSeeds` autoloads.
+The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. The tree also exposes an empty central `AttachmentPoints/Apex` marker for the future legendary Slot 5. Global content, run, persistent Branch Seed, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, and `BranchProgress` autoloads.
 
 This document describes the repository after the enemy/wave architecture checkpoint built on the implementation parent above.
 
@@ -22,8 +22,8 @@ The main loop is functional:
 
 - Bark Beetles are instantiated from registered Enemy, Stage, and Wave Resources. They spawn in lane-aware waves, move toward the tree, attack it, and grant Branch XP plus Forest Essence drops when defeated.
 - Strength branches perform melee attacks; Blossom branches heal the tree and fire ranged petals.
-- Branch XP increases Branch Level. Talent Points are awarded at configured Branch Levels and are spent independently by each branch instance.
-- Forest Essence buys branch and tree upgrades. Current upgrade levels remain mutable state on the individual runtime node, not in shared Resources.
+- Branch XP increases Branch Level. XP, level, Talent Points, talent purchases, and Essence-upgrade levels are shared by all runtime instances with the same stable `branch_id`.
+- Forest Essence buys branch and tree upgrades. A shared Branch upgrade purchase is charged once and immediately updates every active instance of that archetype; mutable progress never resides in shared definition Resources.
 - Age increases only after completing a new highest global wave. Replaying already completed waves after a death does not farm Age.
 - Tree death stops the active combat cycle and opens a defeat panel. The player can retry immediately, or the tree revives automatically after a 10-second countdown. The current Substage restarts at its Wave 1.
 - Normal death preserves in-memory long-term run progression: Age, Forest Essence, Branch XP and levels, purchased branch upgrades and talents, tree upgrades, and the selected Tree Soul and rank.
@@ -82,7 +82,15 @@ Blossom now has a Resource-defined TalentTree with three Level 2, one-point tale
 - `quickening_pollen` → `BlossomQuickeningPollenEffect`: reduces the calculated healing tick interval by 20% without bypassing the 0.75-second minimum.
 - `twin_petals` → `BlossomTwinPetalsEffect`: launches a second projectile at another valid target for 60% of the current petal damage.
 
-Each left/right Strength or Blossom node keeps its own Branch XP, level, Talent Points, purchases, talent-effect dispatcher, and upgrade levels; buying a talent or upgrade on one instance does not mutate the other instance or its shared definition Resource.
+The two Strength instances share one Strength archetype progress record, and the two Blossom instances share one Blossom archetype progress record. Strength and Blossom remain isolated from one another. Each physical Node still owns its own visual, cooldown/timer position, target, projectile/tween state, and Branch-specific talent-effect dispatcher, so temporary combat state is never shared.
+
+### Shared Branch Progression
+
+`BranchProgressRecord` is the mutable in-memory record for one stable Branch archetype ID. It contains Branch level and XP, available and total-earned Talent Points, purchased talent IDs, and upgrade levels. Its validation and copy APIs prevent invalid IDs, negative progression, and accidental mutable-container exposure.
+
+`BranchProgressService`, registered as the `BranchProgress` autoload after `BranchSeeds`, is the authoritative runtime owner of records by `branch_id`. It registers active `CombatBranch` instances, routes XP, talent, and upgrade operations through real definition Resources, synchronizes all instances of the affected archetype, and relays each change through the existing per-Node signals used by the UI. A record remains alive after all matching Nodes or MainWorld are removed and is applied when that archetype is instantiated again within the same application process.
+
+This Branch progress is not yet stored on disk. Recreating a runtime Branch or MainWorld in the same process restores it, but exiting the application loses it. Talent-effect set objects remain separate per physical Strength or Blossom instance, and only purchased effect IDs are synchronized. Forest Essence is spent once by the authoritative upgrade transaction, even though all matching runtime instances receive the new level.
 
 ## 4. Content Resource Architecture
 
@@ -246,6 +254,14 @@ Normal death does not clear the selected Soul or rank. `TreeSoulService` provide
 
 ## 8. Manual Test Status
 
+### Shared Branch Progression Checkpoint
+
+- Godot 4.7.1 headless editor/import passed without parser, Resource, ContentValidator, invalid-UID, orphan, or stack-trace errors.
+- The shared Branch progress smoke test passed two consecutive runs against the real MainWorld, both Strength instances, both Blossom instances, their real Branch/TalentTree/Upgrade Resources, the `BranchProgressService`, and the Tree Forest Essence API.
+- The regression suite confirmed shared XP, level, Talent Points, talents, and upgrade levels within each archetype; isolation between Strength and Blossom; one-time Forest Essence charging; higher follow-up costs; and restoration after MainWorld recreation in the same process.
+- Strength and Blossom talent-effect smoke tests, Blossom healing-stack and both Branch visual smoke tests, the TALENTS UI test, Apex slot rules, Branch Seed loot, and enemy runtime tests passed. The shared-progress and TALENTS tests each passed twice.
+- The production BRANCHES/TREE/SOUL/TALENTS layout was unchanged. Physical Branch visuals and talent-effect runtime objects remain per-instance.
+
 The following evidence was supplied with this handoff from a manual Godot 4.7.1 run. It was not re-executed while creating this document:
 
 - The project started without parser errors, missing Resources, or ContentValidator errors.
@@ -351,6 +367,10 @@ Automated regression evidence for this checkpoint:
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
+- Branch archetype progression is retained only in memory and is not included in the disk save.
+- There is no TREE loadout screen and no equip/unequip flow for standard Branches.
+- There is no talent respec flow.
+- Bosses, tiered loot, and an equipment inventory are not implemented.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
 - All ten Guardian Grove Substages currently share one schedule; later Substages are not yet differentiated.
@@ -400,11 +420,11 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Implement Thorn Crown as the first legendary Branch.
-2. Add the Thorn Crown BranchDefinition and a real Branch Seed drop.
-3. Add a minimal Apex equip flow for unlocked seeds.
-4. Add a prominent loot/unlock notification.
-5. Then create summon/defender runtime support for Spirit Branch.
+1. Add internal Legendary Branch Tier 1–3.
+2. Add boss/miniboss classification and a Stage Branch Seed loot pool.
+3. Add a pity system separated by Legendary Tier.
+4. Create boss encounters at Wave 50 and Wave 100 of every Substage.
+5. Then create the first read-only version of the TREE screen.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
