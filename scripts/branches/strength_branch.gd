@@ -232,59 +232,13 @@ func get_range_upgrade_cost() -> int:
 	)
 
 func purchase_damage_upgrade() -> bool:
-	if not can_purchase_upgrade_by_id(
-		UPGRADE_DAMAGE
-	):
-		return false
-	var cost: int = get_damage_upgrade_cost()
-	if not try_spend_essence(cost):
-		return false
-	damage_upgrade_level += 1
-	upgrade_changed.emit(UPGRADE_DAMAGE, damage_upgrade_level)
-	print_upgrade_result(
-		get_upgrade_display_name(UPGRADE_DAMAGE),
-		damage_upgrade_level,
-		cost
-	)
-	return true
+	return super.purchase_upgrade(UPGRADE_DAMAGE)
 
 func purchase_attack_speed_upgrade() -> bool:
-	if not can_purchase_upgrade_by_id(
-		UPGRADE_ATTACK_SPEED
-	):
-		return false
-	var cost: int = get_attack_speed_upgrade_cost()
-	if not try_spend_essence(cost):
-		return false
-	attack_speed_upgrade_level += 1
-	update_attack_cooldown()
-	upgrade_changed.emit(
-		UPGRADE_ATTACK_SPEED,
-		attack_speed_upgrade_level
-	)
-	print_upgrade_result(
-		get_upgrade_display_name(UPGRADE_ATTACK_SPEED),
-		attack_speed_upgrade_level,
-		cost
-	)
-	return true
+	return super.purchase_upgrade(UPGRADE_ATTACK_SPEED)
 
 func purchase_range_upgrade() -> bool:
-	if not can_purchase_upgrade_by_id(
-		UPGRADE_RANGE
-	):
-		return false
-	var cost: int = get_range_upgrade_cost()
-	if not try_spend_essence(cost):
-		return false
-	range_upgrade_level += 1
-	upgrade_changed.emit(UPGRADE_RANGE, range_upgrade_level)
-	print_upgrade_result(
-		get_upgrade_display_name(UPGRADE_RANGE),
-		range_upgrade_level,
-		cost
-	)
-	return true
+	return super.purchase_upgrade(UPGRADE_RANGE)
 
 func print_upgrade_result(
 	upgrade_name: String,
@@ -616,17 +570,38 @@ func get_stat_summary_lines() -> Array[String]:
 func get_upgrade_level(
 	upgrade_id: StringName
 ) -> int:
-	match upgrade_id:
-		UPGRADE_DAMAGE:
-			return damage_upgrade_level
+	return super.get_upgrade_level(upgrade_id)
 
-		UPGRADE_ATTACK_SPEED:
-			return attack_speed_upgrade_level
 
-		UPGRADE_RANGE:
-			return range_upgrade_level
+func get_progress_upgrade_levels() -> Dictionary:
+	return {
+		UPGRADE_DAMAGE: damage_upgrade_level,
+		UPGRADE_ATTACK_SPEED: attack_speed_upgrade_level,
+		UPGRADE_RANGE: range_upgrade_level
+	}
 
-	return 0
+
+func apply_progress_upgrade_levels(
+	upgrade_levels: Dictionary
+) -> void:
+	damage_upgrade_level = max(
+		int(upgrade_levels.get(UPGRADE_DAMAGE, 0)),
+		0
+	)
+	attack_speed_upgrade_level = max(
+		int(upgrade_levels.get(UPGRADE_ATTACK_SPEED, 0)),
+		0
+	)
+	range_upgrade_level = max(
+		int(upgrade_levels.get(UPGRADE_RANGE, 0)),
+		0
+	)
+
+
+func on_shared_progress_applied() -> void:
+	update_attack_cooldown()
+	sync_visual_state()
+	sync_active_talent_effects()
 
 
 func get_upgrade_current_value_text(
@@ -713,14 +688,4 @@ func get_upgrade_next_value_text(
 func purchase_upgrade(
 	upgrade_id: StringName
 ) -> bool:
-	match upgrade_id:
-		UPGRADE_DAMAGE:
-			return purchase_damage_upgrade()
-
-		UPGRADE_ATTACK_SPEED:
-			return purchase_attack_speed_upgrade()
-
-		UPGRADE_RANGE:
-			return purchase_range_upgrade()
-
-	return false
+	return super.purchase_upgrade(upgrade_id)

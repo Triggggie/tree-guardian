@@ -80,14 +80,40 @@ var purchased_talents: Dictionary = {}
 var combat_enabled: bool = true
 var tree_node: Node2D
 var branch_definition: BranchDefinition
+var branch_progress_service: BranchProgressService
 var has_warned_invalid_slot_assignment: bool = false
 
 
 func _ready() -> void:
 	load_branch_definition()
+	resolve_branch_progress_service()
+
+	if is_instance_valid(branch_progress_service):
+		branch_progress_service.register_branch(self)
+
 	validate_slot_assignment()
 	add_to_group("combat_branch")
 	find_tree_node()
+
+
+func _exit_tree() -> void:
+	if is_instance_valid(branch_progress_service):
+		branch_progress_service.unregister_branch(self)
+
+
+func resolve_branch_progress_service() -> void:
+	if is_instance_valid(branch_progress_service):
+		return
+
+	branch_progress_service = get_node_or_null(
+		"/root/BranchProgress"
+	) as BranchProgressService
+
+	if not is_instance_valid(branch_progress_service):
+		push_warning(
+			"%s: BranchProgress service was not found."
+			% branch_display_name
+		)
 
 
 func load_branch_definition() -> void:
@@ -283,54 +309,14 @@ func get_safe_xp_required_per_level() -> int:
 func add_xp(
 	amount: int
 ) -> void:
-	if amount <= 0:
+	if not is_instance_valid(branch_progress_service):
 		return
 
-	var safe_xp_required: int = (
-		get_safe_xp_required_per_level()
-	)
-
-	current_xp += amount
-
-	print(
-		branch_display_name,
-		" gained ",
-		amount,
-		" XP | XP: ",
-		current_xp,
-		"/",
-		safe_xp_required
-	)
-
-	while current_xp >= safe_xp_required:
-		current_xp -= safe_xp_required
-		level_up()
-
-	xp_changed.emit(
-		current_xp,
-		safe_xp_required
-	)
+	branch_progress_service.add_xp(self, amount)
 
 
 func level_up() -> void:
-	branch_level += 1
-
-	level_changed.emit(
-		branch_level
-	)
-
-	check_for_talent_point()
-	on_branch_level_changed()
-
-	print(
-		branch_display_name,
-		" reached Level ",
-		branch_level,
-		" | Maximum Essence Upgrade Level: ",
-		get_maximum_essence_upgrade_level(),
-		" | Talent Points: ",
-		available_talent_points
-	)
+	add_xp(get_safe_xp_required_per_level())
 
 
 func on_branch_level_changed() -> void:
@@ -338,48 +324,15 @@ func on_branch_level_changed() -> void:
 
 
 func check_for_talent_point() -> void:
-	if branch_level not in talent_point_levels:
-		return
-
-	available_talent_points += 1
-	total_talent_points_earned += 1
-
-	talent_points_changed.emit(
-		available_talent_points,
-		total_talent_points_earned
-	)
-
-	talent_point_gained.emit(
-		branch_level,
-		available_talent_points
-	)
-
-	print(
-		branch_display_name,
-		" gained a Talent Point at Level ",
-		branch_level,
-		" | Available: ",
-		available_talent_points
+	push_warning(
+		"CombatBranch.check_for_talent_point() is managed by BranchProgress."
 	)
 
 
 func spend_talent_points(
 	amount: int
 ) -> bool:
-	if amount <= 0:
-		return false
-
-	if available_talent_points < amount:
-		return false
-
-	available_talent_points -= amount
-
-	talent_points_changed.emit(
-		available_talent_points,
-		total_talent_points_earned
-	)
-
-	return true
+	return false
 
 
 # -------------------------------------------------------------------
@@ -478,44 +431,13 @@ func can_purchase_talent(
 func purchase_talent(
 	talent_id: StringName
 ) -> bool:
-	if not can_purchase_talent(
-		talent_id
-	):
+	if not is_instance_valid(branch_progress_service):
 		return false
 
-	var cost: int = get_talent_cost(
+	return branch_progress_service.purchase_talent(
+		self,
 		talent_id
 	)
-
-	if not spend_talent_points(cost):
-		return false
-
-	purchased_talents[
-		talent_id
-	] = true
-
-	on_talent_purchased(
-		talent_id
-	)
-
-	talent_changed.emit(
-		talent_id,
-		true
-	)
-
-	print(
-		branch_display_name,
-		" purchased talent ",
-		get_talent_display_name(
-			talent_id
-		),
-		" | Cost: ",
-		cost,
-		" | Remaining Talent Points: ",
-		available_talent_points
-	)
-
-	return true
 
 
 func on_talent_purchased(
@@ -814,7 +736,17 @@ func get_upgrade_display_name(
 func get_upgrade_level(
 	_upgrade_id: StringName
 ) -> int:
-	return 0
+	if not is_instance_valid(branch_progress_service):
+		return 0
+
+	var progress: BranchProgressRecord = (
+		branch_progress_service.get_progress(branch_id)
+	)
+
+	if progress == null:
+		return 0
+
+	return progress.get_upgrade_level(_upgrade_id)
 
 
 func get_upgrade_maximum_level(
@@ -868,6 +800,55 @@ func get_upgrade_next_value_text(
 
 
 func purchase_upgrade(
-	_upgrade_id: StringName
+	upgrade_id: StringName
 ) -> bool:
-	return false
+	if not is_instance_valid(branch_progress_service):
+		return false
+
+	return branch_progress_service.purchase_upgrade(
+		self,
+		upgrade_id
+	)
+
+
+func can_apply_progress_upgrade(
+	upgrade_id: StringName,
+	current_level: int
+) -> bool:
+	if not is_instance_valid(get_upgrade_definition(upgrade_id)):
+		return false
+
+	return current_level < get_upgrade_maximum_level(upgrade_id)
+
+
+func get_progress_upgrade_levels() -> Dictionary:
+	return {}
+
+
+func apply_progress_upgrade_levels(
+	_upgrade_levels: Dictionary
+) -> void:
+	pass
+
+
+func on_shared_progress_applied() -> void:
+	on_branch_level_changed()
+	on_talent_purchased(&"")
+
+
+func apply_shared_progress(
+	progress: BranchProgressRecord
+) -> void:
+	if progress == null or progress.branch_id != branch_id:
+		return
+
+	branch_level = progress.branch_level
+	current_xp = progress.current_xp
+	available_talent_points = progress.available_talent_points
+	total_talent_points_earned = progress.total_talent_points_earned
+	purchased_talents = progress.purchased_talents.duplicate(true)
+
+	apply_progress_upgrade_levels(
+		progress.upgrade_levels.duplicate(true)
+	)
+	on_shared_progress_applied()
