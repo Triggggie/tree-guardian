@@ -71,6 +71,10 @@ Use reusable modifiers/effects for mechanics that may apply to more than one bra
 
 Branch Seed unlocks are persistent meta-progression stored as stable legendary Branch IDs. Normal death and prestige runs do not clear them. Run modifiers and shared Resources must never mutate Branch Seed unlock state.
 
+Standard Branches always use Legendary Tier 0 and do not display a Tier label. Legendary Branches use the player-facing labels `Tier I`, `Tier II`, or `Tier III`. Tier expresses the general rarity, complexity, and potential of an Apex Branch, but a higher Tier is not automatically best for every build. Legendary Tier is separate from the colored rarity of ordinary equipment. Future UI must use the Tier display text supplied by `BranchDefinition` consistently.
+
+Branch Seed content is selected by the current `StageDefinition` loot pool, never by a per-enemy Branch list. `EnemyDefinition` supplies only the encounter rank (`normal`, `miniboss`, or `boss`), roll chance, and pity points. Pity is persistent and stored separately for Tiers I, II, and III. Normal enemies cannot grant Branch Seeds. The current shared Guardian Grove schedule places a Bark Warden miniboss at Wave 50 and an Ancient Bark Colossus boss at Wave 100 of every Substage. These bosses use the shared melee runtime and do not yet have unique abilities or phases.
+
 Branch archetype progression is shared at runtime by stable `branch_id` through `BranchProgress`. Physical Branch Node instances must not own authoritative XP, level, Talent Points, talent purchases, or Essence-upgrade levels. Combat cooldown positions, targets, projectiles, tweens, and temporary talent-effect state remain per-instance. Branch progression is not yet saved to disk.
 
 ## Run modifier IDs
