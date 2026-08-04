@@ -451,22 +451,21 @@ func test_quickening_pollen() -> void:
 		"Quickening Pollen petal isolation"
 	)
 
-	blossom_branch.set("healing_speed_upgrade_level", 10)
+	set_shared_progress(blossom_branch, 2, 0, &"healing_speed", 10)
 	expect_value(
 		float(blossom_branch.call("get_current_healing_tick_interval")),
 		0.8,
 		"Quickening Pollen post-upgrade interval"
 	)
 
-	blossom_branch.set("healing_speed_upgrade_level", 12)
+	set_shared_progress(blossom_branch, 2, 0, &"healing_speed", 12)
 	expect_value(
 		float(blossom_branch.call("get_current_healing_tick_interval")),
 		0.75,
 		"Quickening Pollen minimum interval"
 	)
 
-	blossom_branch.set("branch_level", 10)
-	blossom_branch.set("healing_speed_upgrade_level", 11)
+	set_shared_progress(blossom_branch, 10, 0, &"healing_speed", 11)
 	expect(
 		bool(
 			blossom_branch.call(
@@ -771,13 +770,13 @@ func test_combined_effects_and_instances() -> void:
 
 	expect_value(
 		float(second_blossom.call("get_current_healing_per_tick")),
-		3.0,
-		"Second Blossom healing isolation"
+		4.5,
+		"Second Blossom shared talent healing"
 	)
 	expect_value(
 		float(second_blossom.call("get_current_healing_tick_interval")),
-		2.0,
-		"Second Blossom interval isolation"
+		1.6,
+		"Second Blossom shared talent interval"
 	)
 	expect_value(
 		float(second_blossom.call("get_current_petal_damage")),
@@ -787,8 +786,8 @@ func test_combined_effects_and_instances() -> void:
 	expect(
 		second_blossom.call(
 			"get_active_talent_effect_ids"
-		).is_empty(),
-		"A purchase on one Blossom changed the second Blossom."
+		) == EXPECTED_TALENT_IDS,
+		"Second Blossom did not receive shared talent purchases."
 	)
 
 	var first_effect_set: BlossomTalentEffectSet = (
@@ -876,6 +875,9 @@ func create_fixture(
 ) -> Node2D:
 	var fixture := Node2D.new()
 	fixture.name = fixture_name
+	var progress_service := BranchProgressService.new()
+	progress_service.name = "BranchProgressService"
+	fixture.add_child(progress_service)
 	add_child(fixture)
 	return fixture
 
@@ -899,6 +901,10 @@ func create_blossom_branch(
 	blossom_branch.name = branch_name
 	blossom_branch.process_mode = Node.PROCESS_MODE_DISABLED
 	blossom_branch.set("facing_side", 1)
+	blossom_branch.set(
+		"branch_progress_service",
+		tree_node.get_parent().get_node("BranchProgressService")
+	)
 	tree_node.add_child(blossom_branch)
 	return blossom_branch
 
@@ -920,9 +926,9 @@ func purchase_talents(
 	blossom_branch: Node2D,
 	talent_ids: Array[StringName]
 ) -> void:
-	blossom_branch.set("branch_level", 2)
-	blossom_branch.set(
-		"available_talent_points",
+	set_shared_progress(
+		blossom_branch,
+		2,
 		talent_ids.size()
 	)
 
@@ -937,6 +943,32 @@ func purchase_talents(
 			"Could not purchase Blossom talent '%s'."
 			% talent_id
 		)
+
+
+func set_shared_progress(
+	blossom_branch: Node2D,
+	branch_level: int,
+	available_points: int,
+	upgrade_id: StringName = &"",
+	upgrade_level: int = 0
+) -> void:
+	var progress_service: BranchProgressService = blossom_branch.get(
+		"branch_progress_service"
+	) as BranchProgressService
+	var progress: BranchProgressRecord = progress_service.get_progress(
+		&"blossom_branch"
+	)
+	progress.branch_level = branch_level
+	progress.available_talent_points = available_points
+	progress.total_talent_points_earned = max(
+		progress.total_talent_points_earned,
+		available_points
+	)
+
+	if upgrade_id != &"":
+		progress.set_upgrade_level(upgrade_id, upgrade_level)
+
+	progress_service.synchronize_branch(blossom_branch as CombatBranch)
 
 
 func get_projectiles() -> Array[BlossomProjectile]:

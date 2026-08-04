@@ -26,6 +26,12 @@ func _ready() -> void:
 
 
 func run_test() -> void:
+	var branch_progress := get_node_or_null(
+		"/root/BranchProgress"
+	) as BranchProgressService
+	if is_instance_valid(branch_progress):
+		branch_progress.clear_runtime_progress_for_testing()
+
 	var main_world: Node = MAIN_WORLD_SCENE.instantiate()
 	main_world.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(main_world)
@@ -436,8 +442,7 @@ func test_branch_detection(
 		is_instance_valid(left_blossom)
 		and is_instance_valid(right_blossom)
 	):
-		left_blossom.set("branch_level", 2)
-		left_blossom.set("available_talent_points", 1)
+		left_blossom.call("add_xp", 2)
 		talent_screen.call("select_branch", left_blossom)
 
 		expect(
@@ -459,13 +464,23 @@ func test_branch_detection(
 			"Left Blossom did not retain its purchased talent."
 		)
 		expect(
-			not bool(
+			bool(
 				right_blossom.call(
 					"has_talent",
 					&"abundant_bloom"
 				)
 			),
-			"Purchasing on left Blossom changed right Blossom."
+			"Right Blossom did not show the shared talent purchase."
+		)
+		expect(
+			left_blossom.get("talent_effect_set")
+			!= right_blossom.get("talent_effect_set"),
+			"Physical Blossom instances share one talent runtime object."
+		)
+		expect(
+			not bool(left_strength.call("has_talent", &"abundant_bloom"))
+			and not bool(right_strength.call("has_talent", &"abundant_bloom")),
+			"Blossom talent leaked into Strength slots."
 		)
 
 	if is_instance_valid(left_strength):

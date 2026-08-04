@@ -481,9 +481,9 @@ func test_marked_prey() -> void:
 		3
 	)
 
-	purchase_talents(
-		second_branch,
-		[&"marked_prey"]
+	expect(
+		bool(second_branch.call("has_talent", &"marked_prey")),
+		"Second Strength did not receive the shared talent purchase."
 	)
 
 	first_branch.call(
@@ -871,6 +871,9 @@ func create_fixture(
 ) -> Node2D:
 	var fixture := Node2D.new()
 	fixture.name = fixture_name
+	var progress_service := BranchProgressService.new()
+	progress_service.name = "BranchProgressService"
+	fixture.add_child(progress_service)
 	add_child(fixture)
 	return fixture
 
@@ -887,6 +890,10 @@ func create_strength_branch(
 		Node.PROCESS_MODE_DISABLED
 	)
 	strength_branch.set("facing_side", 1)
+	strength_branch.set(
+		"branch_progress_service",
+		fixture.get_node("BranchProgressService")
+	)
 	fixture.add_child(strength_branch)
 
 	var cooldown_timer := strength_branch.get_node(
@@ -916,11 +923,16 @@ func purchase_talents(
 	strength_branch: Node2D,
 	talent_ids: Array[StringName]
 ) -> void:
-	strength_branch.set("branch_level", 2)
-	strength_branch.set(
-		"available_talent_points",
-		talent_ids.size()
+	var progress_service: BranchProgressService = strength_branch.get(
+		"branch_progress_service"
+	) as BranchProgressService
+	var progress: BranchProgressRecord = progress_service.get_progress(
+		&"strength_branch"
 	)
+	progress.branch_level = 2
+	progress.available_talent_points = talent_ids.size()
+	progress.total_talent_points_earned = talent_ids.size()
+	progress_service.synchronize_branch(strength_branch as CombatBranch)
 
 	for talent_id in talent_ids:
 		expect(
