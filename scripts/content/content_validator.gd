@@ -54,7 +54,7 @@ static func validate_registry(
 		errors
 	)
 
-	validate_enemy_branch_seed_drops(
+	validate_enemy_content(
 		registry,
 		errors
 	)
@@ -82,125 +82,44 @@ static func validate_registry(
 	return remove_duplicate_errors(errors)
 
 
-static func validate_enemy_branch_seed_drops(
+static func validate_enemy_content(
 	registry: ContentRegistry,
 	errors: Array[String]
 ) -> void:
-	var registered_branches_by_id: Dictionary = {}
-
-	for registered_branch in registry.branches:
-		if not is_instance_valid(registered_branch):
-			continue
-
-		if registered_branch.branch_id == &"":
-			continue
-
-		if registered_branches_by_id.has(
-			registered_branch.branch_id
-		):
-			continue
-
-		registered_branches_by_id[
-			registered_branch.branch_id
-		] = registered_branch
-
 	for enemy_index in range(registry.enemies.size()):
 		var enemy: EnemyDefinition = registry.enemies[enemy_index]
-
 		if not is_instance_valid(enemy):
 			continue
-
 		var enemy_label: String = (
 			"Enemy '%s'" % enemy.enemy_id
 			if enemy.enemy_id != &""
 			else "Enemy entry %d" % enemy_index
 		)
-		var used_branch_ids: Dictionary = {}
 
-		for drop_index in range(
-			enemy.branch_seed_drops.size()
+		if enemy.encounter_rank_id not in [
+			EnemyDefinition.ENCOUNTER_RANK_NORMAL,
+			EnemyDefinition.ENCOUNTER_RANK_MINIBOSS,
+			EnemyDefinition.ENCOUNTER_RANK_BOSS
+		]:
+			errors.append("%s has an invalid encounter rank." % enemy_label)
+
+		if (
+			enemy.branch_seed_roll_chance < 0.0
+			or enemy.branch_seed_roll_chance > 1.0
 		):
-			var branch_seed_drop: BranchSeedDropDefinition = (
-				enemy.branch_seed_drops[drop_index]
+			errors.append("%s has an invalid Branch Seed roll chance." % enemy_label)
+
+		if enemy.branch_seed_pity_points < 0:
+			errors.append("%s has negative Branch Seed pity points." % enemy_label)
+
+		if enemy.is_normal_enemy() and (
+			enemy.branch_seed_roll_chance != 0.0
+			or enemy.branch_seed_pity_points != 0
+		):
+			errors.append(
+				"%s is normal and cannot grant Branch Seed rolls or pity."
+				% enemy_label
 			)
-
-			if not is_instance_valid(branch_seed_drop):
-				errors.append(
-					"%s has an empty Branch Seed drop at index %d."
-					% [enemy_label, drop_index]
-				)
-				continue
-
-			var branch: BranchDefinition = (
-				branch_seed_drop.branch_definition
-			)
-
-			if not is_instance_valid(branch):
-				errors.append(
-					"Branch Seed drop %d in %s has no Branch definition."
-					% [drop_index, enemy_label]
-				)
-				continue
-
-			var branch_id: StringName = branch.branch_id
-
-			if branch_id == &"":
-				errors.append(
-					"Branch Seed drop %d in %s references a Branch with an empty ID."
-					% [drop_index, enemy_label]
-				)
-				continue
-
-			if used_branch_ids.has(branch_id):
-				errors.append(
-					"Duplicate Branch Seed drop for Branch '%s' in %s."
-					% [branch_id, enemy_label]
-				)
-			else:
-				used_branch_ids[branch_id] = true
-
-			var registered_branch: BranchDefinition = (
-				registered_branches_by_id.get(branch_id)
-				as BranchDefinition
-			)
-
-			if not is_instance_valid(registered_branch):
-				errors.append(
-					"Branch Seed drop in %s references unregistered Branch '%s'."
-					% [enemy_label, branch_id]
-				)
-				continue
-
-			if registered_branch != branch:
-				errors.append(
-					"Branch Seed drop in %s references an unregistered Branch definition for ID '%s'."
-					% [enemy_label, branch_id]
-				)
-				continue
-
-			if not branch.is_valid_definition():
-				errors.append(
-					"Branch Seed drop in %s references invalid Branch '%s'."
-					% [enemy_label, branch_id]
-				)
-
-			if not branch.is_legendary_branch():
-				errors.append(
-					"Branch Seed drop in %s references standard Branch '%s'; only legendary Branches can drop seeds."
-					% [enemy_label, branch_id]
-				)
-
-			if drop_chance_is_invalid(branch_seed_drop.drop_chance):
-				errors.append(
-					"Branch Seed drop for Branch '%s' in %s has an invalid drop chance."
-					% [branch_id, enemy_label]
-				)
-
-
-static func drop_chance_is_invalid(
-	drop_chance: float
-) -> bool:
-	return drop_chance < 0.0 or drop_chance > 1.0
 
 
 static func validate_definition_list(
@@ -312,6 +231,25 @@ static func validate_branch_content(
 				"%s has an empty display name."
 				% branch_label
 			)
+
+		if branch.is_standard_branch() and (
+			branch.get_legendary_tier()
+			!= BranchDefinition.LEGENDARY_TIER_NONE
+		):
+			errors.append("%s is standard and must use Tier 0." % branch_label)
+
+		if branch.is_legendary_branch() and (
+			branch.get_legendary_tier() not in [
+				BranchDefinition.LEGENDARY_TIER_1,
+				BranchDefinition.LEGENDARY_TIER_2,
+				BranchDefinition.LEGENDARY_TIER_3
+			]
+		):
+			errors.append("%s is legendary and must use Tier I-III." % branch_label)
+		elif branch.is_legendary_branch() and (
+			branch.get_legendary_tier_display_name().is_empty()
+		):
+			errors.append("%s has no player-facing Legendary Tier text." % branch_label)
 
 		if not is_instance_valid(branch.branch_scene):
 			errors.append(
@@ -943,11 +881,83 @@ static func validate_stage_content(
 				% stage_label
 			)
 
+		validate_stage_branch_seed_loot_pool(
+			registry,
+			stage,
+			stage_label,
+			errors
+		)
+
 		validate_stage_substages(
 			stage,
 			stage_label,
 			errors
 		)
+
+
+static func validate_stage_branch_seed_loot_pool(
+	registry: ContentRegistry,
+	stage: StageDefinition,
+	stage_label: String,
+	errors: Array[String]
+) -> void:
+	var loot_pool: BranchSeedLootPoolDefinition = (
+		stage.get_branch_seed_loot_pool()
+	)
+	if not is_instance_valid(loot_pool):
+		return
+
+	if not loot_pool.is_valid_definition():
+		errors.append("%s has an invalid Branch Seed loot pool." % stage_label)
+
+	var registered_branches_by_id: Dictionary = {}
+	for registered_branch in registry.branches:
+		if is_instance_valid(registered_branch):
+			registered_branches_by_id[registered_branch.branch_id] = registered_branch
+
+	var used_branch_ids: Dictionary = {}
+	for entry_index in range(loot_pool.entries.size()):
+		var entry: BranchSeedLootEntryDefinition = loot_pool.entries[entry_index]
+		if not is_instance_valid(entry):
+			errors.append(
+				"%s loot pool has an empty entry at index %d."
+				% [stage_label, entry_index]
+			)
+			continue
+
+		var branch: BranchDefinition = entry.branch_definition
+		if not is_instance_valid(branch):
+			errors.append("%s loot entry has no Branch definition." % stage_label)
+			continue
+
+		var branch_id: StringName = branch.branch_id
+		if used_branch_ids.has(branch_id):
+			errors.append(
+				"%s loot pool duplicates Branch '%s'." % [stage_label, branch_id]
+			)
+		else:
+			used_branch_ids[branch_id] = true
+
+		var registered_branch: BranchDefinition = (
+			registered_branches_by_id.get(branch_id) as BranchDefinition
+		)
+		if not is_instance_valid(registered_branch) or registered_branch != branch:
+			errors.append(
+				"%s loot pool references unregistered Branch '%s'."
+				% [stage_label, branch_id]
+			)
+
+		if not branch.is_legendary_branch() or (
+			branch.get_legendary_tier() not in [
+				BranchDefinition.LEGENDARY_TIER_1,
+				BranchDefinition.LEGENDARY_TIER_2,
+				BranchDefinition.LEGENDARY_TIER_3
+			]
+		):
+			errors.append(
+				"%s loot pool Branch '%s' is not a valid Legendary Tier I-III Branch."
+				% [stage_label, branch_id]
+			)
 
 
 static func validate_stage_substages(

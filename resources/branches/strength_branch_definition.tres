@@ -22,6 +22,7 @@ branch_id = &"strength_branch"
 display_name = "Strength Branch"
 description = "A powerful melee branch that strikes nearby enemies and controls the frontline."
 category_id = &"standard"
+legendary_tier = 0
 branch_scene = ExtResource("3_scene")
 targeting_profile = SubResource("Resource_targeting")
 upgrades = Array[ExtResource("4_upgrade")]([ExtResource("6_damage"), ExtResource("7_attack_speed"), ExtResource("8_range")])

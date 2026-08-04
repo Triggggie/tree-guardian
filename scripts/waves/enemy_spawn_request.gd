@@ -6,18 +6,21 @@ var enemy_definition: EnemyDefinition
 var enemies_per_side: int = 0
 var maximum_health: float = 1.0
 var attack_damage_multiplier: float = 1.0
+var stage_definition: StageDefinition
 
 
 func _init(
 	new_enemy_definition: EnemyDefinition = null,
 	new_enemies_per_side: int = 0,
 	new_maximum_health: float = 1.0,
-	new_attack_damage_multiplier: float = 1.0
+	new_attack_damage_multiplier: float = 1.0,
+	new_stage_definition: StageDefinition = null
 ) -> void:
 	enemy_definition = new_enemy_definition
 	enemies_per_side = new_enemies_per_side
 	maximum_health = new_maximum_health
 	attack_damage_multiplier = new_attack_damage_multiplier
+	stage_definition = new_stage_definition
 
 
 func is_valid_request() -> bool:
@@ -28,6 +31,8 @@ func is_valid_request() -> bool:
 		and enemies_per_side >= 1
 		and maximum_health >= 1.0
 		and attack_damage_multiplier > 0.0
+		and is_instance_valid(stage_definition)
+		and stage_definition.is_valid_definition()
 	)
 
 

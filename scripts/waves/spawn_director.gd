@@ -315,6 +315,24 @@ func _spawn_enemy(
 		enemy.free()
 		return false
 
+	if not enemy.has_method("configure_stage_context"):
+		push_error(
+			"Enemy scene has no configure_stage_context() method."
+		)
+		enemy.free()
+		return false
+
+	var stage_configured: bool = bool(
+		enemy.call(
+			"configure_stage_context",
+			request.stage_definition
+		)
+	)
+	if not stage_configured:
+		push_error("Enemy scene rejected its StageDefinition.")
+		enemy.free()
+		return false
+
 	entities.add_child(enemy)
 	enemy.global_position = spawn_position
 

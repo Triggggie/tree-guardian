@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BranchSeedLootPoolDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/branch_seed_loot_pool_definition.gd" id="1_pool"]
+[ext_resource type="Script" path="res://scripts/definitions/branch_seed_loot_entry_definition.gd" id="2_entry"]
+
+[resource]
+script = ExtResource("1_pool")
+loot_pool_id = &"guardian_grove_branch_seeds"
+display_name = "Guardian Grove Branch Seeds"
+entries = Array[ExtResource("2_entry")]([])
+miniboss_maximum_tier = 1
+boss_maximum_tier = 1
+tier_1_pity_threshold = 12
+tier_2_pity_threshold = 18
+tier_3_pity_threshold = 24

@@ -7,6 +7,8 @@
 [ext_resource type="Resource" uid="uid://bhxf8hu7xy8fl" path="res://resources/waves/bark_beetle_runner_mixed_wave.tres" id="5_mixed"]
 [ext_resource type="Resource" uid="uid://d126m3yd457aa" path="res://resources/waves/bark_runner_rush_wave.tres" id="6_rush"]
 [ext_resource type="Resource" uid="uid://bfj6820m7mjnv" path="res://resources/waves/guardian_grove_substage_finale_wave.tres" id="7_finale"]
+[ext_resource type="Resource" path="res://resources/waves/guardian_grove_miniboss_wave.tres" id="8_miniboss"]
+[ext_resource type="Resource" path="res://resources/waves/guardian_grove_boss_wave.tres" id="9_boss"]
 
 [sub_resource type="Resource" id="Resource_entry_01"]
 script = ExtResource("2_entry")
@@ -59,7 +61,7 @@ wave_definition = ExtResource("3_standard")
 script = ExtResource("2_entry")
 start_wave = 50
 end_wave = 50
-wave_definition = ExtResource("5_mixed")
+wave_definition = ExtResource("8_miniboss")
 
 [sub_resource type="Resource" id="Resource_entry_10"]
 script = ExtResource("2_entry")
@@ -119,7 +121,7 @@ wave_definition = ExtResource("3_standard")
 script = ExtResource("2_entry")
 start_wave = 100
 end_wave = 100
-wave_definition = ExtResource("7_finale")
+wave_definition = ExtResource("9_boss")
 
 [resource]
 script = ExtResource("1_schedule")

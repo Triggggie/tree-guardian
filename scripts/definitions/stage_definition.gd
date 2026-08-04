@@ -52,8 +52,17 @@ var completion_essence_reward: int = 0
 @export var completion_effect_ids: Array[StringName] = []
 
 
+@export_category("Loot")
+
+@export var branch_seed_loot_pool: BranchSeedLootPoolDefinition
+
+
 func get_substage_count() -> int:
 	return substages.size()
+
+
+func get_branch_seed_loot_pool() -> BranchSeedLootPoolDefinition:
+	return branch_seed_loot_pool
 
 
 func get_required_substage_count() -> int:
@@ -343,6 +352,12 @@ func is_valid_definition() -> bool:
 		return false
 
 	if completion_essence_reward < 0:
+		return false
+
+	if (
+		is_instance_valid(branch_seed_loot_pool)
+		and not branch_seed_loot_pool.is_valid_definition()
+	):
 		return false
 
 	var substages_by_id: Dictionary = {}

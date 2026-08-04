@@ -50,6 +50,7 @@ var knockback_resistance: float = 0.0
 @onready var health_bar: ProgressBar = $HealthBar
 
 var enemy_definition: EnemyDefinition
+var stage_definition: StageDefinition
 var target_tree: Node2D
 var enemy_tracker: EnemyTracker
 var lane_registry: LaneRegistry
@@ -111,6 +112,19 @@ func configure_from_definition(
 		1.0
 	)
 
+	return true
+
+
+func configure_stage_context(
+	new_stage_definition: StageDefinition
+) -> bool:
+	if (
+		not is_instance_valid(new_stage_definition)
+		or not new_stage_definition.is_valid_definition()
+	):
+		return false
+
+	stage_definition = new_stage_definition
 	return true
 
 
@@ -594,14 +608,26 @@ func process_branch_seed_loot() -> void:
 	if not enemy_definition.is_valid_definition():
 		return
 
-	if enemy_definition.branch_seed_drops.is_empty():
+	if enemy_definition.is_normal_enemy():
+		return
+
+	if (
+		not is_instance_valid(stage_definition)
+		or not stage_definition.is_valid_definition()
+	):
+		return
+
+	var loot_pool: BranchSeedLootPoolDefinition = (
+		stage_definition.get_branch_seed_loot_pool()
+	)
+	if not is_instance_valid(loot_pool) or loot_pool.entries.is_empty():
 		return
 
 	if not is_instance_valid(branch_seed_service):
 		if not has_warned_missing_branch_seed_service:
 			has_warned_missing_branch_seed_service = true
 			push_warning(
-				"Enemy '%s' has Branch Seed drops but BranchSeeds is unavailable."
+				"Enemy '%s' has eligible Stage Branch Seed loot but BranchSeeds is unavailable."
 				% enemy_definition.enemy_id
 			)
 
@@ -609,6 +635,7 @@ func process_branch_seed_loot() -> void:
 
 	branch_seed_service.process_enemy_defeat(
 		enemy_definition,
+		stage_definition,
 		global_position
 	)
 

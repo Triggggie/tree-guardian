@@ -22,6 +22,7 @@ branch_id = &"blossom_branch"
 display_name = "Blossom Branch"
 description = "A support branch that heals the tree and attacks enemies with ranged petals."
 category_id = &"standard"
+legendary_tier = 0
 branch_scene = ExtResource("3_scene")
 targeting_profile = SubResource("Resource_targeting")
 upgrades = Array[ExtResource("4_upgrade")]([ExtResource("5_healing_per_tick"), ExtResource("6_healing_speed"), ExtResource("7_petal_damage")])

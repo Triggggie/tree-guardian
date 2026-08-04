@@ -2,6 +2,11 @@ class_name EnemyDefinition
 extends Resource
 
 
+const ENCOUNTER_RANK_NORMAL: StringName = &"normal"
+const ENCOUNTER_RANK_MINIBOSS: StringName = &"miniboss"
+const ENCOUNTER_RANK_BOSS: StringName = &"boss"
+
+
 @export_category("Identity")
 
 @export var enemy_id: StringName = &""
@@ -51,10 +56,16 @@ var essence_reward: int = 0
 @export_range(0, 1000000000, 1)
 var experience_reward: int = 1
 
-@export var branch_seed_drops: Array[BranchSeedDropDefinition] = []
+@export_range(0.0, 1.0, 0.0001)
+var branch_seed_roll_chance: float = 0.0
+
+@export_range(0, 1000000, 1)
+var branch_seed_pity_points: int = 0
 
 
 @export_category("Classification")
+
+@export var encounter_rank_id: StringName = ENCOUNTER_RANK_NORMAL
 
 @export var tags: Array[StringName] = []
 
@@ -92,23 +103,24 @@ func is_valid_definition() -> bool:
 	if experience_reward < 0:
 		return false
 
-	var branch_seed_drop_ids: Dictionary = {}
+	if encounter_rank_id not in [
+		ENCOUNTER_RANK_NORMAL,
+		ENCOUNTER_RANK_MINIBOSS,
+		ENCOUNTER_RANK_BOSS
+	]:
+		return false
 
-	for branch_seed_drop in branch_seed_drops:
-		if not is_instance_valid(branch_seed_drop):
-			return false
+	if branch_seed_roll_chance < 0.0 or branch_seed_roll_chance > 1.0:
+		return false
 
-		if not branch_seed_drop.is_valid_definition():
-			return false
+	if branch_seed_pity_points < 0:
+		return false
 
-		var branch_id: StringName = (
-			branch_seed_drop.branch_definition.branch_id
-		)
-
-		if branch_seed_drop_ids.has(branch_id):
-			return false
-
-		branch_seed_drop_ids[branch_id] = true
+	if is_normal_enemy() and (
+		branch_seed_roll_chance != 0.0
+		or branch_seed_pity_points != 0
+	):
+		return false
 
 	if has_invalid_or_duplicate_ids(
 		tags
@@ -121,6 +133,28 @@ func is_valid_definition() -> bool:
 		return false
 
 	return true
+
+
+func is_normal_enemy() -> bool:
+	return encounter_rank_id == ENCOUNTER_RANK_NORMAL
+
+
+func is_miniboss() -> bool:
+	return encounter_rank_id == ENCOUNTER_RANK_MINIBOSS
+
+
+func is_boss() -> bool:
+	return encounter_rank_id == ENCOUNTER_RANK_BOSS
+
+
+func can_roll_branch_seed() -> bool:
+	return (
+		(is_miniboss() or is_boss())
+		and (
+			branch_seed_roll_chance > 0.0
+			or branch_seed_pity_points > 0
+		)
+	)
 
 
 func has_invalid_or_duplicate_ids(

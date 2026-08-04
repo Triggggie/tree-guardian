@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_08.tres" id="10_substage_08"]
 [ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_09.tres" id="11_substage_09"]
 [ext_resource type="Resource" path="res://resources/substages/guardian_grove_substage_10.tres" id="12_substage_10"]
+[ext_resource type="Resource" path="res://resources/loot/guardian_grove_branch_seed_loot_pool.tres" id="13_loot_pool"]
 
 [resource]
 script = ExtResource("1_stage")
@@ -22,3 +23,4 @@ substages = Array[ExtResource("2_substage")]([ExtResource("3_substage_01"), ExtR
 repeat_indefinitely = true
 health_growth_per_stage_wave = 0.015
 damage_growth_per_stage_wave = 0.003
+branch_seed_loot_pool = ExtResource("13_loot_pool")

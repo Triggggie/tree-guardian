@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/bark_warden.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_enemy")
+enemy_id = &"bark_warden"
+display_name = "Bark Warden"
+description = "A heavy Guardian Grove miniboss using the shared melee enemy runtime."
+enemy_scene = ExtResource("2_scene")
+movement_speed = 85.0
+maximum_health = 120.0
+attack_damage = 4.0
+attack_interval = 1.4
+attack_range = 145.0
+essence_reward = 8
+experience_reward = 8
+branch_seed_roll_chance = 0.05
+branch_seed_pity_points = 1
+encounter_rank_id = &"miniboss"
+tags = Array[StringName]([])
+immune_status_effect_ids = Array[StringName]([])

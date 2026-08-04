@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/ancient_bark_colossus.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_enemy")
+enemy_id = &"ancient_bark_colossus"
+display_name = "Ancient Bark Colossus"
+description = "An immense Guardian Grove boss using the shared melee enemy runtime."
+enemy_scene = ExtResource("2_scene")
+movement_speed = 60.0
+maximum_health = 300.0
+attack_damage = 7.0
+attack_interval = 1.8
+attack_range = 165.0
+essence_reward = 20
+experience_reward = 20
+branch_seed_roll_chance = 0.15
+branch_seed_pity_points = 3
+encounter_rank_id = &"boss"
+tags = Array[StringName]([])
+immune_status_effect_ids = Array[StringName]([])
