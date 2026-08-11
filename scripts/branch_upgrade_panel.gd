@@ -665,6 +665,15 @@ func connect_loadout_controller() -> void:
 		controller.runtime_standard_slot_changed.connect(
 			_on_runtime_standard_slot_changed
 		)
+	if (
+		is_instance_valid(controller)
+		and not controller.runtime_apex_slot_changed.is_connected(
+			_on_runtime_apex_slot_changed
+		)
+	):
+		controller.runtime_apex_slot_changed.connect(
+			_on_runtime_apex_slot_changed
+		)
 
 
 func _on_runtime_standard_slot_changed(
@@ -682,3 +691,9 @@ func _on_runtime_standard_slot_changed(
 		select_branch(previous_slot_array_index)
 	else:
 		select_first_available_branch()
+
+
+func _on_runtime_apex_slot_changed(
+	_branch_id: StringName
+) -> void:
+	_on_runtime_standard_slot_changed(BranchSlotRules.APEX_SLOT_ID, &"")

@@ -1,6 +1,12 @@
 extends Control
 
 
+enum PickerMode {
+	NONE,
+	STANDARD,
+	APEX
+}
+
 @onready var close_button: Button = $MainPanel/CloseButton
 @onready var detail_title_label: Label = $MainPanel/DetailPanel/DetailTitleLabel
 @onready var category_label: Label = $MainPanel/DetailPanel/CategoryLabel
@@ -41,6 +47,7 @@ var candidate_definitions: Array[BranchDefinition] = []
 var candidate_buttons_by_branch_id: Dictionary = {}
 var selected_candidate_branch_id: StringName = &""
 var wave_manager: Node
+var picker_mode: PickerMode = PickerMode.NONE
 
 
 func _ready() -> void:
@@ -53,6 +60,7 @@ func _ready() -> void:
 		var button: Button = slot_buttons[slot_id]
 		button.pressed.connect(select_slot.bind(StringName(slot_id)))
 	_connect_loadout_controller()
+	_connect_branch_seed_service()
 	hide()
 
 
@@ -162,7 +170,11 @@ func _refresh_selected_detail() -> void:
 	if is_instance_valid(progress_service):
 		progress = progress_service.get_progress(branch.branch_id)
 
-	detail_title_label.text = "SLOT %d\n%s" % [branch.slot_index, branch.get_branch_display_name()]
+	detail_title_label.text = (
+		"APEX\n%s" % branch.get_branch_display_name()
+		if branch.get_slot_id() == BranchSlotRules.APEX_SLOT_ID
+		else "SLOT %d\n%s" % [branch.slot_index, branch.get_branch_display_name()]
+	)
 	category_label.text = _get_category_text(branch.branch_definition)
 	if progress == null:
 		shared_progress_label.text = "SHARED ARCHETYPE PROGRESS\nUnavailable"
@@ -223,39 +235,59 @@ func _refresh_seed_panel() -> void:
 
 
 func _refresh_loadout_controls() -> void:
-	var is_standard_slot: bool = BranchSlotRules.is_standard_slot(
-		BranchSlotRules.get_slot_index(selected_slot_id)
-	)
-	var edit_allowed: bool = (
-		is_standard_slot
-		and _is_standard_loadout_edit_allowed()
-	)
-	change_branch_button.disabled = not edit_allowed
-	if not is_standard_slot:
-		change_branch_button.text = "STANDARD BRANCH PICKER UNAVAILABLE"
-		loadout_status_label.text = "APEX LOADOUT IS NOT AVAILABLE YET."
-	elif edit_allowed:
+	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
+	var is_standard_slot: bool = BranchSlotRules.is_standard_slot(slot_index)
+	var is_apex_slot: bool = BranchSlotRules.is_apex_slot(slot_index)
+	var edit_allowed: bool = _is_branch_loadout_edit_allowed()
+	if is_apex_slot:
+		var apex_candidates: Array[BranchDefinition] = _get_apex_candidate_definitions()
+		change_branch_button.disabled = not edit_allowed or apex_candidates.is_empty()
+		if not edit_allowed:
+			change_branch_button.text = "SELECT APEX BRANCH\nPREPARATION ONLY"
+			loadout_status_label.text = "LOADOUT LOCKED\nBranch changes are available during Preparation."
+		elif apex_candidates.is_empty():
+			change_branch_button.text = "NO LEGENDARY BRANCH SEEDS"
+			loadout_status_label.text = "Unlock a Legendary Branch Seed to select an Apex Branch."
+		else:
+			change_branch_button.text = "SELECT APEX BRANCH"
+			loadout_status_label.text = "APEX LOADOUT EDITING ENABLED"
+		return
+
+	change_branch_button.disabled = not is_standard_slot or not edit_allowed
+	if is_standard_slot and edit_allowed:
 		change_branch_button.text = "CHANGE BRANCH"
 		loadout_status_label.text = "LOADOUT EDITING ENABLED"
-	else:
+	elif is_standard_slot:
 		change_branch_button.text = "CHANGE BRANCH\nPREPARATION ONLY"
 		loadout_status_label.text = (
 			"LOADOUT LOCKED\n"
 			+ "Branch changes are available during Preparation."
 		)
+	else:
+		change_branch_button.text = "BRANCH PICKER UNAVAILABLE"
+		loadout_status_label.text = "LOADOUT LOCKED"
 
 
 func open_branch_picker() -> bool:
-	if not _is_standard_loadout_edit_allowed():
+	if not _is_branch_loadout_edit_allowed():
 		return false
 	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
-	if not BranchSlotRules.is_standard_slot(slot_index):
+	if BranchSlotRules.is_standard_slot(slot_index):
+		picker_mode = PickerMode.STANDARD
+	elif BranchSlotRules.is_apex_slot(slot_index):
+		picker_mode = PickerMode.APEX
+	else:
 		return false
 
 	_rebuild_candidate_collection()
 	if candidate_definitions.is_empty():
+		picker_mode = PickerMode.NONE
 		return false
-	picker_title_label.text = "CHOOSE BRANCH FOR SLOT %d" % slot_index
+	picker_title_label.text = (
+		"CHOOSE APEX BRANCH"
+		if picker_mode == PickerMode.APEX
+		else "CHOOSE BRANCH FOR SLOT %d" % slot_index
+	)
 	branch_picker.show()
 	var current_branch_id: StringName = _get_equipped_branch_id(selected_slot_id)
 	var initial_candidate_id: StringName = candidate_definitions[0].branch_id
@@ -270,6 +302,7 @@ func open_branch_picker() -> bool:
 func close_branch_picker() -> void:
 	branch_picker.hide()
 	selected_candidate_branch_id = &""
+	picker_mode = PickerMode.NONE
 
 
 func _rebuild_candidate_collection() -> void:
@@ -278,9 +311,15 @@ func _rebuild_candidate_collection() -> void:
 	for child in candidate_list.get_children():
 		child.queue_free()
 
-	for definition in GameContent.get_branches():
-		if not _is_valid_standard_candidate(definition, selected_slot_id):
-			continue
+	var available_definitions: Array[BranchDefinition] = []
+	if picker_mode == PickerMode.APEX:
+		available_definitions = _get_apex_candidate_definitions()
+	else:
+		for definition in GameContent.get_branches():
+			if _is_valid_standard_candidate(definition, selected_slot_id):
+				available_definitions.append(definition)
+
+	for definition in available_definitions:
 		candidate_definitions.append(definition)
 		var candidate_button := Button.new()
 		candidate_button.text = definition.display_name
@@ -307,9 +346,44 @@ func _is_valid_standard_candidate(
 	)
 
 
+func _is_valid_apex_definition(definition: BranchDefinition) -> bool:
+	return (
+		is_instance_valid(definition)
+		and definition.is_valid_definition()
+		and definition.is_legendary_branch()
+		and definition.get_legendary_tier() in [
+			BranchDefinition.LEGENDARY_TIER_1,
+			BranchDefinition.LEGENDARY_TIER_2,
+			BranchDefinition.LEGENDARY_TIER_3
+		]
+		and definition.branch_scene != null
+		and BranchSlotRules.can_place_definition(
+			definition,
+			BranchSlotRules.APEX_SLOT
+		)
+	)
+
+
+func _get_apex_candidate_definitions() -> Array[BranchDefinition]:
+	var definitions: Array[BranchDefinition] = []
+	var seed_service := get_node_or_null("/root/BranchSeeds") as BranchSeedService
+	if not is_instance_valid(seed_service):
+		return definitions
+	for branch_id in seed_service.get_unlocked_branch_seed_ids():
+		var definition: BranchDefinition = GameContent.get_branch(branch_id)
+		if _is_valid_apex_definition(definition):
+			definitions.append(definition)
+	return definitions
+
+
 func select_branch_candidate(branch_id: StringName) -> bool:
 	var definition: BranchDefinition = GameContent.get_branch(branch_id)
-	if not _is_valid_standard_candidate(definition, selected_slot_id):
+	var valid_candidate: bool = (
+		_is_valid_apex_definition(definition)
+		if picker_mode == PickerMode.APEX
+		else _is_valid_standard_candidate(definition, selected_slot_id)
+	)
+	if not valid_candidate:
 		return false
 	selected_candidate_branch_id = branch_id
 	_refresh_candidate_buttons()
@@ -333,7 +407,7 @@ func _refresh_candidate_buttons() -> void:
 
 func _refresh_candidate_preview(definition: BranchDefinition) -> void:
 	candidate_name_label.text = definition.display_name
-	candidate_category_label.text = definition.get_category_display_name().to_upper()
+	candidate_category_label.text = _get_category_text(definition)
 	candidate_description_label.text = definition.description
 	_refresh_candidate_progress(definition.branch_id)
 	_refresh_candidate_saved_build(definition)
@@ -379,8 +453,9 @@ func _refresh_candidate_progress(branch_id: StringName) -> void:
 
 func _refresh_candidate_saved_build(definition: BranchDefinition) -> void:
 	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
+	var is_apex: bool = BranchSlotRules.is_apex_slot(slot_index)
 	var lines: Array[String] = [
-		"SAVED BUILD FOR SLOT %d" % slot_index
+		"SAVED APEX BUILD" if is_apex else "SAVED BUILD FOR SLOT %d" % slot_index
 	]
 	var progress_service := get_node_or_null(
 		"/root/BranchProgress"
@@ -401,20 +476,39 @@ func _refresh_candidate_saved_build(definition: BranchDefinition) -> void:
 				lines.append(talent.display_name)
 				found_talent = true
 	if not found_talent:
-		lines.append("No saved talents for this slot.")
+		lines.append(
+			"No saved Apex talents."
+			if is_apex
+			else "No saved talents for this slot."
+		)
 	candidate_saved_build_label.text = "\n".join(lines)
 
 
 func confirm_selected_branch_candidate() -> bool:
-	if not _is_standard_loadout_edit_allowed():
+	if not _is_branch_loadout_edit_allowed():
 		return false
-	if not BranchSlotRules.is_standard_slot(
-		BranchSlotRules.get_slot_index(selected_slot_id)
-	):
-		return false
+	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
 	var definition: BranchDefinition = GameContent.get_branch(
 		selected_candidate_branch_id
 	)
+	if BranchSlotRules.is_apex_slot(slot_index):
+		var seed_service := get_node_or_null("/root/BranchSeeds") as BranchSeedService
+		if (
+			selected_candidate_branch_id == &""
+			or not is_instance_valid(seed_service)
+			or not seed_service.is_branch_seed_unlocked(selected_candidate_branch_id)
+			or not _is_valid_apex_definition(definition)
+			or _get_equipped_branch_id(selected_slot_id) == definition.branch_id
+		):
+			return false
+		var apex_loadout := get_node_or_null("/root/BranchLoadout") as BranchLoadoutService
+		return (
+			is_instance_valid(apex_loadout)
+			and apex_loadout.equip_apex_branch(definition.branch_id)
+		)
+
+	if not BranchSlotRules.is_standard_slot(slot_index):
+		return false
 	if not _is_valid_standard_candidate(definition, selected_slot_id):
 		return false
 	if _get_equipped_branch_id(selected_slot_id) == definition.branch_id:
@@ -432,16 +526,22 @@ func _get_equipped_branch_id(slot_id: StringName) -> StringName:
 	var loadout := get_node_or_null("/root/BranchLoadout") as BranchLoadoutService
 	if not is_instance_valid(loadout):
 		return &""
+	if slot_id == BranchSlotRules.APEX_SLOT_ID:
+		return loadout.get_equipped_apex_branch_id()
 	return loadout.get_equipped_branch_id(slot_id)
 
 
 func _is_standard_loadout_edit_allowed() -> bool:
+	return _is_branch_loadout_edit_allowed()
+
+
+func _is_branch_loadout_edit_allowed() -> bool:
 	if not is_instance_valid(wave_manager):
 		wave_manager = get_tree().get_first_node_in_group("wave_manager")
 	return (
 		is_instance_valid(wave_manager)
-		and wave_manager.has_method("is_standard_loadout_edit_allowed")
-		and wave_manager.is_standard_loadout_edit_allowed()
+		and wave_manager.has_method("is_branch_loadout_edit_allowed")
+		and wave_manager.is_branch_loadout_edit_allowed()
 	)
 
 
@@ -542,6 +642,15 @@ func _connect_loadout_controller() -> void:
 		controller.runtime_standard_slot_changed.connect(
 			_on_runtime_standard_slot_changed
 		)
+	if (
+		is_instance_valid(controller)
+		and not controller.runtime_apex_slot_changed.is_connected(
+			_on_runtime_apex_slot_changed
+		)
+	):
+		controller.runtime_apex_slot_changed.connect(
+			_on_runtime_apex_slot_changed
+		)
 
 
 func _on_runtime_standard_slot_changed(
@@ -552,3 +661,42 @@ func _on_runtime_standard_slot_changed(
 		refresh_screen()
 	if branch_picker.visible and slot_id == selected_slot_id:
 		close_branch_picker()
+
+
+func _on_runtime_apex_slot_changed(
+	_branch_id: StringName
+) -> void:
+	if visible:
+		refresh_screen()
+	if branch_picker.visible and selected_slot_id == BranchSlotRules.APEX_SLOT_ID:
+		close_branch_picker()
+
+
+func _connect_branch_seed_service() -> void:
+	var seed_service := get_node_or_null("/root/BranchSeeds") as BranchSeedService
+	if (
+		is_instance_valid(seed_service)
+		and not seed_service.branch_seed_unlocked.is_connected(
+			_on_branch_seed_unlocked
+		)
+	):
+		seed_service.branch_seed_unlocked.connect(_on_branch_seed_unlocked)
+
+
+func _on_branch_seed_unlocked(_branch_id: StringName) -> void:
+	if not visible:
+		return
+	_refresh_seed_panel()
+	_refresh_loadout_controls()
+	if not branch_picker.visible or picker_mode != PickerMode.APEX:
+		return
+	var previous_candidate_id: StringName = selected_candidate_branch_id
+	_rebuild_candidate_collection()
+	if candidate_definitions.is_empty():
+		close_branch_picker()
+		return
+	for definition in candidate_definitions:
+		if definition.branch_id == previous_candidate_id:
+			select_branch_candidate(previous_candidate_id)
+			return
+	select_branch_candidate(candidate_definitions[0].branch_id)

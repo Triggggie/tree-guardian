@@ -107,6 +107,15 @@ func _ready() -> void:
 		branch_loadout_controller.runtime_standard_slot_changed.connect(
 			_on_runtime_standard_slot_changed
 		)
+	if (
+		is_instance_valid(branch_loadout_controller)
+		and not branch_loadout_controller.runtime_apex_slot_changed.is_connected(
+			_on_runtime_apex_slot_changed
+		)
+	):
+		branch_loadout_controller.runtime_apex_slot_changed.connect(
+			_on_runtime_apex_slot_changed
+		)
 
 	if not wave_director.is_ready_to_run():
 		return
@@ -144,6 +153,10 @@ func get_preparation_reason() -> StringName:
 
 
 func is_standard_loadout_edit_allowed() -> bool:
+	return is_branch_loadout_edit_allowed()
+
+
+func is_branch_loadout_edit_allowed() -> bool:
 	return preparation_active and not tree_defeated
 
 
@@ -383,6 +396,18 @@ func _on_runtime_standard_slot_changed(
 		return
 	var runtime_branch: CombatBranch = (
 		branch_loadout_controller.get_runtime_branch(slot_id)
+	)
+	if is_instance_valid(runtime_branch):
+		runtime_branch.stop_combat()
+
+
+func _on_runtime_apex_slot_changed(
+	_branch_id: StringName
+) -> void:
+	if not preparation_active or not is_instance_valid(branch_loadout_controller):
+		return
+	var runtime_branch: CombatBranch = (
+		branch_loadout_controller.get_runtime_apex_branch()
 	)
 	if is_instance_valid(runtime_branch):
 		runtime_branch.stop_combat()

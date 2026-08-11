@@ -206,9 +206,9 @@ func create_branch_button(
 	)
 
 	branch_button.text = (
-		"SLOT %d — %s"
+		"%s — %s"
 		% [
-			get_branch_slot_index(branch),
+			_get_branch_slot_label(branch),
 			get_branch_short_name(branch)
 		]
 	)
@@ -322,11 +322,9 @@ func update_talent_points_label() -> void:
 		return
 
 	talent_points_label.text = (
-		"SLOT %d — %s  |  Talent Points: %d"
+		"%s — %s  |  Talent Points: %d"
 		% [
-			get_branch_slot_index(
-				selected_branch
-			),
+			_get_branch_slot_label(selected_branch),
 			get_branch_short_name(
 				selected_branch
 			),
@@ -356,11 +354,9 @@ func rebuild_talent_tree() -> void:
 		return
 
 	talent_tree_label.text = (
-		"SLOT %d — %s TALENT TREE"
+		"%s — %s TALENT TREE"
 		% [
-			get_branch_slot_index(
-				selected_branch
-			),
+			_get_branch_slot_label(selected_branch),
 			get_branch_short_name(
 				selected_branch
 			)
@@ -716,6 +712,15 @@ func _connect_loadout_controller() -> void:
 		controller.runtime_standard_slot_changed.connect(
 			_on_runtime_standard_slot_changed
 		)
+	if (
+		is_instance_valid(controller)
+		and not controller.runtime_apex_slot_changed.is_connected(
+			_on_runtime_apex_slot_changed
+		)
+	):
+		controller.runtime_apex_slot_changed.connect(
+			_on_runtime_apex_slot_changed
+		)
 
 
 func _on_runtime_standard_slot_changed(
@@ -724,3 +729,17 @@ func _on_runtime_standard_slot_changed(
 ) -> void:
 	if visible:
 		open_screen()
+
+
+func _on_runtime_apex_slot_changed(
+	_branch_id: StringName
+) -> void:
+	if visible:
+		open_screen()
+
+
+func _get_branch_slot_label(branch: Node) -> String:
+	var slot_index: int = get_branch_slot_index(branch)
+	if BranchSlotRules.is_apex_slot(slot_index):
+		return "APEX"
+	return "SLOT %d" % slot_index
