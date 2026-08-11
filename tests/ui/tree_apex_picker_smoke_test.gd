@@ -281,6 +281,72 @@ func run_test(
 	)
 	screen.call("close_branch_picker")
 
+	var thorn_crown: BranchDefinition = GameContent.get_branch(&"thorn_crown")
+	expect(
+		is_instance_valid(thorn_crown)
+		and not seeds.is_branch_seed_unlocked(&"thorn_crown"),
+		"Registered Thorn Crown was default-unlocked."
+	)
+	expect(seeds.unlock_branch_seed(thorn_crown), "Production Thorn Crown Seed did not unlock.")
+	screen.call("select_slot", &"apex_slot")
+	expect(screen.call("open_branch_picker"), "Apex picker did not open for Thorn Crown.")
+	expect(
+		candidate_ids(screen) == [
+			&"test_legendary_a", &"test_legendary_b", &"thorn_crown"
+		],
+		"Production Thorn Crown did not appear in unlock order."
+	)
+	screen.call("select_branch_candidate", &"thorn_crown")
+	var description_preview := screen.get_node(
+		"BranchPicker/PreviewPanel/DescriptionLabel"
+	) as Label
+	expect(
+		category_preview.text == "LEGENDARY • Tier I"
+		and description_preview.text.contains("living thorns")
+		and progress_preview.text.contains("No progression recorded yet.")
+		and saved_preview.text.contains("No saved Apex talents."),
+		"Production Thorn Crown picker preview is incomplete."
+	)
+	expect(screen.call("confirm_selected_branch_candidate"), "Player-facing Thorn Crown equip failed.")
+	await get_tree().process_frame
+	var thorn_runtime: CombatBranch = controller.get_runtime_apex_branch()
+	expect(
+		loadout.get_equipped_apex_branch_id() == &"thorn_crown"
+		and is_instance_valid(thorn_runtime)
+		and thorn_runtime.branch_id == &"thorn_crown"
+		and thorn_runtime.get_slot_id() == &"apex_slot"
+		and not thorn_runtime.combat_enabled
+		and screen.get("selected_slot_id") == &"apex_slot"
+		and detail_text(screen).contains("LEGENDARY • Tier I"),
+		"Thorn Crown TREE equip, Tier, slot, or Preparation stop state is wrong."
+	)
+	expect(
+		(panel.get("branches_by_slot") as Array)[BranchSlotRules.APEX_SLOT - 1]
+		== thorn_runtime
+		and thorn_runtime.get_upgrade_ids() == [
+			&"thorn_damage", &"attack_speed", &"burst_radius"
+		],
+		"BRANCHES did not discover Thorn Crown and its three upgrades."
+	)
+	expect(manager.continue_from_preparation(), "START RUN with Thorn Crown failed.")
+	expect(thorn_runtime.combat_enabled, "Thorn Crown did not resume after START RUN.")
+	director.cancel_cycle(true)
+	manager.remove_remaining_enemies()
+	ui.call("open_talent_screen")
+	var thorn_button_found: bool = false
+	for button_value in (talents.get("branch_buttons_by_instance_id") as Dictionary).values():
+		var button := button_value as Button
+		if button.text == "APEX — THORN CROWN":
+			thorn_button_found = true
+	talents.call("select_branch", thorn_runtime)
+	expect(
+		thorn_button_found
+		and thorn_runtime.get_talent_ids() == [
+			&"barbed_core", &"twin_torment", &"overgrowth"
+		],
+		"TALENTS did not discover Thorn Crown and its three talents."
+	)
+
 	world.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
