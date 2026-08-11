@@ -57,6 +57,25 @@ func run_test() -> void:
 	var tree_screen: Control = main_world.get_node_or_null(
 		"UI/TreeScreen"
 	) as Control
+	var wave_manager: Node = main_world.get_node("WaveManager")
+	var wave_director := main_world.get_node("WaveDirector") as WaveDirector
+	await get_tree().process_frame
+	expect(
+		wave_manager.is_preparation_active(),
+		"TALENTS fixture did not start in Preparation."
+	)
+	if is_instance_valid(talent_screen):
+		main_world.get_node("UI").call("open_talent_screen")
+		expect(
+			not talent_screen.visible and tree_screen.visible,
+			"TALENTS opened during Preparation."
+		)
+	expect(
+		wave_manager.continue_from_preparation(),
+		"TALENTS fixture could not leave Preparation."
+	)
+	wave_director.cancel_cycle(true)
+	wave_manager.remove_remaining_enemies()
 
 	var active_branch: Node = null
 	var visual_mistaken_for_branch: bool = false

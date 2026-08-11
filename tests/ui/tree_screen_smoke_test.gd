@@ -28,6 +28,15 @@ func run_test() -> void:
 	var talents_button: Button = ui.get_node("TalentsButton") as Button
 	var screen: Control = ui.get_node("TreeScreen") as Control
 	var talents: Control = ui.get_node("TalentScreen") as Control
+	var manager: Node = world.get_node("WaveManager")
+	var director := world.get_node("WaveDirector") as WaveDirector
+	await get_tree().process_frame
+	expect(screen.visible, "Initial Preparation did not auto-open TREE.")
+	screen.call("close_screen")
+	expect(screen.visible, "CLOSE escaped active Preparation.")
+	expect(manager.continue_from_preparation(), "TREE fixture could not leave Preparation.")
+	director.cancel_cycle(true)
+	manager.remove_remaining_enemies()
 	expect(tree_button.text == "TREE" and tree_button.is_visible_in_tree() and not tree_button.disabled, "TREE button is not visible and enabled.")
 	expect(Rect2(Vector2.ZERO, Vector2(1920, 1080)).encloses(tree_button.get_global_rect()), "TREE button is outside the viewport.")
 	expect((ui.get_node("UpgradeTabs/TreeTabButton") as Button).text == "TRUNK", "Small TREE tab was not renamed TRUNK.")
