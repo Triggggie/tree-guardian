@@ -2,9 +2,9 @@
 
 Updated: 2026-08-11
 
-Implementation parent for this checkpoint: `33d1fe2bc0cfd9a70c2e92b08c7905125b1234f0` (`Update status after shared Branch progression`)
+Implementation parent for this checkpoint: `322de86` (`Add Apex Branch equip regression coverage`)
 
-Checkpoint commit: `Update status after Branch preparation picker`
+Checkpoint commit: `Update status after Apex equip foundation`
 
 Baseline branch: `main`
 
@@ -12,9 +12,9 @@ Baseline branch: `main`
 
 Tree Guardian is a playable 2D idle/tower-defense prototype built for Godot 4.7.1 with GDScript 2 and Forward Plus rendering. The project configuration declares Godot feature level 4.7, a 1920 × 1080 base viewport, and `res://scenes/main_world.tscn` as the main scene.
 
-The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. Stable identities are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`. The tree also exposes an empty central `AttachmentPoints/Apex` marker for the future legendary Slot 5. Global content, run, persistent Branch Seed, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, and `BranchProgress` autoloads.
+The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. Stable identities are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`. The tree now exposes `AttachmentPoints/Apex/BranchMount` and the runtime foundation for one Legendary Slot 5 Branch, but no production Legendary Branch exists yet. Global content, run, persistent Branch Seed, runtime loadout, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, `BranchLoadout`, and `BranchProgress` autoloads.
 
-This document describes the repository after the Legendary Tier, Guardian Grove boss, and Stage Branch Seed loot checkpoint built on the implementation parent above.
+This document describes the repository after the Apex Branch Seed Selection + Equip Foundation checkpoint built on the implementation parent above.
 
 ## 2. Current Playable Prototype
 
@@ -420,11 +420,22 @@ Automated regression evidence for this checkpoint:
 - Player-facing unequip, a standard Branch unlock system, disk loadout save, Apex equip, Thorn Crown, and equipment/inventory remain unimplemented.
 - Godot 4.7.1 headless import passed. Loadout Preparation, TREE Branch Picker, TREE Screen, and TALENTS Tab passed twice. Standard Branch Loadout, Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Apex Slot Rules, Strength Visual, Blossom Visual, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed once. Loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
 
+### Apex Branch Seed Selection + Equip Foundation
+
+- `BranchLoadout` now owns the runtime `apex_slot -> legendary branch_id / EMPTY` assignment. Apex defaults to initialized EMPTY, supports low-level equip and unequip, and preserves both equipped and explicit EMPTY state across MainWorld recreation without adding disk persistence.
+- `AttachmentPoints/Apex/BranchMount` hosts zero or one physical Legendary `CombatBranch`. `TreeBranchLoadoutController` instantiates the registered Branch scene with Slot 5 / `apex_slot`, safely removes it during swaps, and preserves shared archetype progress plus the `apex_slot + branch_id` talent build.
+- Player-facing Apex selection is available only during Preparation. The TREE picker starts from unlocked Branch Seed IDs, preserves unlock order, resolves only valid Legendary definitions eligible for Apex, and rechecks Preparation, unlock ownership, definition validity, Tier, slot eligibility, and no-op state on confirmation.
+- Unknown unlocked legacy Seed IDs remain visible through the safe collection fallback but are never equippable. Standard definitions stay out of the Apex picker, Legendary definitions stay out of the standard picker, and Legendary Tier text comes from `BranchDefinition`.
+- Apex candidate preview shows definition text, shared archetype progress, and saved Apex talents in Resource order without creating progress, instantiating a Branch, or mutating loadout or unlock state. Live `branch_seed_unlocked` refresh updates the collection and open picker without polling.
+- TREE, TALENTS, and BRANCHES refresh after Apex runtime changes. TALENTS identifies Slot 5 as APEX, and newly created Apex Branches remain combat-stopped during Preparation before the shared resume flow starts combat.
+- Synthetic Legendary A/B fixtures exist only under `tests/fixtures/branches` and are injected into the registry during isolated tests. No production Legendary Branch exists yet. The Guardian Grove Branch Seed pool remains empty.
+- Godot 4.7.1 headless import passed. Apex Branch Loadout, TREE Apex Picker, Loadout Preparation, TREE Branch Picker, TREE Screen, and TALENTS Tab passed twice. Standard Branch Loadout, Per-Slot Talent Loadout, Shared Branch Progress, Apex Slot Rules, Strength Effects, Blossom Effects, Blossom Healing Stack, Strength Visual, Blossom Visual, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed once. Loot tests emitted only their intentional negative-fixture save-path warnings.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
 - Branch archetype progression is retained only in memory and is not included in the disk save.
-- TREE supports standard Branch replacement only during Preparation; player-facing unequip and standard Branch unlock progression do not exist.
+- TREE supports standard and Apex Branch replacement only during Preparation; player-facing unequip and standard Branch unlock progression do not exist.
 - There is no talent respec, copy-build, or save-preset flow.
 - Tier data and the first miniboss/boss encounters are implemented, but Tier badges, equipment, and inventory are not.
 - There is no `CampaignDefinition`.
@@ -438,7 +449,7 @@ Automated regression evidence for this checkpoint:
 - No StatusEffect definitions are registered yet.
 - Strength and Blossom both have separated visual and talent-effect layers. Their runtime dispatchers remain Branch-specific rather than a global universal effect system.
 - A shared Branch visual base does not yet exist and is not needed for the current two implementations.
-- Branch category data, Slot 5 rules, the empty Apex attachment, persistent Branch Seed unlock storage, and the legendary drop-processing foundation exist. There is still no production seed drop, legendary Branch runtime, loot UI, physical loot object, or Apex equip flow.
+- Branch category data, Slot 5 rules, the Apex runtime/equip foundation, persistent Branch Seed unlock storage, and the legendary drop-processing foundation exist. There is still no production Legendary Branch, production Branch Seed drop, player-facing drop notification, physical loot object, player-facing Apex unequip, or disk Apex loadout save.
 - Thorn Crown and all other production legendary Branches are absent, so Guardian Grove has no real Branch Seed entry.
 - There is no found-versus-equipped Apex Branch comparison.
 - Bark Warden and Ancient Bark Colossus have no unique phases or abilities, and there is no dedicated boss health-bar UI.
@@ -480,12 +491,13 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Add Apex unlocked Branch Seed selection and equip foundation.
-2. Implement Thorn Crown as the first Tier I Legendary Apex Branch.
-3. Add Thorn Crown to Guardian Grove Tier I Branch Seed loot.
-4. Add player-facing Branch Seed drop/unlock notification.
-5. Add Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
-6. Begin normal equipment/inventory foundation.
+1. Implement Thorn Crown as the first Tier I Legendary Apex Branch.
+2. Give Thorn Crown its first unique Apex combat mechanic and unique talent tree.
+3. Add Thorn Crown BranchDefinition to GameContent.
+4. Add Thorn Crown as Guardian Grove Tier I Branch Seed loot.
+5. Add player-facing Branch Seed drop/unlock notification.
+6. Add Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
+7. Begin equipment/inventory foundation.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
@@ -496,7 +508,7 @@ General save/load, prestige integration, later talent tiers, Status Effects, and
 - Run `git status --short` and verify the working tree is clean before starting a new task.
 - Run `git log -1 --oneline` and review the current HEAD.
 - Expected baseline branch: `main`.
-- Implementation parent for this checkpoint: `33d1fe2bc0cfd9a70c2e92b08c7905125b1234f0`.
+- Implementation parent for this checkpoint: `322de86`.
 - Verify that the current HEAD contains this implementation baseline or is a descendant of it.
 - The 25A and 25B implementation was accumulated in the working tree before this checkpoint document and committed as one focused package.
 - After the checkpoint commit, the working tree should be clean before new development begins.
