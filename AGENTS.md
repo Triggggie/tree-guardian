@@ -83,6 +83,8 @@ Player-facing standard Branch changes are allowed only during Preparation. Prepa
 
 Player-facing Apex selection is allowed only during Preparation. Candidate IDs come only from `BranchSeeds` unlocked IDs and every candidate must resolve to a valid Legendary BranchDefinition eligible for the Apex slot. Locked Legendary definitions must never be player-equippable. Unknown unlocked legacy IDs may be displayed in the Seed collection, but they are not equippable. Legendary Tier player-facing text always comes from `BranchDefinition`. Apex is one conceptual and physical runtime `CombatBranch`; do not model a two-sided Apex as two equipped Branch instances.
 
+Thorn Crown is the first production Legendary Branch. Its stable ID is `thorn_crown`; it is a Tier I Legendary restricted to the Apex Slot. One physical runtime Branch independently finds the nearest valid primary target on the left and right during each attack cycle. Each populated side creates one Thorn Burst that deals area damage through `AttackResolver`; either side may attack when the other has no valid target. V1 base balance is 12 damage, 2.40-second cooldown, 0.80-second minimum cooldown, 350 range, and 90 Burst Radius. Its Essence upgrades are Thorn Damage (+2 damage per level), Attack Speed (-0.08 seconds per level), and Burst Radius (+8 per level). Its talents are Barbed Core (primary target +40%), Twin Torment (both sides active gives +25% cycle damage), and Overgrowth (every third real attack cycle gives +30% damage and +50% radius). Thorn Crown is registered production content but is not yet present in any production Branch Seed loot pool.
+
 ## Run modifier IDs
 
 The canonical modifier IDs are:
