@@ -339,8 +339,10 @@ func test_tree_scene_base_structure() -> void:
 	)
 	expect(
 		is_instance_valid(apex)
-		and apex.get_child_count() == 0,
-		"Apex marker already contains a Branch."
+		and apex.get_child_count() == 1
+		and apex.get_node_or_null("BranchMount") is Node2D
+		and (apex.get_node("BranchMount") as Node2D).position == Vector2.ZERO,
+		"Apex marker is missing its zero-offset BranchMount."
 	)
 
 	tree_node.free()
@@ -368,8 +370,10 @@ func test_main_world_runtime() -> void:
 	)
 	expect(
 		is_instance_valid(apex)
-		and apex.get_child_count() == 0,
-		"MainWorld Apex marker is not empty."
+		and apex.get_child_count() == 1
+		and apex.get_node_or_null("BranchMount") is Node2D
+		and apex.get_node("BranchMount").get_child_count() == 0,
+		"MainWorld Apex BranchMount is not initialized EMPTY."
 	)
 
 	var growth_factor: float = float(

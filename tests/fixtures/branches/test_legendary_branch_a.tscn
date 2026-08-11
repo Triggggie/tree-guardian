@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/branches/test_legendary_branch.gd" id="1_script"]
+
+[node name="TestLegendaryBranchA" type="Node2D"]
+script = ExtResource("1_script")
+branch_display_name = "Test Legendary A"
+branch_id = &"test_legendary_a"
