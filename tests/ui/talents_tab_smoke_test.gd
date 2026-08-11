@@ -31,6 +31,11 @@ func run_test() -> void:
 	) as BranchProgressService
 	if is_instance_valid(branch_progress):
 		branch_progress.clear_runtime_progress_for_testing()
+	var branch_loadout := get_node_or_null(
+		"/root/BranchLoadout"
+	) as BranchLoadoutService
+	if is_instance_valid(branch_loadout):
+		branch_loadout.clear_runtime_loadout_for_testing()
 
 	var main_world: Node = MAIN_WORLD_SCENE.instantiate()
 	main_world.process_mode = Node.PROCESS_MODE_DISABLED
@@ -209,8 +214,40 @@ func run_test() -> void:
 			"Opening TALENTS did not hide TREE."
 		)
 
+		var previous_slot_one = talent_screen.call(
+			"_find_branch_by_slot_id",
+			&"standard_slot_1"
+		)
+		expect(
+			branch_loadout.equip_standard_branch(
+				&"standard_slot_1",
+				&"blossom_branch"
+			),
+			"TALENTS runtime swap setup failed."
+		)
+		await get_tree().process_frame
+		var current_slot_one = talent_screen.call(
+			"_find_branch_by_slot_id",
+			&"standard_slot_1"
+		)
+		expect(
+			not is_instance_valid(previous_slot_one)
+			and is_instance_valid(current_slot_one)
+			and current_slot_one.branch_id == &"blossom_branch",
+			"TALENTS retained the freed Slot 1 Branch."
+		)
+		var refreshed_branches: Array = talent_screen.get("available_branches")
+		expect(
+			refreshed_branches.size() == 4
+			and refreshed_branches[0].slot_index == 1
+			and refreshed_branches[3].slot_index == 4,
+			"TALENTS did not preserve runtime slot order."
+		)
+
 	main_world.queue_free()
 	await get_tree().process_frame
+	if is_instance_valid(branch_loadout):
+		branch_loadout.clear_runtime_loadout_for_testing()
 	await get_tree().process_frame
 
 	expect(

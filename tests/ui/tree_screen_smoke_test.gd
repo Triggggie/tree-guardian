@@ -5,8 +5,11 @@ var failures: Array[String] = []
 
 func _ready() -> void:
 	var progress := get_node("/root/BranchProgress") as BranchProgressService
+	var loadout := get_node("/root/BranchLoadout") as BranchLoadoutService
+	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	await run_test()
+	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	if failures.is_empty():
 		print("TREE SCREEN SMOKE TEST PASS")
@@ -81,6 +84,16 @@ func run_test() -> void:
 	synthetic.category_id = BranchDefinition.CATEGORY_LEGENDARY
 	synthetic.legendary_tier = BranchDefinition.LEGENDARY_TIER_2
 	expect(synthetic.get_legendary_tier_display_name() == "Tier II", "Tier formatter changed.")
+
+	var loadout := get_node("/root/BranchLoadout") as BranchLoadoutService
+	screen.call("select_slot", &"standard_slot_1")
+	expect(loadout.equip_standard_branch(&"standard_slot_1", &"blossom_branch"), "TREE live swap setup failed.")
+	await get_tree().process_frame
+	expect(screen.get("selected_slot_id") == &"standard_slot_1", "TREE selection moved after runtime swap.")
+	expect((screen.get_node("MainPanel/TreeCanvas/Slot1Button") as Button).text.contains("BLOSSOM") and detail_text(screen).contains("Blossom Branch"), "TREE did not live-refresh Slot 1 to Blossom.")
+	expect(loadout.unequip_standard_branch(&"standard_slot_1"), "TREE live unequip setup failed.")
+	await get_tree().process_frame
+	expect((screen.get_node("MainPanel/TreeCanvas/Slot1Button") as Button).text == "SLOT 1\nEMPTY" and detail_text(screen).contains("SLOT 1\nEMPTY"), "TREE did not live-refresh Slot 1 EMPTY.")
 
 	screen.call("close_screen")
 	expect(not screen.visible and not get_tree().paused, "CLOSE changed pause state or left TREE open.")

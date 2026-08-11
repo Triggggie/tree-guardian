@@ -303,48 +303,34 @@ func test_tree_scene_base_structure() -> void:
 			)
 
 	var expected_branch_data: Dictionary = {
-		"LeftUpper": ["BlossomBranch", 2, Vector2(-20.0, -170.0)],
-		"LeftLower": ["StrengthBranch", 1, Vector2(-20.0, -170.0)],
-		"RightUpper": ["BlossomBranch", 4, Vector2(20.0, -170.0)],
-		"RightLower": ["StrengthBranch", 3, Vector2(20.0, -170.0)]
+		"LeftUpper": Vector2(-20.0, -170.0),
+		"LeftLower": Vector2(-20.0, -170.0),
+		"RightUpper": Vector2(20.0, -170.0),
+		"RightLower": Vector2(20.0, -170.0)
 	}
-	var seen_slots: Dictionary = {}
 
 	for marker_name in expected_branch_data:
 		var marker: Node = attachment_points.get_node(marker_name)
-		var expected_data: Array = expected_branch_data[marker_name]
 		expect(
 			marker.get_child_count() == 1,
-			"%s no longer has exactly one Branch child."
+			"%s no longer has exactly one BranchMount child."
 			% marker_name
 		)
 
 		if marker.get_child_count() != 1:
 			continue
 
-		var branch: Node = marker.get_child(0)
-		var slot_index: int = int(branch.get("slot_index"))
+		var branch_mount: Node = marker.get_child(0)
 		expect(
-			branch.name == expected_data[0],
-			"%s Branch instance changed."
-			% marker_name
-		)
-		expect(
-			slot_index == int(expected_data[1]),
-			"%s slot index changed."
+			branch_mount.name == "BranchMount",
+			"%s runtime mount is missing."
 			% marker_name
 		)
 		expect_vector(
-			(branch as Node2D).position,
-			expected_data[2],
-			"%s Branch position" % marker_name
+			(branch_mount as Node2D).position,
+			expected_branch_data[marker_name],
+			"%s BranchMount position" % marker_name
 		)
-		expect(
-			not seen_slots.has(slot_index),
-			"Two Tree Branches share slot %d."
-			% slot_index
-		)
-		seen_slots[slot_index] = true
 
 	var apex: Node = attachment_points.get_node_or_null("Apex")
 	expect(
