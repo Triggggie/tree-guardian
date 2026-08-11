@@ -9,6 +9,20 @@ extends Control
 @onready var upgrades_label: Label = $MainPanel/DetailPanel/UpgradesLabel
 @onready var stats_label: Label = $MainPanel/DetailPanel/StatsLabel
 @onready var seed_list_label: Label = $MainPanel/SeedPanel/SeedListLabel
+@onready var preparation_banner: Label = $MainPanel/PreparationBanner
+@onready var continue_button: Button = $MainPanel/ContinueButton
+@onready var loadout_status_label: Label = $MainPanel/DetailPanel/LoadoutStatusLabel
+@onready var change_branch_button: Button = $MainPanel/DetailPanel/ChangeBranchButton
+@onready var branch_picker: Panel = $BranchPicker
+@onready var picker_title_label: Label = $BranchPicker/TitleLabel
+@onready var candidate_list: VBoxContainer = $BranchPicker/CandidateList
+@onready var candidate_name_label: Label = $BranchPicker/PreviewPanel/NameLabel
+@onready var candidate_category_label: Label = $BranchPicker/PreviewPanel/CategoryLabel
+@onready var candidate_description_label: Label = $BranchPicker/PreviewPanel/DescriptionLabel
+@onready var candidate_progress_label: Label = $BranchPicker/PreviewPanel/ProgressLabel
+@onready var candidate_saved_build_label: Label = $BranchPicker/PreviewPanel/SavedBuildLabel
+@onready var confirm_candidate_button: Button = $BranchPicker/ConfirmButton
+@onready var cancel_picker_button: Button = $BranchPicker/CancelButton
 
 @onready var slot_buttons: Dictionary = {
 	BranchSlotRules.STANDARD_SLOT_1_ID: $MainPanel/TreeCanvas/Slot1Button,
@@ -21,10 +35,20 @@ extends Control
 var selected_slot_id: StringName = &""
 var branches_by_slot: Dictionary = {}
 var connected_branches: Array[CombatBranch] = []
+var preparation_active: bool = false
+var preparation_reason: StringName = &""
+var candidate_definitions: Array[BranchDefinition] = []
+var candidate_buttons_by_branch_id: Dictionary = {}
+var selected_candidate_branch_id: StringName = &""
+var wave_manager: Node
 
 
 func _ready() -> void:
 	close_button.pressed.connect(close_screen)
+	continue_button.pressed.connect(_on_continue_pressed)
+	change_branch_button.pressed.connect(open_branch_picker)
+	confirm_candidate_button.pressed.connect(confirm_selected_branch_candidate)
+	cancel_picker_button.pressed.connect(close_branch_picker)
 	for slot_id in slot_buttons:
 		var button: Button = slot_buttons[slot_id]
 		button.pressed.connect(select_slot.bind(StringName(slot_id)))
@@ -38,7 +62,37 @@ func open_screen() -> void:
 
 
 func close_screen() -> void:
+	if preparation_active:
+		return
+	close_branch_picker()
 	hide()
+
+
+func set_preparation_mode(
+	is_active: bool,
+	reason: StringName
+) -> void:
+	preparation_active = is_active
+	preparation_reason = reason if is_active else &""
+	preparation_banner.visible = is_active
+	continue_button.visible = is_active
+	close_button.visible = not is_active
+	close_button.disabled = is_active
+	if is_active:
+		match reason:
+			&"substage_complete":
+				preparation_banner.text = "PREPARATION\nSUBSTAGE COMPLETE"
+				continue_button.text = "CONTINUE"
+			&"retry":
+				preparation_banner.text = "PREPARATION\nRETRY SUBSTAGE"
+				continue_button.text = "RETRY SUBSTAGE"
+			_:
+				preparation_banner.text = "PREPARATION\nBUILD YOUR TREE"
+				continue_button.text = "START RUN"
+	else:
+		close_branch_picker()
+	if is_node_ready():
+		_refresh_loadout_controls()
 
 
 func refresh_screen() -> void:
@@ -49,6 +103,7 @@ func refresh_screen() -> void:
 	_validate_selection()
 	_refresh_selected_detail()
 	_refresh_seed_panel()
+	_refresh_loadout_controls()
 
 
 func select_slot(slot_id: StringName) -> void:
@@ -57,6 +112,7 @@ func select_slot(slot_id: StringName) -> void:
 	selected_slot_id = slot_id
 	_refresh_slot_buttons()
 	_refresh_selected_detail()
+	_refresh_loadout_controls()
 
 
 func _find_active_branches() -> void:
@@ -166,6 +222,240 @@ func _refresh_seed_panel() -> void:
 	seed_list_label.text = "\n\n".join(lines)
 
 
+func _refresh_loadout_controls() -> void:
+	var is_standard_slot: bool = BranchSlotRules.is_standard_slot(
+		BranchSlotRules.get_slot_index(selected_slot_id)
+	)
+	var edit_allowed: bool = (
+		is_standard_slot
+		and _is_standard_loadout_edit_allowed()
+	)
+	change_branch_button.disabled = not edit_allowed
+	if not is_standard_slot:
+		change_branch_button.text = "STANDARD BRANCH PICKER UNAVAILABLE"
+		loadout_status_label.text = "APEX LOADOUT IS NOT AVAILABLE YET."
+	elif edit_allowed:
+		change_branch_button.text = "CHANGE BRANCH"
+		loadout_status_label.text = "LOADOUT EDITING ENABLED"
+	else:
+		change_branch_button.text = "CHANGE BRANCH\nPREPARATION ONLY"
+		loadout_status_label.text = (
+			"LOADOUT LOCKED\n"
+			+ "Branch changes are available during Preparation."
+		)
+
+
+func open_branch_picker() -> bool:
+	if not _is_standard_loadout_edit_allowed():
+		return false
+	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
+	if not BranchSlotRules.is_standard_slot(slot_index):
+		return false
+
+	_rebuild_candidate_collection()
+	if candidate_definitions.is_empty():
+		return false
+	picker_title_label.text = "CHOOSE BRANCH FOR SLOT %d" % slot_index
+	branch_picker.show()
+	var current_branch_id: StringName = _get_equipped_branch_id(selected_slot_id)
+	var initial_candidate_id: StringName = candidate_definitions[0].branch_id
+	for definition in candidate_definitions:
+		if definition.branch_id == current_branch_id:
+			initial_candidate_id = current_branch_id
+			break
+	select_branch_candidate(initial_candidate_id)
+	return true
+
+
+func close_branch_picker() -> void:
+	branch_picker.hide()
+	selected_candidate_branch_id = &""
+
+
+func _rebuild_candidate_collection() -> void:
+	candidate_definitions.clear()
+	candidate_buttons_by_branch_id.clear()
+	for child in candidate_list.get_children():
+		child.queue_free()
+
+	for definition in GameContent.get_branches():
+		if not _is_valid_standard_candidate(definition, selected_slot_id):
+			continue
+		candidate_definitions.append(definition)
+		var candidate_button := Button.new()
+		candidate_button.text = definition.display_name
+		candidate_button.toggle_mode = true
+		candidate_button.pressed.connect(
+			select_branch_candidate.bind(definition.branch_id)
+		)
+		candidate_list.add_child(candidate_button)
+		candidate_buttons_by_branch_id[definition.branch_id] = candidate_button
+
+
+func _is_valid_standard_candidate(
+	definition: BranchDefinition,
+	slot_id: StringName
+) -> bool:
+	var slot_index: int = BranchSlotRules.get_slot_index(slot_id)
+	return (
+		is_instance_valid(definition)
+		and definition.is_valid_definition()
+		and definition.is_standard_branch()
+		and definition.branch_scene != null
+		and BranchSlotRules.is_standard_slot(slot_index)
+		and BranchSlotRules.can_place_definition(definition, slot_index)
+	)
+
+
+func select_branch_candidate(branch_id: StringName) -> bool:
+	var definition: BranchDefinition = GameContent.get_branch(branch_id)
+	if not _is_valid_standard_candidate(definition, selected_slot_id):
+		return false
+	selected_candidate_branch_id = branch_id
+	_refresh_candidate_buttons()
+	_refresh_candidate_preview(definition)
+	return true
+
+
+func _refresh_candidate_buttons() -> void:
+	var current_branch_id: StringName = _get_equipped_branch_id(selected_slot_id)
+	for definition in candidate_definitions:
+		var button: Button = candidate_buttons_by_branch_id.get(
+			definition.branch_id
+		) as Button
+		if not is_instance_valid(button):
+			continue
+		button.button_pressed = definition.branch_id == selected_candidate_branch_id
+		button.text = definition.display_name
+		if definition.branch_id == current_branch_id:
+			button.text += "\nEQUIPPED"
+
+
+func _refresh_candidate_preview(definition: BranchDefinition) -> void:
+	candidate_name_label.text = definition.display_name
+	candidate_category_label.text = definition.get_category_display_name().to_upper()
+	candidate_description_label.text = definition.description
+	_refresh_candidate_progress(definition.branch_id)
+	_refresh_candidate_saved_build(definition)
+	var is_current: bool = (
+		definition.branch_id == _get_equipped_branch_id(selected_slot_id)
+	)
+	confirm_candidate_button.disabled = is_current
+	confirm_candidate_button.text = "EQUIPPED" if is_current else "EQUIP"
+
+
+func _refresh_candidate_progress(branch_id: StringName) -> void:
+	var progress_service := get_node_or_null(
+		"/root/BranchProgress"
+	) as BranchProgressService
+	var progress: BranchProgressRecord = null
+	if is_instance_valid(progress_service):
+		progress = progress_service.get_progress_copy(branch_id)
+	if progress == null:
+		candidate_progress_label.text = (
+			"SHARED ARCHETYPE PROGRESS\n"
+			+ "No progression recorded yet."
+		)
+		return
+
+	var xp_text: String = "XP %d" % progress.current_xp
+	for branch_value in branches_by_slot.values():
+		var branch := branch_value as CombatBranch
+		if is_instance_valid(branch) and branch.branch_id == branch_id:
+			xp_text = "XP %d / %d" % [
+				progress.current_xp,
+				branch.get_safe_xp_required_per_level()
+			]
+			break
+	candidate_progress_label.text = (
+		"SHARED ARCHETYPE PROGRESS\nLevel %d\n%s\nTalent Points Earned %d"
+		% [
+			progress.branch_level,
+			xp_text,
+			progress.total_talent_points_earned
+		]
+	)
+
+
+func _refresh_candidate_saved_build(definition: BranchDefinition) -> void:
+	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
+	var lines: Array[String] = [
+		"SAVED BUILD FOR SLOT %d" % slot_index
+	]
+	var progress_service := get_node_or_null(
+		"/root/BranchProgress"
+	) as BranchProgressService
+	var loadout: BranchTalentLoadoutRecord = null
+	if is_instance_valid(progress_service):
+		loadout = progress_service.get_talent_loadout_copy(
+			selected_slot_id,
+			definition.branch_id
+		)
+	var found_talent: bool = false
+	if loadout != null and is_instance_valid(definition.talent_tree):
+		for talent in definition.talent_tree.talents:
+			if (
+				is_instance_valid(talent)
+				and loadout.is_talent_purchased(talent.talent_id)
+			):
+				lines.append(talent.display_name)
+				found_talent = true
+	if not found_talent:
+		lines.append("No saved talents for this slot.")
+	candidate_saved_build_label.text = "\n".join(lines)
+
+
+func confirm_selected_branch_candidate() -> bool:
+	if not _is_standard_loadout_edit_allowed():
+		return false
+	if not BranchSlotRules.is_standard_slot(
+		BranchSlotRules.get_slot_index(selected_slot_id)
+	):
+		return false
+	var definition: BranchDefinition = GameContent.get_branch(
+		selected_candidate_branch_id
+	)
+	if not _is_valid_standard_candidate(definition, selected_slot_id):
+		return false
+	if _get_equipped_branch_id(selected_slot_id) == definition.branch_id:
+		return false
+	var loadout := get_node_or_null("/root/BranchLoadout") as BranchLoadoutService
+	if not is_instance_valid(loadout):
+		return false
+	return loadout.equip_standard_branch(
+		selected_slot_id,
+		definition.branch_id
+	)
+
+
+func _get_equipped_branch_id(slot_id: StringName) -> StringName:
+	var loadout := get_node_or_null("/root/BranchLoadout") as BranchLoadoutService
+	if not is_instance_valid(loadout):
+		return &""
+	return loadout.get_equipped_branch_id(slot_id)
+
+
+func _is_standard_loadout_edit_allowed() -> bool:
+	if not is_instance_valid(wave_manager):
+		wave_manager = get_tree().get_first_node_in_group("wave_manager")
+	return (
+		is_instance_valid(wave_manager)
+		and wave_manager.has_method("is_standard_loadout_edit_allowed")
+		and wave_manager.is_standard_loadout_edit_allowed()
+	)
+
+
+func _on_continue_pressed() -> void:
+	close_branch_picker()
+	if not is_instance_valid(wave_manager):
+		wave_manager = get_tree().get_first_node_in_group("wave_manager")
+	if (
+		is_instance_valid(wave_manager)
+		and wave_manager.has_method("continue_from_preparation")
+	):
+		wave_manager.continue_from_preparation()
+
+
 func _get_short_branch_name(branch: CombatBranch) -> String:
 	return branch.get_branch_display_name().replace(" Branch", "").to_upper()
 
@@ -255,8 +545,10 @@ func _connect_loadout_controller() -> void:
 
 
 func _on_runtime_standard_slot_changed(
-	_slot_id: StringName,
+	slot_id: StringName,
 	_branch_id: StringName
 ) -> void:
 	if visible:
 		refresh_screen()
+	if branch_picker.visible and slot_id == selected_slot_id:
+		close_branch_picker()

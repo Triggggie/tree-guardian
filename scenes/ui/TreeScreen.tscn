@@ -44,6 +44,25 @@ offset_right = 1808.0
 offset_bottom = 60.0
 text = "CLOSE"
 
+[node name="PreparationBanner" type="Label" parent="MainPanel"]
+visible = false
+offset_left = 620.0
+offset_top = 12.0
+offset_right = 1260.0
+offset_bottom = 68.0
+theme_override_colors/font_color = Color(0.95, 0.78, 0.28, 1)
+theme_override_font_sizes/font_size = 20
+text = "PREPARATION\nBUILD YOUR TREE"
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="MainPanel"]
+visible = false
+offset_left = 1480.0
+offset_top = 18.0
+offset_right = 1668.0
+offset_bottom = 60.0
+text = "START RUN"
+
 [node name="DetailPanel" type="Panel" parent="MainPanel"]
 offset_left = 28.0
 offset_top = 80.0
@@ -87,7 +106,22 @@ offset_bottom = 590.0
 offset_left = 20.0
 offset_top = 610.0
 offset_right = 450.0
-offset_bottom = 860.0
+offset_bottom = 790.0
+
+[node name="LoadoutStatusLabel" type="Label" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 795.0
+offset_right = 450.0
+offset_bottom = 842.0
+text = "LOADOUT LOCKED\nBranch changes are available during Preparation."
+horizontal_alignment = 1
+
+[node name="ChangeBranchButton" type="Button" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 850.0
+offset_right = 450.0
+offset_bottom = 915.0
+text = "CHANGE BRANCH\nPREPARATION ONLY"
 
 [node name="TreeCanvas" type="Panel" parent="MainPanel"]
 offset_left = 520.0
@@ -181,3 +215,78 @@ offset_right = 450.0
 offset_bottom = 850.0
 text = "No Legendary Branch Seeds unlocked."
 autowrap_mode = 2
+
+[node name="BranchPicker" type="Panel" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 390.0
+offset_top = 120.0
+offset_right = 1530.0
+offset_bottom = 960.0
+
+[node name="TitleLabel" type="Label" parent="BranchPicker"]
+offset_left = 30.0
+offset_top = 24.0
+offset_right = 1110.0
+offset_bottom = 65.0
+theme_override_font_sizes/font_size = 24
+text = "CHOOSE BRANCH FOR SLOT 1"
+horizontal_alignment = 1
+
+[node name="CandidateList" type="VBoxContainer" parent="BranchPicker"]
+offset_left = 30.0
+offset_top = 90.0
+offset_right = 360.0
+offset_bottom = 730.0
+
+[node name="PreviewPanel" type="Panel" parent="BranchPicker"]
+offset_left = 390.0
+offset_top = 90.0
+offset_right = 1110.0
+offset_bottom = 730.0
+
+[node name="NameLabel" type="Label" parent="BranchPicker/PreviewPanel"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 696.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 22
+
+[node name="CategoryLabel" type="Label" parent="BranchPicker/PreviewPanel"]
+offset_left = 24.0
+offset_top = 68.0
+offset_right = 696.0
+offset_bottom = 100.0
+
+[node name="DescriptionLabel" type="Label" parent="BranchPicker/PreviewPanel"]
+offset_left = 24.0
+offset_top = 110.0
+offset_right = 696.0
+offset_bottom = 190.0
+autowrap_mode = 2
+
+[node name="ProgressLabel" type="Label" parent="BranchPicker/PreviewPanel"]
+offset_left = 24.0
+offset_top = 210.0
+offset_right = 696.0
+offset_bottom = 345.0
+
+[node name="SavedBuildLabel" type="Label" parent="BranchPicker/PreviewPanel"]
+offset_left = 24.0
+offset_top = 365.0
+offset_right = 696.0
+offset_bottom = 590.0
+
+[node name="ConfirmButton" type="Button" parent="BranchPicker"]
+offset_left = 720.0
+offset_top = 755.0
+offset_right = 910.0
+offset_bottom = 810.0
+text = "EQUIP"
+
+[node name="CancelButton" type="Button" parent="BranchPicker"]
+offset_left = 920.0
+offset_top = 755.0
+offset_right = 1110.0
+offset_bottom = 810.0
+text = "CANCEL"

@@ -41,6 +41,8 @@ extends CanvasLayer
 	$TreeScreen
 )
 
+var wave_manager: Node
+
 
 func _ready() -> void:
 	branch_tab_button.pressed.connect(
@@ -64,6 +66,19 @@ func _ready() -> void:
 	)
 
 	show_branch_upgrades()
+
+	wave_manager = get_node_or_null("../WaveManager")
+	if (
+		is_instance_valid(wave_manager)
+		and wave_manager.has_signal("preparation_state_changed")
+		and not wave_manager.preparation_state_changed.is_connected(
+			_on_preparation_state_changed
+		)
+	):
+		wave_manager.preparation_state_changed.connect(
+			_on_preparation_state_changed
+		)
+	call_deferred("_sync_preparation_state")
 
 
 func show_branch_upgrades() -> void:
@@ -97,6 +112,12 @@ func show_soul_status() -> void:
 
 
 func open_talent_screen() -> void:
+	if (
+		is_instance_valid(wave_manager)
+		and wave_manager.has_method("is_preparation_active")
+		and wave_manager.is_preparation_active()
+	):
+		return
 	if tree_screen.has_method("close_screen"):
 		tree_screen.close_screen()
 	if talent_screen.has_method(
@@ -110,3 +131,33 @@ func open_tree_screen() -> void:
 		talent_screen.close_screen()
 	if tree_screen.has_method("open_screen"):
 		tree_screen.open_screen()
+
+
+func _sync_preparation_state() -> void:
+	if not is_instance_valid(wave_manager):
+		wave_manager = get_node_or_null("../WaveManager")
+	if not is_instance_valid(wave_manager):
+		return
+	_on_preparation_state_changed(
+		wave_manager.is_preparation_active(),
+		wave_manager.get_preparation_reason()
+	)
+
+
+func _on_preparation_state_changed(
+	is_active: bool,
+	reason: StringName
+) -> void:
+	if is_active:
+		if talent_screen.has_method("close_screen"):
+			talent_screen.close_screen()
+		if tree_screen.has_method("set_preparation_mode"):
+			tree_screen.set_preparation_mode(true, reason)
+		if tree_screen.has_method("open_screen"):
+			tree_screen.open_screen()
+		return
+
+	if tree_screen.has_method("set_preparation_mode"):
+		tree_screen.set_preparation_mode(false, &"")
+	if tree_screen.has_method("close_screen"):
+		tree_screen.close_screen()

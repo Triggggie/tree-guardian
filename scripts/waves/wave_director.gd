@@ -15,6 +15,10 @@ signal new_highest_wave_completed(
 	global_wave: int
 )
 
+signal substage_checkpoint_reached(
+	completed_global_wave: int
+)
+
 
 const ACTIVE_STAGE_ID: StringName = &"guardian_grove"
 
@@ -265,14 +269,22 @@ func cancel_cycle(
 
 
 func restart_current_substage() -> bool:
+	if not prepare_current_substage_restart():
+		return false
+	return start_cycle(false)
+
+
+func prepare_current_substage_restart() -> bool:
+	if not is_ready_to_run():
+		return false
+
 	var substage_start_wave: int = (
 		get_current_substage_start_wave()
 	)
 
 	cancel_cycle(true)
 	current_wave = substage_start_wave - 1
-
-	return start_cycle(false)
+	return true
 
 
 func is_cycle_active(
@@ -434,6 +446,14 @@ func get_current_wave_in_substage() -> int:
 		(get_current_wave_in_stage() - 1)
 		% get_safe_waves_per_substage()
 	) + 1
+
+
+func is_current_wave_substage_end() -> bool:
+	return (
+		current_wave > 0
+		and get_current_wave_in_substage()
+		== get_safe_waves_per_substage()
+	)
 
 
 func get_current_substage_start_wave() -> int:
@@ -724,6 +744,18 @@ func _run_wave_loop(
 
 		if not is_cycle_active(cycle_id):
 			return
+
+		if _reach_substage_checkpoint_if_needed():
+			return
+
+
+func _reach_substage_checkpoint_if_needed() -> bool:
+	if not is_current_wave_substage_end():
+		return false
+
+	_cycle_running = false
+	substage_checkpoint_reached.emit(current_wave)
+	return true
 
 
 func _wait_until_all_enemies_are_dead(

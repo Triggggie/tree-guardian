@@ -10,6 +10,17 @@ signal wave_message_changed(
 	message: String
 )
 
+signal preparation_state_changed(
+	is_active: bool,
+	reason: StringName
+)
+
+
+const PREPARATION_REASON_NONE: StringName = &""
+const PREPARATION_REASON_INITIAL: StringName = &"initial"
+const PREPARATION_REASON_SUBSTAGE_COMPLETE: StringName = &"substage_complete"
+const PREPARATION_REASON_RETRY: StringName = &"retry"
+
 
 @onready var game_over_panel: Panel = (
 	$"../UI/GameOverPanel"
@@ -18,7 +29,10 @@ signal wave_message_changed(
 
 var tree_node: Node2D
 var wave_director: WaveDirector
+var branch_loadout_controller: TreeBranchLoadoutController
 var tree_defeated: bool = false
+var preparation_active: bool = false
+var preparation_reason: StringName = PREPARATION_REASON_NONE
 
 var current_wave: int:
 	get:
@@ -77,11 +91,27 @@ func _ready() -> void:
 	wave_director.new_highest_wave_completed.connect(
 		_on_new_highest_wave_completed
 	)
+	wave_director.substage_checkpoint_reached.connect(
+		_on_substage_checkpoint_reached
+	)
+
+	branch_loadout_controller = get_tree().get_first_node_in_group(
+		"branch_loadout_controller"
+	) as TreeBranchLoadoutController
+	if (
+		is_instance_valid(branch_loadout_controller)
+		and not branch_loadout_controller.runtime_standard_slot_changed.is_connected(
+			_on_runtime_standard_slot_changed
+		)
+	):
+		branch_loadout_controller.runtime_standard_slot_changed.connect(
+			_on_runtime_standard_slot_changed
+		)
 
 	if not wave_director.is_ready_to_run():
 		return
 
-	start_wave_cycle(false)
+	_enter_preparation(PREPARATION_REASON_INITIAL)
 
 
 func _exit_tree() -> void:
@@ -103,6 +133,33 @@ func start_wave_cycle(
 	wave_director.start_cycle(
 		retry_current_wave
 	)
+
+
+func is_preparation_active() -> bool:
+	return preparation_active
+
+
+func get_preparation_reason() -> StringName:
+	return preparation_reason
+
+
+func is_standard_loadout_edit_allowed() -> bool:
+	return preparation_active and not tree_defeated
+
+
+func continue_from_preparation() -> bool:
+	if not preparation_active or tree_defeated:
+		return false
+	if not is_instance_valid(wave_director):
+		return false
+
+	var previous_reason: StringName = preparation_reason
+	_exit_preparation()
+	if wave_director.start_cycle(false):
+		return true
+
+	_enter_preparation(previous_reason)
+	return false
 
 
 func get_current_enemies_per_side() -> int:
@@ -178,6 +235,12 @@ func _on_new_highest_wave_completed(
 		and tree_node.has_method("add_age")
 	):
 		tree_node.add_age(1)
+
+
+func _on_substage_checkpoint_reached(
+	_completed_global_wave: int
+) -> void:
+	_enter_preparation(PREPARATION_REASON_SUBSTAGE_COMPLETE)
 
 
 func _on_tree_died() -> void:
@@ -264,11 +327,6 @@ func _on_retry_requested() -> void:
 	):
 		tree_node.revive()
 
-	get_tree().call_group(
-		"combat_branch",
-		"resume_combat"
-	)
-
 	tree_defeated = false
 
 	print(
@@ -283,14 +341,48 @@ func _on_retry_requested() -> void:
 		"-1"
 	)
 
-	var restarted: bool = (
-		wave_director.restart_current_substage()
+	var restart_prepared: bool = (
+		wave_director.prepare_current_substage_restart()
 	)
 
-	if restarted:
+	if restart_prepared:
+		_enter_preparation(PREPARATION_REASON_RETRY)
 		return
 
 	tree_defeated = true
 	push_error(
 		"WaveManager could not restart the current Substage."
 	)
+
+
+func _enter_preparation(reason: StringName) -> void:
+	if reason == PREPARATION_REASON_NONE:
+		return
+
+	if is_instance_valid(wave_director):
+		wave_director.cancel_cycle(true)
+	remove_remaining_enemies()
+	get_tree().call_group("combat_branch", "stop_combat")
+	preparation_active = true
+	preparation_reason = reason
+	preparation_state_changed.emit(true, reason)
+
+
+func _exit_preparation() -> void:
+	preparation_active = false
+	preparation_reason = PREPARATION_REASON_NONE
+	preparation_state_changed.emit(false, PREPARATION_REASON_NONE)
+	get_tree().call_group("combat_branch", "resume_combat")
+
+
+func _on_runtime_standard_slot_changed(
+	slot_id: StringName,
+	_branch_id: StringName
+) -> void:
+	if not preparation_active or not is_instance_valid(branch_loadout_controller):
+		return
+	var runtime_branch: CombatBranch = (
+		branch_loadout_controller.get_runtime_branch(slot_id)
+	)
+	if is_instance_valid(runtime_branch):
+		runtime_branch.stop_combat()
