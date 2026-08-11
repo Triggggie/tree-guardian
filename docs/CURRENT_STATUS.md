@@ -1,10 +1,10 @@
 # Tree Guardian — Current Project Status
 
-Updated: 2026-08-04
+Updated: 2026-08-11
 
 Implementation parent for this checkpoint: `33d1fe2bc0cfd9a70c2e92b08c7905125b1234f0` (`Update status after shared Branch progression`)
 
-Checkpoint commit: `Update status after boss loot foundation`
+Checkpoint commit: `Update status after per-slot talent loadouts`
 
 Baseline branch: `main`
 
@@ -12,7 +12,7 @@ Baseline branch: `main`
 
 Tree Guardian is a playable 2D idle/tower-defense prototype built for Godot 4.7.1 with GDScript 2 and Forward Plus rendering. The project configuration declares Godot feature level 4.7, a 1920 × 1080 base viewport, and `res://scenes/main_world.tscn` as the main scene.
 
-The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. The tree also exposes an empty central `AttachmentPoints/Apex` marker for the future legendary Slot 5. Global content, run, persistent Branch Seed, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, and `BranchProgress` autoloads.
+The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. Stable identities are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`. The tree also exposes an empty central `AttachmentPoints/Apex` marker for the future legendary Slot 5. Global content, run, persistent Branch Seed, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, and `BranchProgress` autoloads.
 
 This document describes the repository after the Legendary Tier, Guardian Grove boss, and Stage Branch Seed loot checkpoint built on the implementation parent above.
 
@@ -22,7 +22,7 @@ The main loop is functional:
 
 - Bark Beetles are instantiated from registered Enemy, Stage, and Wave Resources. They spawn in lane-aware waves, move toward the tree, attack it, and grant Branch XP plus Forest Essence drops when defeated.
 - Strength branches perform melee attacks; Blossom branches heal the tree and fire ranged petals.
-- Branch XP increases Branch Level. XP, level, Talent Points, talent purchases, and Essence-upgrade levels are shared by all runtime instances with the same stable `branch_id`.
+- Branch XP increases Branch Level. XP, level, total Talent Points earned, and Essence-upgrade levels are shared by all runtime instances with the same stable `branch_id`. Purchased talents are independent for each `slot_id + branch_id` loadout.
 - Forest Essence buys branch and tree upgrades. A shared Branch upgrade purchase is charged once and immediately updates every active instance of that archetype; mutable progress never resides in shared definition Resources.
 - Age increases only after completing a new highest global wave. Replaying already completed waves after a death does not farm Age.
 - Tree death stops the active combat cycle and opens a defeat panel. The player can retry immediately, or the tree revives automatically after a 10-second countdown. The current Substage restarts at its Wave 1.
@@ -86,9 +86,11 @@ The two Strength instances share one Strength archetype progress record, and the
 
 ### Shared Branch Progression
 
-`BranchProgressRecord` is the mutable in-memory record for one stable Branch archetype ID. It contains Branch level and XP, available and total-earned Talent Points, purchased talent IDs, and upgrade levels. Its validation and copy APIs prevent invalid IDs, negative progression, and accidental mutable-container exposure.
+`BranchProgressRecord` is the mutable in-memory record for one stable Branch archetype ID. It contains only shared Branch level, XP, total Talent Points earned, and upgrade levels. `BranchTalentLoadoutRecord` contains only `slot_id`, `branch_id`, and purchased talent IDs. Both provide validation and deep-copy APIs.
 
-`BranchProgressService`, registered as the `BranchProgress` autoload after `BranchSeeds`, is the authoritative runtime owner of records by `branch_id`. It registers active `CombatBranch` instances, routes XP, talent, and upgrade operations through real definition Resources, synchronizes all instances of the affected archetype, and relays each change through the existing per-Node signals used by the UI. A record remains alive after all matching Nodes or MainWorld are removed and is applied when that archetype is instantiated again within the same application process.
+`BranchProgressService`, registered as the `BranchProgress` autoload after `BranchSeeds`, owns shared records by `branch_id` and talent loadouts by `slot_id + branch_id`. Each physical slot receives the complete Talent Point budget earned by its archetype; available points are derived as shared total earned minus the TalentDefinition costs purchased by that loadout. A loadout survives unregister/recreate and a temporary replacement by another archetype in the same slot.
+
+Valid examples include `Slot 1 Strength -> Sweeping Strike` beside `Slot 3 Strength -> Rebuff`, and independent stored builds for `Slot 1 Strength` and `Slot 1 Blossom`. Runtime `TalentEffectSet` objects remain separate per physical instance.
 
 This Branch progress is not yet stored on disk. Recreating a runtime Branch or MainWorld in the same process restores it, but exiting the application loses it. Talent-effect set objects remain separate per physical Strength or Blossom instance, and only purchased effect IDs are synchronized. Forest Essence is spent once by the authoritative upgrade transaction, even though all matching runtime instances receive the new level.
 
@@ -377,12 +379,21 @@ Automated regression evidence for this checkpoint:
 - Branch Seed save version 2, version 1 migration, per-Tier pity, highest-eligible-Tier selection, weighted entry selection, atomic save rollback, signal ordering, Stage context propagation, and death-only integration are covered by isolated smoke tests.
 - Godot 4.7.1 headless import passed. Legendary Boss Loot passed twice, Branch Seed Loot passed twice, Enemy Runtime passed twice, and the shared Branch progress, Apex slot, TALENTS tab, Strength effects, Blossom effects, Blossom healing stack, Strength visual, and Blossom visual regressions passed once each.
 
+### Per-Slot Talent Loadout Checkpoint
+
+- Stable slot IDs are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`; forward, reverse, and invalid mappings are covered.
+- Shared archetype data is XP, level, total Talent Points earned, and Essence-upgrade levels. Purchased talents are stored independently by `slot_id + branch_id`, and every physical copy receives the full shared Talent Point budget.
+- Available Talent Points are derived from total earned minus that loadout's purchased TalentDefinition costs. Loadouts and shared progress survive Branch unregister/recreate and MainWorld recreation; Strength and Blossom builds in the same slot remain separate.
+- `Slot 1 Strength -> Sweeping Strike` and `Slot 3 Strength -> Rebuff` passed with distinct runtime effect sets. Independent same-talent purchases in Slots 1 and 3 also passed.
+- Production `MainWorld/WaveDirector.debug_start_global_wave` is restored to `0` and covered by Enemy Runtime.
+- Godot 4.7.1 headless import passed. Per-Slot Talent Loadout passed three times; Shared Branch Progress and TALENTS Tab passed twice; Strength Effects, Blossom Effects, Blossom Healing Stack, Strength Visual, Blossom Visual, Apex Slot Rules, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed. The loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
 - Branch archetype progression is retained only in memory and is not included in the disk save.
 - There is no TREE loadout screen and no equip/unequip flow for standard Branches.
-- There is no talent respec flow.
+- There is no talent respec, copy-build, or save-preset flow.
 - Tier data and the first miniboss/boss encounters are implemented, but Tier badges, equipment, and inventory are not.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
@@ -437,12 +448,12 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Create the first read-only TREE screen with a tree silhouette and five Branch slots.
-2. Display the shared statistics and progression of the selected Branch archetype.
-3. Prepare a player-facing Tier badge and found-versus-equipped Apex comparison.
-4. Add the unlocked legendary Branch Seed list to the Apex Slot.
-5. Implement Thorn Crown as the first Tier I legendary Branch.
-6. Add Thorn Crown to the Guardian Grove Stage loot pool.
+1. Read-only TREE overview with a tree silhouette and five Branch slots.
+2. TREE detail for one physical Branch, including shared progress and its slot talent build.
+3. Standard Branch equip/unequip using stable slot IDs.
+4. Apex unlocked Branch Seed list and equip flow.
+5. Thorn Crown as the first Tier I legendary Branch.
+6. Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
