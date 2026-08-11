@@ -95,6 +95,7 @@ func _ready() -> void:
 
 	old_strength_branch_button.visible = false
 	old_blossom_branch_button.visible = false
+	_connect_loadout_controller()
 
 	find_available_branches()
 	connect_branch_signals()
@@ -659,8 +660,12 @@ func _on_branch_talent_changed(
 
 
 func open_screen() -> void:
+	var previous_slot_id: StringName = &""
+	if is_instance_valid(selected_branch) and selected_branch.has_method("get_slot_id"):
+		previous_slot_id = selected_branch.get_slot_id()
 	find_available_branches()
 	connect_branch_signals()
+	var branch_in_previous_slot = _find_branch_by_slot_id(previous_slot_id)
 
 	if (
 		not is_instance_valid(selected_branch)
@@ -668,7 +673,9 @@ func open_screen() -> void:
 			selected_branch
 		)
 	):
-		if not available_branches.is_empty():
+		if is_instance_valid(branch_in_previous_slot):
+			select_branch(branch_in_previous_slot)
+		elif not available_branches.is_empty():
 			select_branch(
 				available_branches[0]
 			)
@@ -685,3 +692,35 @@ func open_screen() -> void:
 
 func close_screen() -> void:
 	hide()
+
+
+func _find_branch_by_slot_id(slot_id: StringName):
+	if slot_id == &"":
+		return null
+	for branch in available_branches:
+		if branch.has_method("get_slot_id") and branch.get_slot_id() == slot_id:
+			return branch
+	return null
+
+
+func _connect_loadout_controller() -> void:
+	var controller: TreeBranchLoadoutController = get_tree().get_first_node_in_group(
+		"branch_loadout_controller"
+	) as TreeBranchLoadoutController
+	if (
+		is_instance_valid(controller)
+		and not controller.runtime_standard_slot_changed.is_connected(
+			_on_runtime_standard_slot_changed
+		)
+	):
+		controller.runtime_standard_slot_changed.connect(
+			_on_runtime_standard_slot_changed
+		)
+
+
+func _on_runtime_standard_slot_changed(
+	_slot_id: StringName,
+	_branch_id: StringName
+) -> void:
+	if visible:
+		open_screen()

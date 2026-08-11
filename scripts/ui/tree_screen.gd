@@ -28,6 +28,7 @@ func _ready() -> void:
 	for slot_id in slot_buttons:
 		var button: Button = slot_buttons[slot_id]
 		button.pressed.connect(select_slot.bind(StringName(slot_id)))
+	_connect_loadout_controller()
 	hide()
 
 
@@ -236,3 +237,26 @@ func _on_talent_changed(_talent_id: StringName, _purchased: bool) -> void:
 
 func _on_upgrade_changed(_upgrade_id: StringName, _level: int) -> void:
 	_refresh_selected_detail()
+
+
+func _connect_loadout_controller() -> void:
+	var controller: TreeBranchLoadoutController = get_tree().get_first_node_in_group(
+		"branch_loadout_controller"
+	) as TreeBranchLoadoutController
+	if (
+		is_instance_valid(controller)
+		and not controller.runtime_standard_slot_changed.is_connected(
+			_on_runtime_standard_slot_changed
+		)
+	):
+		controller.runtime_standard_slot_changed.connect(
+			_on_runtime_standard_slot_changed
+		)
+
+
+func _on_runtime_standard_slot_changed(
+	_slot_id: StringName,
+	_branch_id: StringName
+) -> void:
+	if visible:
+		refresh_screen()

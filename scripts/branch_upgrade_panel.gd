@@ -59,6 +59,7 @@ func _ready() -> void:
 	connect_slot_buttons()
 	connect_upgrade_buttons()
 	connect_tree_signals()
+	connect_loadout_controller()
 
 	find_available_branches()
 	select_first_available_branch()
@@ -649,3 +650,35 @@ func _on_branch_upgrade_changed(
 	_new_level: int
 ) -> void:
 	update_panel()
+
+
+func connect_loadout_controller() -> void:
+	var controller: TreeBranchLoadoutController = get_tree().get_first_node_in_group(
+		"branch_loadout_controller"
+	) as TreeBranchLoadoutController
+	if (
+		is_instance_valid(controller)
+		and not controller.runtime_standard_slot_changed.is_connected(
+			_on_runtime_standard_slot_changed
+		)
+	):
+		controller.runtime_standard_slot_changed.connect(
+			_on_runtime_standard_slot_changed
+		)
+
+
+func _on_runtime_standard_slot_changed(
+	_slot_id: StringName,
+	_branch_id: StringName
+) -> void:
+	var previous_slot_array_index: int = selected_slot_array_index
+	selected_branch = null
+	find_available_branches()
+	if (
+		previous_slot_array_index >= 0
+		and previous_slot_array_index < branches_by_slot.size()
+		and is_instance_valid(branches_by_slot[previous_slot_array_index])
+	):
+		select_branch(previous_slot_array_index)
+	else:
+		select_first_available_branch()
