@@ -223,6 +223,10 @@ func get_facing_direction() -> float:
 	return 1.0
 
 
+func get_slot_id() -> StringName:
+	return BranchSlotRules.get_slot_id(slot_index)
+
+
 func get_available_talent_points() -> int:
 	return available_talent_points
 
@@ -836,19 +840,28 @@ func on_shared_progress_applied() -> void:
 	on_talent_purchased(&"")
 
 
-func apply_shared_progress(
-	progress: BranchProgressRecord
+func apply_progress_state(
+	shared_progress: BranchProgressRecord,
+	talent_loadout: BranchTalentLoadoutRecord,
+	available_points: int
 ) -> void:
-	if progress == null or progress.branch_id != branch_id:
+	if shared_progress == null or shared_progress.branch_id != branch_id:
 		return
 
-	branch_level = progress.branch_level
-	current_xp = progress.current_xp
-	available_talent_points = progress.available_talent_points
-	total_talent_points_earned = progress.total_talent_points_earned
-	purchased_talents = progress.purchased_talents.duplicate(true)
+	if (
+		talent_loadout == null
+		or talent_loadout.branch_id != branch_id
+		or talent_loadout.slot_id != get_slot_id()
+	):
+		return
+
+	branch_level = shared_progress.branch_level
+	current_xp = shared_progress.current_xp
+	available_talent_points = max(available_points, 0)
+	total_talent_points_earned = shared_progress.total_talent_points_earned
+	purchased_talents = talent_loadout.purchased_talents.duplicate(true)
 
 	apply_progress_upgrade_levels(
-		progress.upgrade_levels.duplicate(true)
+		shared_progress.upgrade_levels.duplicate(true)
 	)
 	on_shared_progress_applied()
