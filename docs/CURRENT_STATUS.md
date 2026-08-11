@@ -4,7 +4,7 @@ Updated: 2026-08-11
 
 Implementation parent for this checkpoint: `33d1fe2bc0cfd9a70c2e92b08c7905125b1234f0` (`Update status after shared Branch progression`)
 
-Checkpoint commit: `Update status after per-slot talent loadouts`
+Checkpoint commit: `Update status after TREE overview`
 
 Baseline branch: `main`
 
@@ -388,11 +388,21 @@ Automated regression evidence for this checkpoint:
 - Production `MainWorld/WaveDirector.debug_start_global_wave` is restored to `0` and covered by Enemy Runtime.
 - Godot 4.7.1 headless import passed. Per-Slot Talent Loadout passed three times; Shared Branch Progress and TALENTS Tab passed twice; Strength Effects, Blossom Effects, Blossom Healing Stack, Strength Visual, Blossom Visual, Apex Slot Rules, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed. The loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
 
+### TREE Overview Checkpoint
+
+- A new fullscreen read-only `TREE` screen opens from a dedicated button beside TALENTS. The former small right-side player-facing TREE tab is now named `TRUNK`; its existing upgrade behavior is unchanged.
+- TREE presents five slots around a central built-in silhouette: Slot 2 upper-left, Slot 1 lower-left, Slot 4 upper-right, Slot 3 lower-right, and the empty Apex Slot top-center. The current build is Strength in Slots 1 and 3, Blossom in Slots 2 and 4, and no Apex Branch.
+- The selected standard-slot detail separates shared archetype Level, XP, and total Talent Points earned from the physical slot's available Talent Points and purchased talent names. It also shows shared Essence upgrade levels and effective statistics supplied directly by the runtime Branch.
+- The right collection preview reads unlocked Legendary Branch Seed IDs from `BranchSeeds`, resolves definitions through `GameContent`, uses `BranchDefinition` Tier display text, and safely identifies unknown legacy IDs.
+- TREE and TALENTS are mutually exclusive fullscreen screens. Neither pauses combat, and closing either leaves the small upgrade panels unchanged.
+- TREE has no mutation actions: Branch swapping/equip, Apex equip, Thorn Crown, equipment/inventory, talent purchase/respec/copy-build, and other TREE mutations remain unimplemented.
+- Godot 4.7.1 headless import passed. TREE Screen and TALENTS Tab passed twice. Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Apex Slot Rules, Branch Seed Loot, Legendary Boss Loot, Enemy Runtime, Strength Visual, and Blossom Visual passed once. Loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
 - Branch archetype progression is retained only in memory and is not included in the disk save.
-- There is no TREE loadout screen and no equip/unequip flow for standard Branches.
+- TREE is currently a read-only overview; there is no equip/unequip flow for standard Branches.
 - There is no talent respec, copy-build, or save-preset flow.
 - Tier data and the first miniboss/boss encounters are implemented, but Tier badges, equipment, and inventory are not.
 - There is no `CampaignDefinition`.
@@ -448,11 +458,11 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Read-only TREE overview with a tree silhouette and five Branch slots.
-2. TREE detail for one physical Branch, including shared progress and its slot talent build.
-3. Standard Branch equip/unequip using stable slot IDs.
-4. Apex unlocked Branch Seed list and equip flow.
-5. Thorn Crown as the first Tier I legendary Branch.
+1. Standard Branch equip/unequip foundation using stable slot IDs.
+2. Branch selection collection for standard slots, allowing duplicate archetypes.
+3. Preserve `slot_id + branch_id` talent builds across real equip swaps.
+4. Apex unlocked Seed selection and equip flow.
+5. Thorn Crown as the first Tier I Legendary Apex Branch.
 6. Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.

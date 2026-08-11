@@ -167,7 +167,11 @@ Do not reintroduce Age farming from repeated waves.
 
 ## UI behavior
 
-- The main right-side upgrade area has BRANCHES, TREE, and SOUL tabs.
+- The main right-side upgrade area has BRANCHES, TRUNK, and SOUL tabs. TRUNK is the small right-side tree-stat upgrade tab.
+- TREE is the fullscreen read-only Branch/loadout overview. It must not mutate progress, buy talents or upgrades, equip Branches, or duplicate gameplay stat calculations.
+- TREE slot selection uses stable `slot_id`. Its physical layout is Slot 2 upper-left, Slot 1 lower-left, Slot 4 upper-right, Slot 3 lower-right, and Apex top-center.
+- TREE reads shared archetype progress from `BranchProgress`, the per-slot talent build from `slot_id + branch_id`, effective stats from the actual runtime Branch, and unlocked Legendary Branch Seeds from `BranchSeeds`.
+- Player-facing Legendary Tier text in TREE comes from `BranchDefinition`.
 - Only one of `BranchUpgradePanel`, `TreeUpgradePanel`, and `TreeSoulStatusPanel` may be visible at a time.
 - The active tab button is disabled; the other tab buttons remain enabled.
 - BRANCHES remains the default tab on game start.
