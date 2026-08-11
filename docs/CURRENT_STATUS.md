@@ -4,7 +4,7 @@ Updated: 2026-08-11
 
 Implementation parent for this checkpoint: `33d1fe2bc0cfd9a70c2e92b08c7905125b1234f0` (`Update status after shared Branch progression`)
 
-Checkpoint commit: `Update status after Branch loadout foundation`
+Checkpoint commit: `Update status after Branch preparation picker`
 
 Baseline branch: `main`
 
@@ -25,7 +25,7 @@ The main loop is functional:
 - Branch XP increases Branch Level. XP, level, total Talent Points earned, and Essence-upgrade levels are shared by all runtime instances with the same stable `branch_id`. Purchased talents are independent for each `slot_id + branch_id` loadout.
 - Forest Essence buys branch and tree upgrades. A shared Branch upgrade purchase is charged once and immediately updates every active instance of that archetype; mutable progress never resides in shared definition Resources.
 - Age increases only after completing a new highest global wave. Replaying already completed waves after a death does not farm Age.
-- Tree death stops the active combat cycle and opens a defeat panel. The player can retry immediately, or the tree revives automatically after a 10-second countdown. The current Substage restarts at its Wave 1.
+- Tree death stops the active combat cycle and opens a defeat panel. The player can retry immediately, or the tree revives automatically after a 10-second countdown. Retry now opens Preparation before restarting the current Substage at its Wave 1.
 - Normal death preserves in-memory long-term run progression: Age, Forest Essence, Branch XP and levels, purchased branch upgrades and talents, tree upgrades, and the selected Tree Soul and rank.
 
 The prototype has no general save/load system, so this preserved run state lasts only for the running game process. Unlocked legendary Branch Seed IDs are the isolated exception: `BranchSeeds` persists that meta-progression across sessions.
@@ -390,12 +390,12 @@ Automated regression evidence for this checkpoint:
 
 ### TREE Overview Checkpoint
 
-- A new fullscreen read-only `TREE` screen opens from a dedicated button beside TALENTS. The former small right-side player-facing TREE tab is now named `TRUNK`; its existing upgrade behavior is unchanged.
+- This checkpoint introduced the fullscreen `TREE` overview from a dedicated button beside TALENTS. The former small right-side player-facing TREE tab is named `TRUNK`; its existing upgrade behavior is unchanged.
 - TREE presents five slots around a central built-in silhouette: Slot 2 upper-left, Slot 1 lower-left, Slot 4 upper-right, Slot 3 lower-right, and the empty Apex Slot top-center. The current build is Strength in Slots 1 and 3, Blossom in Slots 2 and 4, and no Apex Branch.
 - The selected standard-slot detail separates shared archetype Level, XP, and total Talent Points earned from the physical slot's available Talent Points and purchased talent names. It also shows shared Essence upgrade levels and effective statistics supplied directly by the runtime Branch.
 - The right collection preview reads unlocked Legendary Branch Seed IDs from `BranchSeeds`, resolves definitions through `GameContent`, uses `BranchDefinition` Tier display text, and safely identifies unknown legacy IDs.
 - TREE and TALENTS are mutually exclusive fullscreen screens. Neither pauses combat, and closing either leaves the small upgrade panels unchanged.
-- TREE has no mutation actions: Branch swapping/equip, Apex equip, Thorn Crown, equipment/inventory, talent purchase/respec/copy-build, and other TREE mutations remain unimplemented.
+- At this historical checkpoint TREE had no mutation actions. Standard replacement during Preparation was added by the later Preparation checkpoint below; Apex equip, Thorn Crown, equipment/inventory, and talent purchase/respec/copy-build remain unimplemented.
 - Godot 4.7.1 headless import passed. TREE Screen and TALENTS Tab passed twice. Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Apex Slot Rules, Branch Seed Loot, Legendary Boss Loot, Enemy Runtime, Strength Visual, and Blossom Visual passed once. Loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
 
 ### Standard Branch Runtime Loadout Foundation
@@ -404,15 +404,27 @@ Automated regression evidence for this checkpoint:
 - The production defaults remain Strength, Blossom, Strength, Blossom in Slots 1-4. Duplicate standard archetypes are valid, including four simultaneous Strength instances.
 - Four `BranchMount` nodes preserve the original left/right offsets. Static Strength and Blossom gameplay instances were removed from `tree.tscn`; `TreeBranchLoadoutController` now instantiates runtime roots through `GameContent` and `BranchDefinition.branch_scene`.
 - Low-level runtime equip and unequip APIs exist. Shared BranchProgress and per-`slot_id + branch_id` talent builds survive real Strength-to-Blossom-to-Strength swaps, unequip, and MainWorld recreation.
-- TREE, TALENTS, and the BRANCHES upgrade panel refresh from completed runtime slot changes without polling or retaining freed Branch nodes. TREE remains read-only and exposes no player-facing mutation controls.
-- Player-facing Branch selection, loadout-edit timing/preparation rules, unrestricted mid-combat swap UI, Apex equip, disk persistence, and Thorn Crown remain unimplemented.
+- TREE, TALENTS, and the BRANCHES upgrade panel refresh from completed runtime slot changes without polling or retaining freed Branch nodes. This foundation initially exposed no player-facing mutation controls.
+- The later Preparation checkpoint below adds gated standard Branch selection. Unrestricted mid-combat swap, Apex equip, disk persistence, and Thorn Crown remain unimplemented.
 - Godot 4.7.1 headless import passed. Standard Branch Loadout, TREE Screen, and TALENTS Tab passed twice. Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Apex Slot Rules, Strength Visual, Blossom Visual, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed once. Loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
+
+### Standard Branch Picker + Preparation Phase V1
+
+- `WaveManager` owns Preparation. A new run opens Initial Preparation before Wave 1; completing the StageDefinition-defined final Wave of a Substage opens Substage Complete Preparation; death/retry prepares Wave 1 of the current Substage and opens Retry Preparation instead of starting immediately.
+- During Preparation, the WaveDirector cycle is stopped, active enemies are removed, all CombatBranches are stopped, the Tree is alive, and TREE opens automatically without pausing gameplay. START RUN, CONTINUE, or RETRY SUBSTAGE resumes every current Branch, closes TREE, and starts exactly the next prepared Wave.
+- WaveDirector detects a Substage boundary through `get_safe_waves_per_substage()` after wave completion, the completion message, and `time_after_wave`; Wave 100 is not hardcoded. The completed global Wave remains current until Continue starts the next Wave.
+- TREE dynamically builds its standard candidate list from `GameContent.get_branches()` in ContentRegistry Resource order. Only valid, placeable standard BranchDefinitions appear; every registered standard Branch is currently available because no standard unlock system exists, and duplicate archetypes remain valid.
+- The current candidate is marked EQUIPPED and cannot issue a no-op. Candidate preview reads a copy of shared archetype progress and the preserved `slot_id + branch_id` talent loadout in TalentTree Resource order; preview does not instantiate a Branch or mutate loadout, progress, talents, or Essence.
+- Confirm rechecks the WaveManager Preparation gate, standard slot, candidate validity, and current assignment before calling only the low-level `BranchLoadout.equip_standard_branch()`. The existing controller performs the runtime swap, and WaveManager immediately stops a newly created Branch while Preparation remains active.
+- Outside Preparation, TREE remains available as a read-only overview with a clear LOADOUT LOCKED state. CLOSE cannot escape active Preparation, TALENTS cannot open during Preparation, and direct UI confirm outside Preparation fails without changing the runtime or loadout.
+- Player-facing unequip, a standard Branch unlock system, disk loadout save, Apex equip, Thorn Crown, and equipment/inventory remain unimplemented.
+- Godot 4.7.1 headless import passed. Loadout Preparation, TREE Branch Picker, TREE Screen, and TALENTS Tab passed twice. Standard Branch Loadout, Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Apex Slot Rules, Strength Visual, Blossom Visual, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed once. Loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
 
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
 - Branch archetype progression is retained only in memory and is not included in the disk save.
-- TREE is currently a read-only overview; there is no equip/unequip flow for standard Branches.
+- TREE supports standard Branch replacement only during Preparation; player-facing unequip and standard Branch unlock progression do not exist.
 - There is no talent respec, copy-build, or save-preset flow.
 - Tier data and the first miniboss/boss encounters are implemented, but Tier badges, equipment, and inventory are not.
 - There is no `CampaignDefinition`.
@@ -468,13 +480,12 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Add the standard Branch selection collection to TREE.
-2. Define and enforce when player-facing loadout changes are allowed; do not expose unrestricted mid-combat hot-swapping.
-3. Allow selecting any available standard BranchDefinition for Slots 1-4, including duplicate archetypes.
-4. Show the preserved `slot_id + branch_id` talent build before confirming a swap.
-5. Add Apex unlocked Branch Seed selection/equip flow.
-6. Implement Thorn Crown as the first Tier I Legendary Apex Branch.
-7. Add Boss Abilities V1.
+1. Add Apex unlocked Branch Seed selection and equip foundation.
+2. Implement Thorn Crown as the first Tier I Legendary Apex Branch.
+3. Add Thorn Crown to Guardian Grove Tier I Branch Seed loot.
+4. Add player-facing Branch Seed drop/unlock notification.
+5. Add Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
+6. Begin normal equipment/inventory foundation.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
@@ -499,7 +510,7 @@ General save/load, prestige integration, later talent tiers, Status Effects, and
 - Verify each branch instance owns independent XP, Talent Points, talents, and upgrade levels.
 - Recheck the first upgrade costs and one-level deltas listed in Sections 3 and 8.
 - Recheck Sweeping Strike, Rebuff, and Marked Prey without changing their current balance.
-- Kill the tree and confirm immediate/automatic retry, restart at Wave 1 of the current Substage, and preservation of in-memory progression.
+- Kill the tree and confirm immediate/automatic revive into Retry Preparation, then restart at Wave 1 of the current Substage with in-memory progression preserved.
 - Confirm replayed waves do not grant additional Age and a newly completed highest wave does.
 - At the Age 199/200/300 boundaries, verify Soul Rank 0/1/2, deferred selection, status-panel reopening, modifier isolation, and non-blocking rank-up notification behavior.
 - Before committing this document or later work, ensure the diff contains only explicitly intended files and no generated UID changes.
