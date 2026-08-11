@@ -1,0 +1,183 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/tree_screen.gd" id="1_tree"]
+
+[node name="TreeScreen" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tree")
+
+[node name="DimBackground" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.018, 0.045, 0.03, 0.97)
+
+[node name="MainPanel" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 1880.0
+offset_bottom = 1040.0
+
+[node name="TitleLabel" type="Label" parent="MainPanel"]
+offset_left = 28.0
+offset_top = 18.0
+offset_right = 220.0
+offset_bottom = 60.0
+theme_override_colors/font_color = Color(0.65, 0.95, 0.68, 1)
+theme_override_font_sizes/font_size = 30
+text = "TREE"
+
+[node name="CloseButton" type="Button" parent="MainPanel"]
+offset_left = 1690.0
+offset_top = 18.0
+offset_right = 1808.0
+offset_bottom = 60.0
+text = "CLOSE"
+
+[node name="DetailPanel" type="Panel" parent="MainPanel"]
+offset_left = 28.0
+offset_top = 80.0
+offset_right = 500.0
+offset_bottom = 970.0
+
+[node name="DetailTitleLabel" type="Label" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 18.0
+offset_right = 450.0
+offset_bottom = 78.0
+theme_override_font_sizes/font_size = 22
+text = "SLOT 1"
+
+[node name="CategoryLabel" type="Label" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 84.0
+offset_right = 450.0
+offset_bottom = 132.0
+autowrap_mode = 2
+
+[node name="SharedProgressLabel" type="Label" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 145.0
+offset_right = 450.0
+offset_bottom = 265.0
+
+[node name="TalentBuildLabel" type="Label" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 280.0
+offset_right = 450.0
+offset_bottom = 420.0
+
+[node name="UpgradesLabel" type="Label" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 440.0
+offset_right = 450.0
+offset_bottom = 590.0
+
+[node name="StatsLabel" type="Label" parent="MainPanel/DetailPanel"]
+offset_left = 20.0
+offset_top = 610.0
+offset_right = 450.0
+offset_bottom = 860.0
+
+[node name="TreeCanvas" type="Panel" parent="MainPanel"]
+offset_left = 520.0
+offset_top = 80.0
+offset_right = 1320.0
+offset_bottom = 970.0
+
+[node name="Canopy" type="ColorRect" parent="MainPanel/TreeCanvas"]
+offset_left = 260.0
+offset_top = 200.0
+offset_right = 540.0
+offset_bottom = 610.0
+color = Color(0.08, 0.25, 0.12, 0.75)
+
+[node name="Trunk" type="ColorRect" parent="MainPanel/TreeCanvas"]
+offset_left = 370.0
+offset_top = 360.0
+offset_right = 430.0
+offset_bottom = 790.0
+color = Color(0.27, 0.16, 0.07, 1)
+
+[node name="LeftBranch" type="ColorRect" parent="MainPanel/TreeCanvas"]
+offset_left = 190.0
+offset_top = 430.0
+offset_right = 400.0
+offset_bottom = 460.0
+color = Color(0.34, 0.21, 0.09, 1)
+
+[node name="RightBranch" type="ColorRect" parent="MainPanel/TreeCanvas"]
+offset_left = 400.0
+offset_top = 430.0
+offset_right = 610.0
+offset_bottom = 460.0
+color = Color(0.34, 0.21, 0.09, 1)
+
+[node name="ApexButton" type="Button" parent="MainPanel/TreeCanvas"]
+offset_left = 310.0
+offset_top = 35.0
+offset_right = 490.0
+offset_bottom = 115.0
+toggle_mode = true
+text = "APEX\nEMPTY"
+
+[node name="Slot2Button" type="Button" parent="MainPanel/TreeCanvas"]
+offset_left = 45.0
+offset_top = 220.0
+offset_right = 225.0
+offset_bottom = 300.0
+toggle_mode = true
+
+[node name="Slot4Button" type="Button" parent="MainPanel/TreeCanvas"]
+offset_left = 575.0
+offset_top = 220.0
+offset_right = 755.0
+offset_bottom = 300.0
+toggle_mode = true
+
+[node name="Slot1Button" type="Button" parent="MainPanel/TreeCanvas"]
+offset_left = 45.0
+offset_top = 600.0
+offset_right = 225.0
+offset_bottom = 680.0
+toggle_mode = true
+
+[node name="Slot3Button" type="Button" parent="MainPanel/TreeCanvas"]
+offset_left = 575.0
+offset_top = 600.0
+offset_right = 755.0
+offset_bottom = 680.0
+toggle_mode = true
+
+[node name="SeedPanel" type="Panel" parent="MainPanel"]
+offset_left = 1340.0
+offset_top = 80.0
+offset_right = 1812.0
+offset_bottom = 970.0
+
+[node name="TitleLabel" type="Label" parent="MainPanel/SeedPanel"]
+offset_left = 20.0
+offset_top = 18.0
+offset_right = 450.0
+offset_bottom = 55.0
+theme_override_colors/font_color = Color(0.95, 0.78, 0.28, 1)
+theme_override_font_sizes/font_size = 20
+text = "LEGENDARY BRANCH SEEDS"
+
+[node name="SeedListLabel" type="Label" parent="MainPanel/SeedPanel"]
+offset_left = 20.0
+offset_top = 75.0
+offset_right = 450.0
+offset_bottom = 850.0
+text = "No Legendary Branch Seeds unlocked."
+autowrap_mode = 2

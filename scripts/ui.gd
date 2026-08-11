@@ -17,6 +17,10 @@ extends CanvasLayer
 	$TalentsButton
 )
 
+@onready var tree_screen_button: Button = (
+	$TreeScreenButton
+)
+
 @onready var branch_upgrade_panel: Panel = (
 	$BranchUpgradePanel
 )
@@ -31,6 +35,10 @@ extends CanvasLayer
 
 @onready var talent_screen: Control = (
 	$TalentScreen
+)
+
+@onready var tree_screen: Control = (
+	$TreeScreen
 )
 
 
@@ -49,6 +57,10 @@ func _ready() -> void:
 
 	talents_button.pressed.connect(
 		open_talent_screen
+	)
+
+	tree_screen_button.pressed.connect(
+		open_tree_screen
 	)
 
 	show_branch_upgrades()
@@ -85,7 +97,16 @@ func show_soul_status() -> void:
 
 
 func open_talent_screen() -> void:
+	if tree_screen.has_method("close_screen"):
+		tree_screen.close_screen()
 	if talent_screen.has_method(
 		"open_screen"
 	):
 		talent_screen.open_screen()
+
+
+func open_tree_screen() -> void:
+	if talent_screen.has_method("close_screen"):
+		talent_screen.close_screen()
+	if tree_screen.has_method("open_screen"):
+		tree_screen.open_screen()

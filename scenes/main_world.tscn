@@ -15,6 +15,7 @@
 [ext_resource type="Script" uid="uid://b54clhb610ogx" path="res://scripts/branch_upgrade_panel.gd" id="11_avgj4"]
 [ext_resource type="Script" uid="uid://28ykddq1rea" path="res://scripts/tree_upgrade_panel.gd" id="12_sr1c3"]
 [ext_resource type="PackedScene" uid="uid://c7t6jb4idtkrd" path="res://scenes/ui/TalentScreen.tscn" id="14_liqfm"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TreeScreen.tscn" id="22_tree_screen"]
 [ext_resource type="Script" uid="uid://c1a77oh0r7f3g" path="res://scripts/tree_soul_selection_screen.gd" id="15_liqfm"]
 [ext_resource type="Script" uid="uid://sehhqrxk388v" path="res://scripts/tree_soul_status_panel.gd" id="16_8v7ug"]
 [ext_resource type="Script" uid="uid://bluwty0404baq" path="res://scripts/tree_soul_rank_up_notification.gd" id="17_rank_up"]
@@ -252,7 +253,7 @@ text = "BRANCHES"
 [node name="TreeTabButton" type="Button" parent="UI/UpgradeTabs" unique_id=1884237489]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "TREE"
+text = "TRUNK"
 
 [node name="SoulTabButton" type="Button" parent="UI/UpgradeTabs" unique_id=1733185821]
 layout_mode = 2
@@ -261,12 +262,21 @@ text = "SOUL"
 
 [node name="TalentScreen" parent="UI" unique_id=1619679837 instance=ExtResource("14_liqfm")]
 
+[node name="TreeScreen" parent="UI" instance=ExtResource("22_tree_screen")]
+
 [node name="TalentsButton" type="Button" parent="UI" unique_id=1766834317]
 offset_left = 14.0
 offset_top = 1040.0
 offset_right = 90.0
 offset_bottom = 1071.0
 text = "TALENTS"
+
+[node name="TreeScreenButton" type="Button" parent="UI"]
+offset_left = 100.0
+offset_top = 1040.0
+offset_right = 165.0
+offset_bottom = 1071.0
+text = "TREE"
 
 [node name="TreeSoulSelectionScreen" type="Control" parent="UI" unique_id=252805497]
 layout_mode = 3
