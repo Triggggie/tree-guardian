@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentTreeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+[ext_resource type="Script" path="res://scripts/definitions/talent_tree_definition.gd" id="2_tree"]
+[ext_resource type="Resource" path="res://resources/talents/thorn_crown/barbed_core.tres" id="3_barbed"]
+[ext_resource type="Resource" path="res://resources/talents/thorn_crown/twin_torment.tres" id="4_twin"]
+[ext_resource type="Resource" path="res://resources/talents/thorn_crown/overgrowth.tres" id="5_overgrowth"]
+
+[resource]
+script = ExtResource("2_tree")
+talent_tree_id = &"thorn_crown_talent_tree"
+display_name = "Thorn Crown Talent Tree"
+description = "Bilateral and area-damage talents for Thorn Crown."
+talents = Array[ExtResource("1_talent")]([ExtResource("3_barbed"), ExtResource("4_twin"), ExtResource("5_overgrowth")])

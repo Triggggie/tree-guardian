@@ -1,0 +1,13 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/branches/thorn_crown_branch.gd" id="1_branch"]
+[ext_resource type="Script" path="res://scripts/branches/thorn_crown_visual.gd" id="2_visual"]
+
+[node name="ThornCrownBranch" type="Node2D"]
+script = ExtResource("1_branch")
+
+[node name="Visual" type="Node2D" parent="."]
+script = ExtResource("2_visual")
+
+[node name="CooldownTimer" type="Timer" parent="."]
+wait_time = 2.4

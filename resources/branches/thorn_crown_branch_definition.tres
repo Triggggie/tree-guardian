@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="BranchDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/branch_definition.gd" id="1_branch"]
+[ext_resource type="Script" path="res://scripts/definitions/targeting_profile.gd" id="2_targeting"]
+[ext_resource type="PackedScene" path="res://scenes/branches/thorn_crown_branch.tscn" id="3_scene"]
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="4_upgrade"]
+[ext_resource type="Resource" path="res://resources/upgrades/thorn_crown/thorn_damage.tres" id="5_damage"]
+[ext_resource type="Resource" path="res://resources/upgrades/thorn_crown/attack_speed.tres" id="6_speed"]
+[ext_resource type="Resource" path="res://resources/upgrades/thorn_crown/burst_radius.tres" id="7_radius"]
+[ext_resource type="Resource" path="res://resources/talents/thorn_crown/thorn_crown_talent_tree.tres" id="8_talents"]
+
+[sub_resource type="Resource" id="Resource_targeting"]
+script = ExtResource("2_targeting")
+target_group = &"enemies"
+target_priority = 0
+lane_mode = 0
+
+[resource]
+script = ExtResource("1_branch")
+branch_id = &"thorn_crown"
+display_name = "Thorn Crown"
+description = "A legendary crown of living thorns that erupts on both sides of the tree, tearing through clustered enemies."
+category_id = &"legendary"
+legendary_tier = 1
+branch_scene = ExtResource("3_scene")
+targeting_profile = SubResource("Resource_targeting")
+upgrades = Array[ExtResource("4_upgrade")]([ExtResource("5_damage"), ExtResource("6_speed"), ExtResource("7_radius")])
+talent_tree = ExtResource("8_talents")

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="1_upgrade"]
+
+[resource]
+script = ExtResource("1_upgrade")
+upgrade_id = &"burst_radius"
+display_name = "Burst Radius"
+description = "Expands the area damaged around each Thorn Burst target."
+effect_id = &"thorn_crown_burst_radius"
+value_per_level = 8.0
+base_cost = 30
+cost_growth = 1.35
+maximum_level = 0
