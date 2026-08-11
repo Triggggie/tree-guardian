@@ -4,7 +4,7 @@ Updated: 2026-08-11
 
 Implementation parent for this checkpoint: `33d1fe2bc0cfd9a70c2e92b08c7905125b1234f0` (`Update status after shared Branch progression`)
 
-Checkpoint commit: `Update status after TREE overview`
+Checkpoint commit: `Update status after Branch loadout foundation`
 
 Baseline branch: `main`
 
@@ -398,6 +398,16 @@ Automated regression evidence for this checkpoint:
 - TREE has no mutation actions: Branch swapping/equip, Apex equip, Thorn Crown, equipment/inventory, talent purchase/respec/copy-build, and other TREE mutations remain unimplemented.
 - Godot 4.7.1 headless import passed. TREE Screen and TALENTS Tab passed twice. Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Apex Slot Rules, Branch Seed Loot, Legendary Boss Loot, Enemy Runtime, Strength Visual, and Blossom Visual passed once. Loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
 
+### Standard Branch Runtime Loadout Foundation
+
+- `BranchLoadout` is a new runtime-only autoload that stores initialized standard `slot_id -> branch_id` assignments. An initialized value of `&""` represents explicit EMPTY and is preserved across MainWorld recreation; no disk save was added.
+- The production defaults remain Strength, Blossom, Strength, Blossom in Slots 1-4. Duplicate standard archetypes are valid, including four simultaneous Strength instances.
+- Four `BranchMount` nodes preserve the original left/right offsets. Static Strength and Blossom gameplay instances were removed from `tree.tscn`; `TreeBranchLoadoutController` now instantiates runtime roots through `GameContent` and `BranchDefinition.branch_scene`.
+- Low-level runtime equip and unequip APIs exist. Shared BranchProgress and per-`slot_id + branch_id` talent builds survive real Strength-to-Blossom-to-Strength swaps, unequip, and MainWorld recreation.
+- TREE, TALENTS, and the BRANCHES upgrade panel refresh from completed runtime slot changes without polling or retaining freed Branch nodes. TREE remains read-only and exposes no player-facing mutation controls.
+- Player-facing Branch selection, loadout-edit timing/preparation rules, unrestricted mid-combat swap UI, Apex equip, disk persistence, and Thorn Crown remain unimplemented.
+- Godot 4.7.1 headless import passed. Standard Branch Loadout, TREE Screen, and TALENTS Tab passed twice. Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Apex Slot Rules, Strength Visual, Blossom Visual, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed once. Loot tests emitted only their intentional negative-fixture save-path warnings; there were no parser, Resource, invalid-UID, orphan, or stack-trace failures.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
@@ -458,12 +468,13 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Standard Branch equip/unequip foundation using stable slot IDs.
-2. Branch selection collection for standard slots, allowing duplicate archetypes.
-3. Preserve `slot_id + branch_id` talent builds across real equip swaps.
-4. Apex unlocked Seed selection and equip flow.
-5. Thorn Crown as the first Tier I Legendary Apex Branch.
-6. Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
+1. Add the standard Branch selection collection to TREE.
+2. Define and enforce when player-facing loadout changes are allowed; do not expose unrestricted mid-combat hot-swapping.
+3. Allow selecting any available standard BranchDefinition for Slots 1-4, including duplicate archetypes.
+4. Show the preserved `slot_id + branch_id` talent build before confirming a swap.
+5. Add Apex unlocked Branch Seed selection/equip flow.
+6. Implement Thorn Crown as the first Tier I Legendary Apex Branch.
+7. Add Boss Abilities V1.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
