@@ -49,6 +49,10 @@ func run_test() -> void:
 		"UI/TalentScreen"
 	) as Control
 
+	var tree_screen: Control = main_world.get_node_or_null(
+		"UI/TreeScreen"
+	) as Control
+
 	var active_branch: Node = null
 	var visual_mistaken_for_branch: bool = false
 
@@ -190,12 +194,19 @@ func run_test() -> void:
 		is_instance_valid(talents_button)
 		and is_instance_valid(talent_screen)
 	):
+		if is_instance_valid(tree_screen):
+			tree_screen.call("open_screen")
 		talents_button.pressed.emit()
 		await get_tree().process_frame
 
 		expect(
 			talent_screen.is_visible_in_tree(),
 			"Pressing TALENTS did not open TalentScreen."
+		)
+		expect(
+			not is_instance_valid(tree_screen)
+			or not tree_screen.is_visible_in_tree(),
+			"Opening TALENTS did not hide TREE."
 		)
 
 	main_world.queue_free()
