@@ -930,7 +930,6 @@ func purchase_talents(
 		&"strength_branch"
 	)
 	progress.branch_level = 2
-	progress.available_talent_points = talent_ids.size()
 	progress.total_talent_points_earned = talent_ids.size()
 	progress_service.synchronize_branch(strength_branch as CombatBranch)
 

@@ -959,7 +959,6 @@ func set_shared_progress(
 		&"blossom_branch"
 	)
 	progress.branch_level = branch_level
-	progress.available_talent_points = available_points
 	progress.total_talent_points_earned = max(
 		progress.total_talent_points_earned,
 		available_points

@@ -443,6 +443,11 @@ func test_branch_detection(
 		and is_instance_valid(right_blossom)
 	):
 		left_blossom.call("add_xp", 2)
+		expect(
+			left_blossom.get("available_talent_points") == 1
+			and right_blossom.get("available_talent_points") == 1,
+			"Blossom slots did not each receive the full Talent Point budget."
+		)
 		talent_screen.call("select_branch", left_blossom)
 
 		expect(
@@ -464,13 +469,26 @@ func test_branch_detection(
 			"Left Blossom did not retain its purchased talent."
 		)
 		expect(
-			bool(
+			not bool(
 				right_blossom.call(
 					"has_talent",
 					&"abundant_bloom"
 				)
 			),
-			"Right Blossom did not show the shared talent purchase."
+			"Abundant Bloom leaked from Slot 2 to Slot 4."
+		)
+		expect(
+			right_blossom.get("available_talent_points") == 1,
+			"Slot 4 lost its independent Talent Point budget."
+		)
+		talent_screen.call("select_branch", right_blossom)
+		expect(
+			bool(right_blossom.call("purchase_talent", &"twin_petals")),
+			"Could not purchase Twin Petals on Slot 4."
+		)
+		expect(
+			not bool(left_blossom.call("has_talent", &"twin_petals")),
+			"Twin Petals leaked from Slot 4 to Slot 2."
 		)
 		expect(
 			left_blossom.get("talent_effect_set")

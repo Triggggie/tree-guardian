@@ -2411,6 +2411,14 @@ func _create_schedule_entry(
 
 
 func test_wave_director_substage_queries() -> void:
+	var production_world: Node = load("res://scenes/main_world.tscn").instantiate()
+	var production_director: WaveDirector = production_world.get_node("WaveDirector") as WaveDirector
+	expect(
+		production_director.debug_start_global_wave == 0,
+		"Production MainWorld has an active debug Wave start."
+	)
+	production_world.free()
+
 	var stage: StageDefinition = (
 		GameContent.get_stage(&"guardian_grove")
 	)

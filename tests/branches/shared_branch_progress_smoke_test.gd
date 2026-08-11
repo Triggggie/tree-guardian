@@ -66,8 +66,8 @@ func run_test() -> void:
 		!= branch_progress.get_progress(&"blossom_branch"),
 		"Different Branch archetypes shared a progress record."
 	)
-	expect_same_progress(left_strength, right_strength, "initial Strength")
-	expect_same_progress(left_blossom, right_blossom, "initial Blossom")
+	expect_same_shared_progress(left_strength, right_strength, "initial Strength")
+	expect_same_shared_progress(left_blossom, right_blossom, "initial Blossom")
 	expect(
 		left_strength.talent_effect_set != right_strength.talent_effect_set,
 		"Strength instances shared a talent effect set."
@@ -111,7 +111,7 @@ func run_test() -> void:
 	)
 
 	left_strength.add_xp(2)
-	expect_same_progress(left_strength, right_strength, "Strength XP")
+	expect_same_shared_progress(left_strength, right_strength, "Strength XP")
 	expect(left_strength.branch_level == 2, "Strength did not level to 2.")
 	expect(
 		left_strength.available_talent_points == 1
@@ -133,24 +133,22 @@ func run_test() -> void:
 		"Strength talent purchase failed."
 	)
 	expect(left_strength.has_talent(strength_talent_id), "Left Strength lost talent.")
-	expect(right_strength.has_talent(strength_talent_id), "Right Strength missed talent.")
+	expect(not right_strength.has_talent(strength_talent_id), "Strength talent leaked across slots.")
 	expect(
 		left_strength.available_talent_points == 0
-		and right_strength.available_talent_points == 0,
-		"Strength talent cost was not deducted once from shared TP."
+		and right_strength.available_talent_points == 1,
+		"Strength talent cost was not isolated to Slot 1."
 	)
 	expect(
 		left_strength.talent_effect_set.has_active_effect(
 			left_strength.get_active_talent_effect_ids()[0]
 		)
-		and right_strength.talent_effect_set.has_active_effect(
-			right_strength.get_active_talent_effect_ids()[0]
-		),
-		"Strength talent effects were not synchronized."
+		and right_strength.get_active_talent_effect_ids().is_empty(),
+		"Strength talent effects were not isolated per slot."
 	)
 	expect(
-		not right_strength.purchase_talent(strength_talent_id),
-		"Duplicate shared Strength talent purchase succeeded."
+		right_strength.purchase_talent(strength_talent_id),
+		"Independent Strength talent purchase in Slot 3 failed."
 	)
 	expect(
 		is_instance_valid(left_strength.current_target)
@@ -159,7 +157,7 @@ func run_test() -> void:
 	)
 
 	left_blossom.add_xp(2)
-	expect_same_progress(left_blossom, right_blossom, "Blossom XP")
+	expect_same_shared_progress(left_blossom, right_blossom, "Blossom XP")
 	expect(left_blossom.branch_level == 2, "Blossom did not level to 2.")
 	var blossom_talent_id: StringName = left_blossom.get_talent_ids()[0]
 	expect(
@@ -167,9 +165,9 @@ func run_test() -> void:
 		"Blossom talent purchase failed."
 	)
 	expect(
-		left_blossom.has_talent(blossom_talent_id)
+		not left_blossom.has_talent(blossom_talent_id)
 		and right_blossom.has_talent(blossom_talent_id),
-		"Blossom talent did not synchronize."
+		"Blossom talent was not isolated to Slot 4."
 	)
 	expect(
 		not left_strength.has_talent(blossom_talent_id),
@@ -229,10 +227,10 @@ func run_test() -> void:
 		"Blossom upgrade level did not synchronize."
 	)
 	expect(
-		left_blossom.get_current_healing_per_tick()
-		== right_blossom.get_current_healing_per_tick()
+		left_blossom.get_upgrade_level(blossom_upgrade_id) == 1
+		and right_blossom.get_upgrade_level(blossom_upgrade_id) == 1
 		and left_blossom.get_current_healing_per_tick() > blossom_healing_before,
-		"Blossom shared healing result is incorrect."
+		"Blossom shared upgrade result is incorrect."
 	)
 
 	var saved_strength: BranchProgressRecord = (
@@ -256,7 +254,7 @@ func run_test() -> void:
 	var recreated_world: Node = await create_main_world()
 	var recreated_branches: Dictionary = find_branch_pairs(recreated_world)
 	var recreated_strength := recreated_branches.get("left_strength") as CombatBranch
-	var recreated_blossom := recreated_branches.get("left_blossom") as CombatBranch
+	var recreated_blossom := recreated_branches.get("right_blossom") as CombatBranch
 
 	expect(
 		recreated_strength.branch_level == saved_strength.branch_level
@@ -334,7 +332,7 @@ func _all_branches_valid(branches: Dictionary) -> bool:
 	)
 
 
-func expect_same_progress(
+func expect_same_shared_progress(
 	first: CombatBranch,
 	second: CombatBranch,
 	label: String
@@ -342,9 +340,7 @@ func expect_same_progress(
 	expect(
 		first.branch_level == second.branch_level
 		and first.current_xp == second.current_xp
-		and first.available_talent_points == second.available_talent_points
 		and first.total_talent_points_earned == second.total_talent_points_earned
-		and first.purchased_talents == second.purchased_talents
 		and first.get_progress_upgrade_levels()
 		== second.get_progress_upgrade_levels(),
 		"%s progress differs between instances." % label
