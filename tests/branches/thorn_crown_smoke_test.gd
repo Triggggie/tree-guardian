@@ -45,7 +45,7 @@ func _ready() -> void:
 	await test_upgrades()
 	await test_talents()
 	await test_apex_progress_persistence_and_lifecycle()
-	test_guardian_grove_loot_absence()
+	test_guardian_grove_loot_entry()
 	RunModifiers.clear_all()
 
 	if failures.is_empty():
@@ -309,12 +309,15 @@ func test_apex_progress_persistence_and_lifecycle() -> void:
 	progress.clear_runtime_progress_for_testing()
 
 
-func test_guardian_grove_loot_absence() -> void:
+func test_guardian_grove_loot_entry() -> void:
 	var stage: StageDefinition = GameContent.get_stage(&"guardian_grove")
 	var pool: BranchSeedLootPoolDefinition = stage.get_branch_seed_loot_pool()
-	for entry in pool.entries:
-		expect(entry.get_branch_id() != &"thorn_crown", "Guardian Grove can already drop Thorn Crown.")
-	expect(pool.entries.is_empty(), "Guardian Grove Branch Seed pool changed during Thorn Crown V1.")
+	expect(
+		pool.entries.size() == 1
+		and pool.entries[0].get_branch_id() == &"thorn_crown"
+		and pool.entries[0].get_legendary_tier() == BranchDefinition.LEGENDARY_TIER_1,
+		"Guardian Grove does not contain exactly the Thorn Crown Tier I Seed entry."
+	)
 
 
 func create_branch_fixture(fixture_name: String) -> Dictionary:

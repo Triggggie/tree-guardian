@@ -22,6 +22,9 @@ const COLOSSUS: EnemyDefinition = preload(
 const STAGE: StageDefinition = preload(
 	"res://resources/stages/guardian_grove_stage.tres"
 )
+const THORN_CROWN: BranchDefinition = preload(
+	"res://resources/branches/thorn_crown_branch_definition.tres"
+)
 const SCHEDULE: SubstageWaveScheduleDefinition = preload(
 	"res://resources/wave_schedules/guardian_grove_standard_schedule.tres"
 )
@@ -98,7 +101,12 @@ func test_legendary_tiers() -> void:
 func test_loot_pool_and_content_validation() -> void:
 	var production_pool: BranchSeedLootPoolDefinition = STAGE.branch_seed_loot_pool
 	expect(production_pool.is_valid_definition(), "Guardian Grove pool is invalid.")
-	expect(production_pool.entries.is_empty(), "Guardian Grove pool is not empty.")
+	expect(production_pool.entries.size() == 1, "Guardian Grove pool size differs.")
+	if production_pool.entries.size() == 1:
+		var production_entry: BranchSeedLootEntryDefinition = production_pool.entries[0]
+		expect(production_entry.branch_definition == THORN_CROWN, "Production entry is not Thorn Crown.")
+		expect(production_entry.get_legendary_tier() == 1, "Production entry is not Tier I.")
+		expect(is_equal_approx(production_entry.weight, 1.0), "Production entry weight differs.")
 	expect(production_pool.miniboss_maximum_tier == 1, "Miniboss maximum is not I.")
 	expect(production_pool.boss_maximum_tier == 1, "Boss maximum is not I.")
 	expect(production_pool.get_pity_threshold(1) == 12, "Tier I threshold differs.")
@@ -308,7 +316,8 @@ func test_tier_selection_and_pity() -> void:
 	copied_pity[2] = 999
 	expect(reloaded.get_pity_points(2) == 7, "Pity Dictionary exposed internal state.")
 	var before_empty: Dictionary = reloaded.get_all_pity_points()
-	reloaded.process_enemy_defeat(COLOSSUS, STAGE, Vector2.ZERO)
+	var empty_stage: StageDefinition = create_stage([], 1, 1)
+	reloaded.process_enemy_defeat(COLOSSUS, empty_stage, Vector2.ZERO)
 	expect(reloaded.get_all_pity_points() == before_empty, "Empty pool changed pity.")
 	reloaded.process_enemy_defeat(BEETLE, pity_stage, Vector2.ZERO)
 	expect(reloaded.get_all_pity_points() == before_empty, "Normal enemy changed pity.")

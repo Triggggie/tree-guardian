@@ -19,6 +19,9 @@ const BARK_WARDEN_SCENE: PackedScene = preload(
 const GUARDIAN_GROVE_STAGE: StageDefinition = preload(
 	"res://resources/stages/guardian_grove_stage.tres"
 )
+const THORN_CROWN_DEFINITION: BranchDefinition = preload(
+	"res://resources/branches/thorn_crown_branch_definition.tres"
+)
 
 
 var failures: Array[String] = []
@@ -58,8 +61,12 @@ func test_production_defaults() -> void:
 		"Normal Bark Beetle has Branch Seed loot values."
 	)
 	expect(
-		GUARDIAN_GROVE_STAGE.branch_seed_loot_pool.entries.is_empty(),
-		"Production Guardian Grove loot pool is not empty."
+		GUARDIAN_GROVE_STAGE.branch_seed_loot_pool.entries.size() == 1
+		and GUARDIAN_GROVE_STAGE.branch_seed_loot_pool.entries[0].branch_definition
+		== THORN_CROWN_DEFINITION
+		and GUARDIAN_GROVE_STAGE.branch_seed_loot_pool.entries[0].get_legendary_tier()
+		== BranchDefinition.LEGENDARY_TIER_1,
+		"Production Guardian Grove pool does not contain exactly Thorn Crown Tier I."
 	)
 
 
