@@ -1,10 +1,10 @@
 # Tree Guardian — Current Project Status
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
-Implementation parent for this checkpoint: `2cac5d9` (`Add Thorn Crown regression coverage`)
+Implementation parent for this checkpoint: `928f75c` (`Add Thorn Crown loot regression coverage`)
 
-Checkpoint commit: `Update status after Thorn Crown`
+Checkpoint commit: `Update status after Thorn Crown loot`
 
 Baseline branch: `main`
 
@@ -14,7 +14,7 @@ Tree Guardian is a playable 2D idle/tower-defense prototype built for Godot 4.7.
 
 The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. Stable identities are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`. Thorn Crown (`thorn_crown`) is the first production Legendary Branch: a Tier I, Apex-only bilateral area-damage Branch registered in `GameContent`. Global content, run, persistent Branch Seed, runtime loadout, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, `BranchLoadout`, and `BranchProgress` autoloads.
 
-This document describes the repository after the Thorn Crown Tier I V1 checkpoint built on the implementation parent above.
+This document describes the repository after the Thorn Crown Guardian Grove Tier I Loot checkpoint built on the implementation parent above.
 
 ## 2. Current Playable Prototype
 
@@ -440,8 +440,19 @@ Automated regression evidence for this checkpoint:
 - Its TalentTree contains Barbed Core at Level 2 (primary +40%), Twin Torment at Level 4 (both sides active gives +25% cycle damage), and Overgrowth at Level 7 (every third real cycle gives +30% damage and +50% radius). Multipliers stack multiplicatively.
 - The code-drawn Thorn Crown visual has a symmetric central crown, bilateral arms and thorns, modest level growth, and transient code-drawn Thorn Burst feedback that self-cleans.
 - TREE displays the production description, Legendary Tier, progress, saved Apex build, upgrades, and effective stats. TALENTS discovers `APEX — THORN CROWN` and its three talents; BRANCHES discovers its three upgrades without special UI code.
-- Thorn Crown is registered but cannot yet drop naturally. It is not default-unlocked, and the Guardian Grove Branch Seed pool remains unchanged and empty.
+- At this historical checkpoint Thorn Crown was registered but could not yet drop naturally. The later Guardian Grove Tier I Loot checkpoint below adds natural acquisition without default-unlocking it.
 - Godot 4.7.1 headless import passed. Thorn Crown runtime/content, Thorn Crown visual, TREE Apex Picker, Apex Branch Loadout, and Apex Slot Rules passed twice. Preparation, TREE Branch Picker, TREE Screen, TALENTS Tab, Standard Branch Loadout, Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Strength Visual, Blossom Visual, Branch Seed Loot, Legendary Boss Loot, and Enemy Runtime passed once. Loot tests emitted only their intentional negative-fixture save-path warnings.
+
+### Thorn Crown Guardian Grove Tier I Loot
+
+- Thorn Crown is the first production Branch Seed entry in the Guardian Grove Tier I pool. The entry references the registered `thorn_crown` BranchDefinition and has weight 1.0.
+- Bark Warden retains its 5% eligible roll chance and +1 Tier I pity on failure. Ancient Bark Colossus retains its 15% chance and +3 Tier I pity. The Tier I threshold remains 12.
+- With all chance rolls failing, three complete Warden + Colossus pairs move Tier I pity through `0 -> 1 -> 4 -> 5 -> 8 -> 9 -> 12`. The next eligible encounter sees the threshold already reached and is guaranteed; the Colossus that raises pity from 9 to 12 does not retroactively drop the Seed.
+- A successful production drop unlocks Thorn Crown through `BranchSeeds`, resets Tier I pity to 0, persists the unlock to the existing disk save, and makes it available to the existing TREE Apex picker during Preparation. Reload preserves the unlock; the Branch loadout itself remains runtime-only.
+- Once Thorn Crown is unlocked it leaves the locked pool. Warden and Colossus cannot drop it again, and with no other locked Tier I entry they perform no Seed roll, emit no duplicate drop, and add no pity.
+- Registration and pool membership alone do not unlock Thorn Crown. Bark Beetle and Bark Runner remain normal enemies with zero Branch Seed chance and pity contribution.
+- Branch Seed drop notification, a loot popup, a physical loot object, boss abilities, production Tier II and Tier III Branches, and equipment/inventory are still not implemented.
+- Godot 4.7.1 headless import passed. Thorn Crown Guardian Grove Loot, Branch Seed Loot, and Legendary Boss Loot passed twice. Thorn Crown runtime/content, Thorn Crown visual, Apex Branch Loadout, Apex Slot Rules, TREE Apex Picker, TREE Screen, TALENTS Tab, Loadout Preparation, Standard Branch Loadout, Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Strength Visual, Blossom Visual, and Enemy Runtime passed once. Loot tests emitted only their intentional negative-fixture save-path warnings.
 
 ## 9. Known Gaps and Limitations
 
@@ -461,8 +472,7 @@ Automated regression evidence for this checkpoint:
 - No StatusEffect definitions are registered yet.
 - Strength, Blossom, and Thorn Crown have separated visual and talent-effect responsibilities. Their runtime dispatchers remain Branch-specific rather than a global universal effect system.
 - A shared Branch visual base does not yet exist and is not needed for the current three implementations.
-- Branch category data, Slot 5 rules, the Apex runtime/equip foundation, persistent Branch Seed unlock storage, the legendary drop-processing foundation, and production Thorn Crown content exist. There is still no production Branch Seed drop, player-facing drop notification, physical loot object, player-facing Apex unequip, or disk Apex loadout save.
-- Thorn Crown is registered but absent from the Guardian Grove Branch Seed pool, so it cannot yet be acquired naturally.
+- Branch category data, Slot 5 rules, the Apex runtime/equip foundation, persistent Branch Seed unlock storage, the legendary drop-processing foundation, and natural production Thorn Crown acquisition exist. There is still no player-facing drop notification, physical loot object, player-facing Apex unequip, or disk Apex loadout save.
 - There is no found-versus-equipped Apex Branch comparison.
 - Bark Warden and Ancient Bark Colossus have no unique phases or abilities, and there is no dedicated boss health-bar UI.
 - Normal enemies do not drop equipment.
@@ -483,7 +493,7 @@ The approved roster target is 20 Branch archetypes: 13 standard Branches and sev
 
 The first legendary concepts are:
 
-- Thorn Crown: implemented as a bilateral Tier I area-damage Apex Branch; natural acquisition is the next checkpoint.
+- Thorn Crown: implemented as a naturally obtainable bilateral Tier I area-damage Apex Branch.
 - Spirit Branch: summons forest spirits on both sides. Spirits advance toward enemies; on contact both units stop and fight, and the enemy resumes moving toward the tree only after defeating the spirit.
 
 ## 10. Architecture Decisions to Preserve
@@ -503,10 +513,10 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Add Thorn Crown to Guardian Grove Tier I Branch Seed loot.
-2. Verify Bark Warden and Ancient Bark Colossus can unlock Thorn Crown through the existing chance/pity pipeline.
-3. Add player-facing Branch Seed drop/unlock notification with Legendary Tier.
-4. Add Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
+1. Add player-facing Branch Seed drop/unlock notification with Branch name and Legendary Tier.
+2. Add a short Legendary acquisition presentation without blocking combat or Preparation.
+3. Add Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
+4. Begin the second production Legendary Branch concept.
 5. Begin equipment/inventory foundation.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
@@ -518,7 +528,7 @@ General save/load, prestige integration, later talent tiers, Status Effects, and
 - Run `git status --short` and verify the working tree is clean before starting a new task.
 - Run `git log -1 --oneline` and review the current HEAD.
 - Expected baseline branch: `main`.
-- Implementation parent for this checkpoint: `2cac5d9`.
+- Implementation parent for this checkpoint: `928f75c`.
 - Verify that the current HEAD contains this implementation baseline or is a descendant of it.
 - The 25A and 25B implementation was accumulated in the working tree before this checkpoint document and committed as one focused package.
 - After the checkpoint commit, the working tree should be clean before new development begins.
