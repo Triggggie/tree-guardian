@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BossAbilityDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/boss_ability_definition.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"root_slam"
+display_name = "Root Slam"
+initial_delay = 3.0
+cooldown = 7.0
+telegraph_duration = 0.9
+damage = 8.0
+telegraph_ring_count = 1
+telegraph_radius = 76.0
+telegraph_color = Color(0.86, 0.28, 0.07, 0.76)

@@ -48,6 +48,11 @@ var attack_interval: float = 1.0
 var attack_range: float = 40.0
 
 
+@export_category("Boss Ability")
+
+@export var boss_ability_definition: BossAbilityDefinition
+
+
 @export_category("Rewards")
 
 @export_range(0, 1000000000, 1)
@@ -95,6 +100,12 @@ func is_valid_definition() -> bool:
 		return false
 
 	if attack_range < 0.0:
+		return false
+
+	if (
+		is_instance_valid(boss_ability_definition)
+		and not boss_ability_definition.is_valid_definition()
+	):
 		return false
 
 	if essence_reward < 0:

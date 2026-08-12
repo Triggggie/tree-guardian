@@ -69,6 +69,7 @@ var resting_scale: Vector2
 
 var hit_tween: Tween
 var death_tween: Tween
+var boss_ability_runtime: BossAbilityRuntime
 
 
 func configure_from_definition(
@@ -112,7 +113,28 @@ func configure_from_definition(
 		1.0
 	)
 
+	configure_boss_ability_runtime(
+		definition.boss_ability_definition
+	)
+
 	return true
+
+
+func configure_boss_ability_runtime(
+	ability_definition: BossAbilityDefinition
+) -> void:
+	if is_instance_valid(boss_ability_runtime):
+		boss_ability_runtime.free()
+		boss_ability_runtime = null
+	if not is_instance_valid(ability_definition):
+		return
+	boss_ability_runtime = BossAbilityRuntime.new()
+	boss_ability_runtime.name = "BossAbilityRuntime"
+	if not boss_ability_runtime.configure(ability_definition):
+		boss_ability_runtime.free()
+		boss_ability_runtime = null
+		return
+	add_child(boss_ability_runtime)
 
 
 func configure_stage_context(
@@ -211,6 +233,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	cancel_boss_ability_runtime()
 	unregister_from_enemy_tracker()
 	unregister_from_lane_registry()
 
@@ -570,6 +593,7 @@ func die(killer: Node = null) -> void:
 
 	is_dying = true
 	combat_enabled = false
+	cancel_boss_ability_runtime()
 
 	attack_component.set_enabled(false)
 	stop_attacking()
@@ -715,6 +739,7 @@ func stop_combat() -> void:
 		return
 
 	combat_enabled = false
+	cancel_boss_ability_runtime()
 	attack_component.set_enabled(false)
 	stop_attacking()
 	movement_component.set_enabled(false)
@@ -726,6 +751,11 @@ func stop_combat() -> void:
 	rotation = resting_rotation
 	scale = resting_scale
 	modulate = Color.WHITE
+
+
+func cancel_boss_ability_runtime() -> void:
+	if is_instance_valid(boss_ability_runtime):
+		boss_ability_runtime.cancel_runtime()
 
 
 func _draw() -> void:

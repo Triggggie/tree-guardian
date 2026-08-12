@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="BossAbilityDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/boss_ability_definition.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"colossal_quake"
+display_name = "Colossal Quake"
+initial_delay = 3.5
+cooldown = 8.0
+telegraph_duration = 1.2
+damage = 12.0
+phase_two_health_ratio = 0.5
+phase_two_cooldown = 6.0
+phase_two_telegraph_duration = 1.0
+phase_two_pulse_damage = 10.0
+phase_two_pulse_count = 2
+phase_two_pulse_delay = 0.35
+telegraph_ring_count = 2
+telegraph_radius = 128.0
+telegraph_color = Color(0.9, 0.22, 0.06, 0.8)

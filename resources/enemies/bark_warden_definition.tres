@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/definitions/enemy_definition.gd" id="1_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/bark_warden.tscn" id="2_scene"]
+[ext_resource type="Resource" path="res://resources/enemies/bark_warden_root_slam_ability.tres" id="3_ability"]
 
 [resource]
 script = ExtResource("1_enemy")
@@ -14,6 +15,7 @@ maximum_health = 120.0
 attack_damage = 4.0
 attack_interval = 1.4
 attack_range = 145.0
+boss_ability_definition = ExtResource("3_ability")
 essence_reward = 8
 experience_reward = 8
 branch_seed_roll_chance = 0.05
