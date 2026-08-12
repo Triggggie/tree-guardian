@@ -38,6 +38,7 @@ position = Vector2(20, -170)
 position = Vector2(0, -95)
 
 [node name="BranchMount" type="Node2D" parent="AttachmentPoints/Apex"]
+position = Vector2(0, -170)
 
 [node name="Roots" type="Node2D" parent="." unique_id=210533633]
 

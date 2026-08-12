@@ -163,22 +163,24 @@ func run_test(
 			controller.get_runtime_branch(BranchSlotRules.get_slot_id(slot_index)).combat_enabled,
 			"Standard Slot %d did not resume with Apex." % slot_index
 		)
-	director.cancel_cycle(true)
-	manager.remove_remaining_enemies()
 	ui.call("open_tree_screen")
 	screen.call("select_slot", &"apex_slot")
 	expect(
-		change_button.disabled
+		not change_button.disabled
 		and (screen.get_node("MainPanel/DetailPanel/LoadoutStatusLabel") as Label)
-		.text.contains("LOADOUT LOCKED"),
-		"Apex controls are not locked outside Preparation."
+		.text.contains("APEX LOADOUT EDITING ENABLED")
+		and screen.call("open_branch_picker"),
+		"Apex controls are not enabled during active gameplay."
 	)
-	screen.set("selected_candidate_branch_id", definition_b.branch_id)
+	screen.call("select_branch_candidate", definition_a.branch_id)
 	expect(
 		not screen.call("confirm_selected_branch_candidate")
 		and controller.get_runtime_apex_branch() == apex_a,
-		"Outside-Preparation Apex exploit changed runtime."
+		"Equipped Apex no-op behavior changed during active gameplay."
 	)
+	screen.call("close_branch_picker")
+	director.cancel_cycle(true)
+	manager.remove_remaining_enemies()
 
 	ui.call("open_talent_screen")
 	var talent_branches: Array = talents.get("available_branches") as Array

@@ -149,7 +149,7 @@ func _refresh_slot_buttons() -> void:
 	for slot_id_value in slot_buttons:
 		var slot_id := StringName(slot_id_value)
 		var button: Button = slot_buttons[slot_id]
-		var branch: CombatBranch = branches_by_slot.get(slot_id) as CombatBranch
+		var branch: CombatBranch = _get_runtime_branch_for_slot(slot_id)
 		var slot_index: int = BranchSlotRules.get_slot_index(slot_id)
 		if slot_id == BranchSlotRules.APEX_SLOT_ID:
 			button.text = "APEX\n%s" % (_get_short_branch_name(branch) if is_instance_valid(branch) else "EMPTY")
@@ -160,7 +160,7 @@ func _refresh_slot_buttons() -> void:
 
 
 func _refresh_selected_detail() -> void:
-	var branch: CombatBranch = branches_by_slot.get(selected_slot_id) as CombatBranch
+	var branch: CombatBranch = _get_runtime_branch_for_slot(selected_slot_id)
 	if not is_instance_valid(branch):
 		_refresh_empty_detail()
 		return
@@ -601,13 +601,21 @@ func _disconnect_signal(source_signal: Signal, callback: Callable) -> void:
 
 
 func _refresh_if_selected(branch_id: StringName) -> void:
-	var selected_branch: CombatBranch = branches_by_slot.get(selected_slot_id) as CombatBranch
+	var selected_branch: CombatBranch = _get_runtime_branch_for_slot(selected_slot_id)
 	if is_instance_valid(selected_branch) and selected_branch.branch_id == branch_id:
 		_refresh_selected_detail()
 
 
 func _on_level_changed(_level: int) -> void:
 	_refresh_selected_detail()
+
+
+func _get_runtime_branch_for_slot(slot_id: StringName) -> CombatBranch:
+	var branch_value: Variant = branches_by_slot.get(slot_id)
+	if not is_instance_valid(branch_value):
+		branches_by_slot.erase(slot_id)
+		return null
+	return branch_value as CombatBranch
 
 
 func _on_xp_changed(_xp: int, _required: int) -> void:

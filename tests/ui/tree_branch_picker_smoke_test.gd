@@ -12,11 +12,15 @@ var failures: Array[String] = []
 func _ready() -> void:
 	var loadout := get_node("/root/BranchLoadout") as BranchLoadoutService
 	var progress := get_node("/root/BranchProgress") as BranchProgressService
+	var seeds := get_node("/root/BranchSeeds") as BranchSeedService
+	var saved_seed_ids: Array[StringName] = seeds.unlocked_branch_seed_ids.duplicate()
+	seeds.unlocked_branch_seed_ids.clear()
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	await run_test(loadout)
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
+	seeds.unlocked_branch_seed_ids = saved_seed_ids
 
 	if failures.is_empty():
 		print("TREE BRANCH PICKER SMOKE TEST PASS")
@@ -179,23 +183,34 @@ func run_test(loadout: BranchLoadoutService) -> void:
 	)
 
 	expect(manager.continue_from_preparation(), "Could not leave Preparation.")
-	director.cancel_cycle(true)
-	manager.remove_remaining_enemies()
+	var live_wave: int = director.current_wave
 	ui.call("open_tree_screen")
 	screen.call("select_slot", &"standard_slot_4")
 	expect(
-		change_button.disabled
-		and (screen.get_node("MainPanel/DetailPanel/LoadoutStatusLabel") as Label).text.contains("LOADOUT LOCKED"),
-		"TREE is not locked outside Preparation."
+		not change_button.disabled
+		and (screen.get_node("MainPanel/DetailPanel/LoadoutStatusLabel") as Label).text.contains("LOADOUT EDITING ENABLED")
+		and screen.call("open_branch_picker"),
+		"TREE did not enable Standard editing during active gameplay."
 	)
-	screen.set("selected_candidate_branch_id", &"strength_branch")
+	screen.call("select_branch_candidate", &"strength_branch")
 	var slot_4_before: CombatBranch = controller.get_runtime_branch(&"standard_slot_4")
 	expect(
-		not screen.call("confirm_selected_branch_candidate")
-		and controller.get_runtime_branch(&"standard_slot_4") == slot_4_before
-		and loadout.get_equipped_branch_id(&"standard_slot_4") == &"blossom_branch",
-		"Direct UI confirm bypassed the outside-Preparation guard."
+		screen.call("confirm_selected_branch_candidate"),
+		"Active-game Standard confirm failed."
 	)
+	await get_tree().process_frame
+	var slot_4_after: CombatBranch = controller.get_runtime_branch(&"standard_slot_4")
+	expect(
+		not is_instance_valid(slot_4_before)
+		and is_instance_valid(slot_4_after)
+		and slot_4_after.branch_id == &"strength_branch"
+		and slot_4_after.combat_enabled
+		and director.current_wave == live_wave
+		and not get_tree().paused,
+		"Active-game Standard replacement state is wrong."
+	)
+	director.cancel_cycle(true)
+	manager.remove_remaining_enemies()
 
 	var forbidden_text: String = collect_control_text(screen)
 	for forbidden_phrase in ["UNEQUIP", "EMPTY SLOT", "REMOVE BRANCH"]:

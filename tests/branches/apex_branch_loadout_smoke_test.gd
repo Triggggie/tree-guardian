@@ -55,7 +55,10 @@ func run_test() -> void:
 	expect(loadout.is_apex_slot_initialized(), "Apex did not initialize.")
 	expect(loadout.get_equipped_apex_branch_id() == &"", "Initial Apex is not EMPTY.")
 	expect(controller.get_runtime_apex_branch() == null, "Initial runtime Apex exists.")
-	expect(apex_mount.position == Vector2.ZERO, "Apex BranchMount has an offset.")
+	expect(
+		apex_mount.position == Vector2(0.0, -170.0),
+		"Apex BranchMount does not use the dedicated top offset."
+	)
 	expect(not loadout.get_standard_loadout_copy().has(&"apex_slot"), "Standard copy contains Apex.")
 	expect(loadout.get_full_loadout_copy().has(&"apex_slot"), "Full copy omits Apex.")
 

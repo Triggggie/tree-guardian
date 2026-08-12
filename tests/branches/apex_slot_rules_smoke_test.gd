@@ -306,7 +306,8 @@ func test_tree_scene_base_structure() -> void:
 		"LeftUpper": Vector2(-20.0, -170.0),
 		"LeftLower": Vector2(-20.0, -170.0),
 		"RightUpper": Vector2(20.0, -170.0),
-		"RightLower": Vector2(20.0, -170.0)
+		"RightLower": Vector2(20.0, -170.0),
+		"Apex": Vector2(0.0, -170.0)
 	}
 
 	for marker_name in expected_branch_data:
@@ -341,8 +342,8 @@ func test_tree_scene_base_structure() -> void:
 		is_instance_valid(apex)
 		and apex.get_child_count() == 1
 		and apex.get_node_or_null("BranchMount") is Node2D
-		and (apex.get_node("BranchMount") as Node2D).position == Vector2.ZERO,
-		"Apex marker is missing its zero-offset BranchMount."
+		and (apex.get_node("BranchMount") as Node2D).position == Vector2(0.0, -170.0),
+		"Apex marker does not use the dedicated topmost BranchMount offset."
 	)
 
 	tree_node.free()
@@ -386,6 +387,7 @@ func test_main_world_runtime() -> void:
 			Vector2(0.0, -95.0) * growth_factor,
 			"Runtime Apex growth position"
 		)
+		expect_apex_topmost(attachment_points, "Sapling")
 
 		var base_positions: Dictionary = tree_node.get(
 			"attachment_base_positions"
@@ -510,10 +512,26 @@ func test_main_world_runtime() -> void:
 			Vector2(0.0, -95.0),
 			"Mature Apex growth position"
 		)
+		expect_apex_topmost(attachment_points, "Mature")
 
 	main_world.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+func expect_apex_topmost(attachment_points: Node, state_name: String) -> void:
+	var apex_mount := attachment_points.get_node("Apex/BranchMount") as Node2D
+	var left_mount := attachment_points.get_node("LeftUpper/BranchMount") as Node2D
+	var right_mount := attachment_points.get_node("RightUpper/BranchMount") as Node2D
+	var apex_y: float = apex_mount.global_position.y
+	expect(
+		apex_y < left_mount.global_position.y,
+		"%s Apex mount is not above LeftUpper." % state_name
+	)
+	expect(
+		apex_y < right_mount.global_position.y,
+		"%s Apex mount is not above RightUpper." % state_name
+	)
 
 
 func expect_vector(

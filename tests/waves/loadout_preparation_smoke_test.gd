@@ -57,6 +57,10 @@ func run_test() -> void:
 		"Initial Preparation contains enemies."
 	)
 	expect(tree_screen.visible, "TREE did not auto-open for Initial Preparation.")
+	expect(
+		manager.is_branch_loadout_edit_allowed(),
+		"Initial Preparation does not allow loadout editing."
+	)
 	for slot_index in range(1, 5):
 		var branch: CombatBranch = controller.get_runtime_branch(
 			BranchSlotRules.get_slot_id(slot_index)
@@ -74,6 +78,10 @@ func run_test() -> void:
 	expect(manager.continue_from_preparation(), "START RUN failed.")
 	expect(not manager.is_preparation_active(), "START RUN left Preparation active.")
 	expect(director.is_cycle_running(), "START RUN did not start the cycle.")
+	expect(
+		manager.is_branch_loadout_edit_allowed(),
+		"Active gameplay does not allow loadout editing."
+	)
 	expect(
 		started_waves == [1] and director.get_current_progress_code() == "1-1-1",
 		"START RUN did not begin at 1-1-1."
@@ -127,6 +135,17 @@ func run_test() -> void:
 	tree_node.call("die")
 	await get_tree().process_frame
 	expect(manager.tree_defeated, "Tree death did not set defeated state.")
+	expect(
+		not manager.is_branch_loadout_edit_allowed(),
+		"Defeated Tree still allows loadout editing."
+	)
+	tree_screen.call("refresh_screen")
+	tree_screen.call("select_slot", &"standard_slot_1")
+	expect(
+		(tree_screen.get_node("MainPanel/DetailPanel/LoadoutStatusLabel") as Label)
+		.text.contains("Tree is defeated."),
+		"Defeated TREE state does not explain the unavailable loadout."
+	)
 	expect(not director.is_cycle_running(), "Tree death did not stop the cycle.")
 	expect(
 		get_tree().get_nodes_in_group("enemies").is_empty(),
@@ -135,6 +154,10 @@ func run_test() -> void:
 	game_over_panel.call("request_retry")
 	await get_tree().process_frame
 	expect(not manager.tree_defeated, "Retry did not clear defeated state.")
+	expect(
+		manager.is_branch_loadout_edit_allowed(),
+		"Retry Preparation did not restore loadout editing."
+	)
 	expect(float(tree_node.get("current_health")) > 0.0, "Retry did not revive the Tree.")
 	expect(not director.is_cycle_running(), "Retry started a wave before confirmation.")
 	expect(

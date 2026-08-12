@@ -6,11 +6,15 @@ var failures: Array[String] = []
 func _ready() -> void:
 	var progress := get_node("/root/BranchProgress") as BranchProgressService
 	var loadout := get_node("/root/BranchLoadout") as BranchLoadoutService
+	var seeds := get_node("/root/BranchSeeds") as BranchSeedService
+	var saved_seed_ids: Array[StringName] = seeds.unlocked_branch_seed_ids.duplicate()
+	seeds.unlocked_branch_seed_ids.clear()
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	await run_test()
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
+	seeds.unlocked_branch_seed_ids = saved_seed_ids
 	if failures.is_empty():
 		print("TREE SCREEN SMOKE TEST PASS")
 		get_tree().quit(0)
