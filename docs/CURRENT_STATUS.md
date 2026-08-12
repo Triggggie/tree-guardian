@@ -2,9 +2,9 @@
 
 Updated: 2026-08-12
 
-Implementation parent for this checkpoint: `289b8de` (`Add Branch Seed notification regression coverage`)
+Implementation parent for this checkpoint: `fd860d3` (`Add boss ability regression coverage`)
 
-Checkpoint commit: `Update status after Branch Seed notification`
+Checkpoint commit: `Update status after boss abilities`
 
 Baseline branch: `main`
 
@@ -14,7 +14,7 @@ Tree Guardian is a playable 2D idle/tower-defense prototype built for Godot 4.7.
 
 The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. Stable identities are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`. Thorn Crown (`thorn_crown`) is the first production Legendary Branch: a Tier I, Apex-only bilateral area-damage Branch registered in `GameContent`. Global content, run, persistent Branch Seed, runtime loadout, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, `BranchLoadout`, and `BranchProgress` autoloads.
 
-This document describes the repository after the Branch Seed Acquisition Notification V1 checkpoint built on the implementation parent above.
+This document describes the repository after the Boss Abilities V1 checkpoint built on the implementation parent above.
 
 ## 2. Current Playable Prototype
 
@@ -463,6 +463,17 @@ Automated regression evidence for this checkpoint:
 - No physical loot object, loot inventory, sound, Branch Seed icon art, boss abilities, production Tier II or Tier III Branch, or equipment/inventory was added.
 - Godot 4.7.1 headless import passed. Branch Seed Drop Notification passed repeatedly, including a real isolated production Warden-to-Thorn-Crown drop, Initial Preparation overlay, auto-hide, reload silence, and metadata guards. Thorn Crown Guardian Grove Loot, Branch Seed Loot, and Legendary Boss Loot passed twice. TREE Apex Picker, TREE Screen, TALENTS Tab, Loadout Preparation, Thorn Crown runtime/content, Thorn Crown visual, Apex Branch Loadout, Apex Slot Rules, Standard Branch Loadout, Per-Slot Talent Loadout, Shared Branch Progress, Strength Effects, Blossom Effects, Blossom Healing Stack, Strength Visual, Blossom Visual, and Enemy Runtime passed once. Existing loot tests emitted only their intentional negative-fixture save-path warnings.
 
+### Boss Abilities V1
+
+- Bark Warden keeps its normal melee behavior and adds Root Slam: a telegraphed 8-damage burst with a 3.0-second initial delay, 7.0-second cooldown, and 0.90-second telegraph. Each Warden owns an independent cooldown and active telegraph, and death or cleanup cancels the cast without delayed damage.
+- Ancient Bark Colossus keeps its normal melee behavior and adds Colossal Quake. Phase 1 uses a 3.5-second initial delay, 8.0-second cooldown, 1.20-second telegraph, and one 12-damage pulse. At the first transition to 50% maximum health or below, that instance enters Phase 2 once; Phase 2 uses a 6.0-second cooldown and 1.0-second telegraph followed by two 10-damage pulses separated by 0.35 seconds. Death between pulses cancels the pending second pulse.
+- `BossAbilityDefinition` stores immutable, optional boss configuration referenced by `EnemyDefinition`. The scene-local `BossAbilityRuntime` child owns every mutable cooldown, phase, cast, Timer, Tween, telegraph, and pending-pulse value for one enemy instance. Telegraphs and phase feedback are code-drawn children of that enemy and require no external assets.
+- Ability execution uses the existing tree `take_damage()` pipeline. Only the casting boss's normal melee component is disabled during the cast and restored afterward; the SceneTree, WaveDirector, CombatBranches, other enemies, and the second boss instance are never paused or coordinated.
+- Death, `stop_combat()`, `queue_free()`, `_exit_tree()`, Retry, and wave cleanup converge on cancellation that stops Timers, kills Tweens, removes telegraphs, and prevents pending damage. Shared Resources contain no mutable runtime state, and two boss instances remain independent.
+- Boss loot, Branch Seed chances, pity, Thorn Crown gameplay, TREE/Apex behavior, Branch Seed notification, progression, rewards, and the Wave 50/100 schedules are unchanged.
+- Still not implemented: a boss health bar or intro, production boss art/audio, screen shake, additional boss abilities, equipment/inventory, and the second Legendary Branch.
+- Godot 4.7.1 headless import passed. Root Slam and Colossal Quake smoke tests each passed twice, including death cancellation, the one-time Phase 2 transition, double-pulse cancellation, Retry-equivalent cleanup, and two-instance isolation. Enemy Runtime; Legendary Boss Loot; Thorn Crown Guardian Grove Loot; Branch Seed Loot; Branch Seed Drop Notification; Loadout Preparation; Strength and Blossom Talent Effects; Thorn Crown runtime and visual; TREE Screen; and TALENTS Tab regressions passed once. Loot tests emitted only their intentional negative-fixture save-path warnings.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
@@ -483,7 +494,7 @@ Automated regression evidence for this checkpoint:
 - A shared Branch visual base does not yet exist and is not needed for the current three implementations.
 - Branch category data, Slot 5 rules, the Apex runtime/equip foundation, persistent Branch Seed unlock storage, the legendary drop-processing foundation, natural production Thorn Crown acquisition, and a non-blocking acquisition notification exist. There is still no physical loot object, player-facing Apex unequip, or disk Apex loadout save.
 - There is no found-versus-equipped Apex Branch comparison.
-- Bark Warden and Ancient Bark Colossus have no unique phases or abilities, and there is no dedicated boss health-bar UI.
+- Bark Warden and Ancient Bark Colossus now have their first unique abilities, but there is no dedicated boss health-bar or encounter-intro UI and no additional boss ability set.
 - Normal enemies do not drop equipment.
 - The Tree Soul orb described in project guidance as visible from Age 1 is not a persistent world-space element; only the hidden-by-default SOUL panel and selection cards draw orb glyphs.
 - A service-level prestige reset hook exists, but there is no integrated player-facing prestige flow.
@@ -522,11 +533,10 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Add Boss Abilities V1 for Bark Warden and Ancient Bark Colossus.
-2. Add a dedicated boss encounter presentation / health-bar layer if required by the new abilities.
-3. Begin the second production Legendary Branch concept.
-4. Begin equipment/inventory foundation.
-5. Add production audio/art pass later rather than expanding prototype notification assets now.
+1. Optionally add Boss Encounter Presentation V1 (boss name and health presentation) if justified by playtest.
+2. Begin `ItemDefinition` / `ItemInstance` and the minimal equipment foundation as the next main milestone.
+3. Add the second production Legendary Branch concept after the current boss loop is visually verified.
+4. Add production boss art/audio only after mechanics are stable.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
@@ -537,7 +547,7 @@ General save/load, prestige integration, later talent tiers, Status Effects, and
 - Run `git status --short` and verify the working tree is clean before starting a new task.
 - Run `git log -1 --oneline` and review the current HEAD.
 - Expected baseline branch: `main`.
-- Implementation parent for this checkpoint: `289b8de`.
+- Implementation parent for this checkpoint: `fd860d3`.
 - Verify that the current HEAD contains this implementation baseline or is a descendant of it.
 - The 25A and 25B implementation was accumulated in the working tree before this checkpoint document and committed as one focused package.
 - After the checkpoint commit, the working tree should be clean before new development begins.
