@@ -243,8 +243,8 @@ func _refresh_loadout_controls() -> void:
 		var apex_candidates: Array[BranchDefinition] = _get_apex_candidate_definitions()
 		change_branch_button.disabled = not edit_allowed or apex_candidates.is_empty()
 		if not edit_allowed:
-			change_branch_button.text = "SELECT APEX BRANCH\nPREPARATION ONLY"
-			loadout_status_label.text = "LOADOUT LOCKED\nBranch changes are available during Preparation."
+			change_branch_button.text = "LOADOUT UNAVAILABLE"
+			loadout_status_label.text = "LOADOUT UNAVAILABLE\nTree is defeated."
 		elif apex_candidates.is_empty():
 			change_branch_button.text = "NO LEGENDARY BRANCH SEEDS"
 			loadout_status_label.text = "Unlock a Legendary Branch Seed to select an Apex Branch."
@@ -258,11 +258,8 @@ func _refresh_loadout_controls() -> void:
 		change_branch_button.text = "CHANGE BRANCH"
 		loadout_status_label.text = "LOADOUT EDITING ENABLED"
 	elif is_standard_slot:
-		change_branch_button.text = "CHANGE BRANCH\nPREPARATION ONLY"
-		loadout_status_label.text = (
-			"LOADOUT LOCKED\n"
-			+ "Branch changes are available during Preparation."
-		)
+		change_branch_button.text = "LOADOUT UNAVAILABLE"
+		loadout_status_label.text = "LOADOUT UNAVAILABLE\nTree is defeated."
 	else:
 		change_branch_button.text = "BRANCH PICKER UNAVAILABLE"
 		loadout_status_label.text = "LOADOUT LOCKED"

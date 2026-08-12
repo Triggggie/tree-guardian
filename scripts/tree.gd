@@ -907,6 +907,14 @@ func clear_healing_over_time_effects() -> void:
 		)
 
 
+func remove_healing_over_time_effect(effect_id: StringName) -> bool:
+	if not healing_over_time_effects.has(effect_id):
+		return false
+	healing_over_time_effects.erase(effect_id)
+	healing_over_time_ended.emit(effect_id)
+	return true
+
+
 func has_healing_over_time_effect(
 	effect_id: StringName
 ) -> bool:

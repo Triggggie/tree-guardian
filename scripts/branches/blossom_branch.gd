@@ -46,6 +46,7 @@ var attack_time_remaining: float = 0.0
 var healing_effect_id: StringName = &""
 var has_warned_missing_branch_visual: bool = false
 var talent_effect_set: BlossomTalentEffectSet
+var active_projectiles: Array[BlossomProjectile] = []
 
 
 func _ready() -> void:
@@ -444,8 +445,34 @@ func spawn_petal_projectile(
 		max(damage, 0.0),
 		self
 	)
+	active_projectiles.append(projectile)
+	projectile.tree_exited.connect(
+		_on_projectile_tree_exited.bind(projectile),
+		CONNECT_ONE_SHOT
+	)
 
 	return true
+
+
+func _on_projectile_tree_exited(projectile: BlossomProjectile) -> void:
+	active_projectiles.erase(projectile)
+
+
+func clear_active_projectiles() -> void:
+	for projectile in active_projectiles:
+		if is_instance_valid(projectile):
+			projectile.queue_free()
+	active_projectiles.clear()
+
+
+func clear_healing_effect() -> void:
+	if (
+		healing_effect_id == &""
+		or not is_instance_valid(tree_node)
+		or not tree_node.has_method("remove_healing_over_time_effect")
+	):
+		return
+	tree_node.call("remove_healing_over_time_effect", healing_effect_id)
 
 
 func get_projectile_spawn_position() -> Vector2:
@@ -790,6 +817,8 @@ func stop_combat() -> void:
 
 	healing_refresh_time_remaining = 0.0
 	attack_time_remaining = 0.0
+	clear_active_projectiles()
+	clear_healing_effect()
 
 
 func resume_combat() -> void:

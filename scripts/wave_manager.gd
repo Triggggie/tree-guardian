@@ -157,7 +157,7 @@ func is_standard_loadout_edit_allowed() -> bool:
 
 
 func is_branch_loadout_edit_allowed() -> bool:
-	return preparation_active and not tree_defeated
+	return is_instance_valid(tree_node) and not tree_defeated
 
 
 func continue_from_preparation() -> bool:
