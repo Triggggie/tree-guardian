@@ -23,6 +23,7 @@
 [ext_resource type="Script" uid="uid://b5x7ryg570lno" path="res://scripts/lane_registry.gd" id="19_lane_registry"]
 [ext_resource type="Script" uid="uid://deokn77e7i2u5" path="res://scripts/waves/spawn_director.gd" id="20_spawn_director"]
 [ext_resource type="Script" uid="uid://crsyw0dxswihm" path="res://scripts/waves/wave_director.gd" id="21_wave_director"]
+[ext_resource type="Script" path="res://scripts/branch_seed_drop_notification.gd" id="23_seed_notification"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
@@ -299,6 +300,15 @@ offset_right = 40.0
 offset_bottom = 40.0
 mouse_filter = 2
 script = ExtResource("17_rank_up")
+
+[node name="BranchSeedDropNotification" type="Control" parent="UI"]
+z_index = 100
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+script = ExtResource("23_seed_notification")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=827092689]
 enabled = false
