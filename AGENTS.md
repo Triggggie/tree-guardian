@@ -67,6 +67,10 @@ Current and planned definition types include:
 
 Use `ContentRegistry` and `GameContent` for content lookup. Do not hardcode content lists into gameplay or UI scripts when the registry already provides them.
 
+`ItemDefinition` is immutable shared content identified by stable `item_id` and registered through the central `ContentRegistry` / `GameContent` path. `ItemInstance` owns mutable per-item state: `instance_id`, `definition_id`, Item Level, equipment rarity, affix rolls, and lock state. Never mutate a shared `ItemDefinition` Resource to represent a rolled item. Inventory, equipment activation, loot generation, and persistence remain separate runtime layers from definition content; do not create a parallel item registry.
+
+Equipment rarity uses exactly Common, Uncommon, Epic, and Legendary and is separate from Legendary Branch Tier I-III. Equipment Foundation V1 supports only Bark and Roots through stable `StringName` slot IDs. Future slot expansion must preserve stable IDs and must not repurpose enum indexes as persistent identity.
+
 Use reusable modifiers/effects for mechanics that may apply to more than one branch, enemy, talent, or Soul. Do not hardcode a reusable mechanic into one branch script merely because that branch is the first user.
 
 Branch Seed unlocks are persistent meta-progression stored as stable legendary Branch IDs. Normal death and prestige runs do not clear them. Run modifiers and shared Resources must never mutate Branch Seed unlock state.

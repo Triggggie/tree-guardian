@@ -1,6 +1,6 @@
 # Tree Guardian — Current Project Status
 
-Updated: 2026-08-12
+Updated: 2026-08-13
 
 Implementation parent for this checkpoint: `ca5ae0c` (`Fix Apex placement and add loadout regressions`)
 
@@ -486,13 +486,24 @@ Automated regression evidence for this checkpoint:
 - Godot 4.7.1 headless import passed. Live Branch Loadout Switch, TREE Branch Picker, TREE Apex Picker, Loadout Preparation, Apex Slot Rules, Apex Branch Loadout, and TREE Screen passed twice after their final changes. Standard Branch Loadout, Strength and Blossom Talent Effects, Thorn Crown runtime and visual, TALENTS Tab, Branch Seed Loot, Thorn Crown Guardian Grove Loot, Branch Seed Drop Notification, Enemy Runtime, Root Slam, and Colossal Quake passed their required regression runs. Expected warnings were limited to existing negative save-path and unknown-notification fixtures.
 - Boss abilities and balance, Branch Seed chances, Tier I pity threshold and gains, loot pools, Branch progression semantics, Tree Souls, enemy data, and the Guardian Grove wave schedule are unchanged.
 
+### Equipment Foundation V1
+
+- `ItemDefinition` is immutable shared content with a stable `item_id`, display name, description, equipment slot, and optional null-safe icon metadata. Definitions are registered and indexed through the existing `ContentRegistry`, validated by `ContentValidator`, and exposed by `GameContent`; no parallel registry or new autoload was added.
+- `ItemInstance` is independent mutable per-item data with a stable `instance_id`, `definition_id`, Item Level (minimum 1), equipment rarity, zero or more `ItemAffixRoll` values, and lock state. `definition_id` resolves shared content while `instance_id` identifies one concrete item. Rolled state never mutates the shared `ItemDefinition` Resource.
+- `ItemAffixRoll` currently stores only a stable `stat_id` and numeric `value`. There is no affix database, pool, weighting, count rule, or generator yet.
+- Equipment rarity has exactly four stable values: Common (`common`), Uncommon (`uncommon`), Epic (`epic`), and Legendary (`legendary`), with centralized display names and prototype gray, green, purple, and gold colors. Equipment rarity is independent from Legendary Branch Tier I-III; `rare` and `ancient` are not valid equipment rarities.
+- Foundation equipment slots are Bark (`bark`) and Roots (`roots`) only. Heartwood, Canopy, Sap, and Soul Relic remain planned but are not production-supported slots in this checkpoint.
+- The first production definitions are Living Bark (`living_bark`, Bark) and Deep Roots (`deep_roots`, Roots). They are registered in `GameContent`, but do not drop, cannot be equipped by the player, and apply no gameplay stats.
+- Added deterministic smoke coverage for definitions, slot and rarity rules, registry lookup/rebuild, duplicate IDs, invalid entries, mutable instance independence, shared-definition safety, and equipment-rarity versus Branch-Tier separation.
+- Not implemented: inventory, comparison, equip/unequip, item drop generation, auto-loot, equipment UI, equipment stat application, persistence, crafting, dismantle, reroll, unique Legendary effects, or Soul Relic gameplay.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
 - Branch archetype progression is retained only in memory and is not included in the disk save.
 - TREE supports live standard and unlocked Apex Branch replacement while the tree is alive; player-facing unequip and standard Branch unlock progression do not exist.
 - There is no talent respec, copy-build, or save-preset flow.
-- Tier data and the first miniboss/boss encounters are implemented, but Tier badges, equipment, and inventory are not.
+- Tier data and the first miniboss/boss encounters are implemented, and the Bark/Roots equipment data foundation exists, but Tier badges, inventory, equipment activation, and equipment UI are not implemented.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
 - All ten Guardian Grove Substages currently share one schedule; later Substages are not yet differentiated.
@@ -545,9 +556,9 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Manually retest Waves 50 and 100 with the new Apex placement.
-2. Decide from playtest evidence whether Boss Encounter Presentation V1 is warranted.
-3. Otherwise continue with `ItemDefinition` / `ItemInstance` and the Equipment Foundation.
+1. Implement Inventory & Equipment V1 with an in-memory inventory and Bark/Roots equipment state.
+2. Add equip/unequip, filtered TREE integration, and a basic comparison foundation without item drop generation if that remains cleaner as a separate checkpoint.
+3. Follow with Basic Equipment Loot V1.
 4. Add production art only after the core systems are stable.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
