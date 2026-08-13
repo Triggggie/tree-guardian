@@ -227,6 +227,8 @@ func run_test(loadout: BranchLoadoutService) -> void:
 func collect_control_text(root: Node) -> String:
 	var lines: Array[String] = []
 	for node in root.find_children("*", "Control", true, false):
+		if node is CanvasItem and not node.is_visible_in_tree():
+			continue
 		if node is Label or node is Button:
 			lines.append(String(node.get("text")))
 	return "\n".join(lines)
