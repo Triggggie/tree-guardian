@@ -22,10 +22,13 @@ func _ready() -> void:
 
 func test_equipment_slot_rules() -> void:
 	var slot_ids: Array[StringName] = EquipmentSlotRules.get_supported_slot_ids()
-	expect(slot_ids == [&"bark", &"roots"], "Supported equipment slots are not Bark and Roots only.")
+	expect(slot_ids == [&"bark", &"roots", &"heartwood", &"canopy", &"sap"], "Supported equipment slots are not the five production slots.")
 	expect(EquipmentSlotRules.get_slot_display_name(&"bark") == "Bark", "Bark display name is invalid.")
 	expect(EquipmentSlotRules.get_slot_display_name(&"roots") == "Roots", "Roots display name is invalid.")
-	expect(not EquipmentSlotRules.is_valid_slot_id(&"canopy"), "Canopy is active in Foundation V1.")
+	expect(EquipmentSlotRules.get_slot_display_name(&"heartwood") == "Heartwood", "Heartwood display name is invalid.")
+	expect(EquipmentSlotRules.get_slot_display_name(&"canopy") == "Canopy", "Canopy display name is invalid.")
+	expect(EquipmentSlotRules.get_slot_display_name(&"sap") == "Sap", "Sap display name is invalid.")
+	expect(not EquipmentSlotRules.is_valid_slot_id(&"soul_relic"), "Soul Relic is active prematurely.")
 	expect(EquipmentSlotRules.get_slot_display_name(&"missing") == "", "Unknown slot has a display name.")
 
 
@@ -80,7 +83,7 @@ func test_invalid_definitions() -> void:
 	definition.display_name = "  "
 	expect(not definition.is_valid_definition(), "ItemDefinition accepted an empty display name.")
 	definition.display_name = "Fixture"
-	definition.equipment_slot_id = &"heartwood"
+	definition.equipment_slot_id = &"soul_relic"
 	expect(not definition.is_valid_definition(), "ItemDefinition accepted an unsupported slot.")
 
 

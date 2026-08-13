@@ -127,6 +127,8 @@ func test_bilateral_area_combat() -> void:
 	var outside_range := create_enemy(root, "OutsideRange", Vector2(400.0, 0.0))
 
 	expect(branch.call("perform_attack_cycle"), "Bilateral Thorn Crown cycle did not execute.")
+	var visual := branch.get_node("Visual") as ThornCrownVisual
+	expect(visual.is_attack_animation_active(), "Real Thorn Crown attack did not trigger presentation feedback.")
 	for enemy in [left_primary, left_secondary, right_primary, right_secondary]:
 		expect_damage(enemy, [12.0], "%s bilateral damage" % enemy.name)
 	expect(outside_radius.damage_events.is_empty(), "Enemy outside Burst Radius was damaged.")
@@ -167,9 +169,11 @@ func test_single_side_and_guards() -> void:
 
 	var empty_fixture: Dictionary = create_branch_fixture("NoTargetFixture")
 	var effect_set := empty_fixture.branch.get("talent_effect_set") as ThornCrownTalentEffectSet
+	var empty_visual := empty_fixture.branch.get_node("Visual") as ThornCrownVisual
 	expect(
 		not empty_fixture.branch.call("perform_attack_cycle")
-		and effect_set.attack_cycle_count == 0,
+		and effect_set.attack_cycle_count == 0
+		and not empty_visual.is_attack_animation_active(),
 		"No-target cycle produced an attack or advanced Overgrowth state."
 	)
 	await cleanup_fixture(empty_fixture.root)

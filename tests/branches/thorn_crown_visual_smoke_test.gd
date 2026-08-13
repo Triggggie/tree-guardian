@@ -16,8 +16,35 @@ func _ready() -> void:
 	branch.branch_progress_service = progress
 	fixture.add_child(branch)
 	var visual := branch.get_node("Visual") as ThornCrownVisual
+	branch.process_mode = Node.PROCESS_MODE_INHERIT
+	visual.process_mode = Node.PROCESS_MODE_ALWAYS
+	(branch.get_node("CooldownTimer") as Timer).stop()
 	expect(is_instance_valid(visual), "Thorn Crown Visual node or script is missing.")
 	expect(visual.has_bilateral_geometry(), "Thorn Crown visual is not bilateral.")
+	var attack_events: Array[float] = []
+	visual.attack_animation_started.connect(
+		func(intensity: float) -> void: attack_events.append(intensity)
+	)
+	visual.play_attack()
+	visual.attack_tween.custom_step(0.05)
+	expect(visual.is_attack_animation_active(), "Thorn Crown attack Tween was not retained.")
+	expect(visual.attack_progress > 0.0, "Thorn Crown procedural pulse did not animate.")
+	expect(attack_events == [1.0], "Thorn Crown attack presentation signal is wrong.")
+	visual.attack_tween.custom_step(0.50)
+	expect(
+		not visual.is_attack_animation_active()
+		and is_zero_approx(visual.attack_progress)
+		and visual.scale == Vector2.ONE,
+		"Thorn Crown attack pulse did not return to idle."
+	)
+	visual.play_attack(1.2)
+	visual.stop_attack_animation()
+	expect(
+		not visual.is_attack_animation_active()
+		and is_zero_approx(visual.attack_progress)
+		and visual.scale == Vector2.ONE,
+		"Thorn Crown attack pulse cleanup did not reset presentation."
+	)
 	var initial_length: float = visual.get_current_arm_length()
 	var initial_thorns: int = visual.get_thorns_per_arm()
 	visual.set_branch_level(10)

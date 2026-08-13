@@ -105,7 +105,7 @@ func run_test() -> void:
 	director.current_wave = 100
 	director._cycle_running = true
 	expect(
-		director._reach_substage_checkpoint_if_needed(),
+		director._reach_substage_checkpoint_if_needed(100),
 		"Wave 100 did not reach the Substage checkpoint."
 	)
 	expect(

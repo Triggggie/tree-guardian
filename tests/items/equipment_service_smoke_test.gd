@@ -29,6 +29,40 @@ func test_equipment(
 	inventory: InventoryService,
 	equipment: EquipmentService
 ) -> void:
+	expect(
+		EquipmentSlotRules.get_supported_slot_ids() == [
+			&"bark", &"roots", &"heartwood", &"canopy", &"sap"
+		]
+		and not EquipmentSlotRules.is_valid_slot_id(&"soul_relic")
+		and not EquipmentSlotRules.is_valid_slot_id(&"unknown")
+		and not EquipmentSlotRules.is_valid_slot_id(&""),
+		"EquipmentSlotRules production set is not exactly five slots."
+	)
+	var expansion_items: Array[ItemInstance] = [
+		create_item(&"slot_heartwood", &"elder_heartwood", 1, ItemRarityRules.COMMON, false),
+		create_item(&"slot_canopy", &"verdant_canopy", 1, ItemRarityRules.COMMON, false),
+		create_item(&"slot_sap", &"luminous_sap", 1, ItemRarityRules.COMMON, false)
+	]
+	for item in expansion_items:
+		expect(inventory.add_item(item), "Five-slot fixture item was rejected.")
+		expect(equipment.equip_item(item.instance_id), "Five-slot fixture equip failed.")
+	expect(
+		equipment.get_equipped_instance_id(&"heartwood") == &"slot_heartwood"
+		and equipment.get_equipped_instance_id(&"canopy") == &"slot_canopy"
+		and equipment.get_equipped_instance_id(&"sap") == &"slot_sap",
+		"Expanded equipment mappings are not independent."
+	)
+	expect(equipment.unequip_slot(&"heartwood"), "Heartwood unequip failed.")
+	expect(
+		equipment.get_equipped_instance_id(&"heartwood") == &""
+		and equipment.get_equipped_instance_id(&"canopy") == &"slot_canopy"
+		and equipment.get_equipped_instance_id(&"sap") == &"slot_sap",
+		"Unequipping Heartwood changed another expanded slot."
+	)
+	for item in expansion_items:
+		inventory.remove_item(item.instance_id)
+	transitions.clear()
+
 	var bark_a: ItemInstance = create_item(&"test_bark_epic_001", &"living_bark", 12, ItemRarityRules.EPIC, false)
 	var bark_b: ItemInstance = create_item(&"test_bark_common_002", &"living_bark", 4, ItemRarityRules.COMMON, true)
 	var roots_a: ItemInstance = create_item(&"test_roots_uncommon_001", &"deep_roots", 8, ItemRarityRules.UNCOMMON, false)
@@ -46,7 +80,7 @@ func test_equipment(
 	expect(bark_b.is_locked, "Locked item state changed during equip.")
 	expect(equipment.unequip_slot(&"bark"), "Bark unequip failed.")
 	expect(equipment.get_equipped_instance_id(&"bark") == &"" and inventory.get_item(bark_b.instance_id) == bark_b and bark_b.is_locked, "Unequip removed or changed locked Bark B.")
-	expect(not equipment.unequip_slot(&"bark") and not equipment.unequip_slot(&"canopy") and not equipment.equip_item(&"missing"), "Invalid/no-op Equipment operation succeeded.")
+	expect(not equipment.unequip_slot(&"bark") and not equipment.unequip_slot(&"soul_relic") and not equipment.equip_item(&"missing"), "Invalid/no-op Equipment operation succeeded.")
 	expect(transitions == [[&"bark", &"", bark_a.instance_id], [&"roots", &"", roots_a.instance_id], [&"bark", bark_a.instance_id, bark_b.instance_id], [&"bark", bark_b.instance_id, &""]], "Equipment signal transition sequence is wrong.")
 
 	transitions.clear()

@@ -39,6 +39,16 @@ func run_test(inventory: InventoryService) -> void:
 		"UI/BranchSeedDropNotification"
 	) as BranchSeedDropNotification
 	notification.notification_presented.connect(_on_notification_presented)
+	var panel := notification.get_node("NotificationPanel") as Control
+	expect(
+		is_equal_approx(panel.anchor_left, 0.5)
+		and is_equal_approx(panel.anchor_right, 0.5)
+		and is_equal_approx(panel.anchor_top, 0.5)
+		and is_equal_approx(panel.anchor_bottom, 0.5)
+		and panel.offset_left < 0.0
+		and panel.offset_right > 0.0,
+		"Equipment notification is not semantically centered."
+	)
 
 	var items: Array[ItemInstance] = []
 	for item_index in range(7):

@@ -47,6 +47,9 @@ func run_test(
 	var inventory_panel := screen.get_node("MainPanel/EquipmentInventoryPanel") as Panel
 	var bark_button := screen.get_node("MainPanel/TreeCanvas/BarkButton") as Button
 	var roots_button := screen.get_node("MainPanel/TreeCanvas/RootsButton") as Button
+	var heartwood_button := screen.get_node("MainPanel/TreeCanvas/HeartwoodButton") as Button
+	var canopy_button := screen.get_node("MainPanel/TreeCanvas/CanopyButton") as Button
+	var sap_button := screen.get_node("MainPanel/TreeCanvas/SapButton") as Button
 	var slot_one_button := screen.get_node("MainPanel/TreeCanvas/Slot1Button") as Button
 	var apex_button := screen.get_node("MainPanel/TreeCanvas/ApexButton") as Button
 	var current_label := screen.get_node("MainPanel/EquipmentDetailPanel/CurrentlyEquippedLabel") as Label
@@ -57,7 +60,14 @@ func run_test(
 	var unequip_button := screen.get_node("MainPanel/EquipmentDetailPanel/UnequipButton") as Button
 
 	expect(screen.visible and manager.is_preparation_active(), "TREE is not open in initial Preparation.")
-	expect(bark_button.text == "BARK\nEMPTY" and roots_button.text == "ROOTS\nEMPTY", "Initial equipment buttons are not EMPTY.")
+	expect(
+		bark_button.text == "BARK\nEMPTY"
+		and roots_button.text == "ROOTS\nEMPTY"
+		and heartwood_button.text == "HEARTWOOD\nEMPTY"
+		and canopy_button.text == "CANOPY\nEMPTY"
+		and sap_button.text == "SAP\nEMPTY",
+		"Initial five equipment buttons are not EMPTY."
+	)
 	expect(bark_button.position.y > apex_button.position.y and bark_button.position.y < roots_button.position.y and roots_button.position.y > slot_one_button.position.y, "Bark/Roots buttons are not placed at trunk/roots positions.")
 	expect(screen.call("select_equipment_slot", &"bark"), "Bark selection failed.")
 	expect(not detail_panel.visible and not seed_panel.visible and equipment_detail.visible and inventory_panel.visible, "Equipment mode visibility is wrong.")
@@ -71,7 +81,7 @@ func run_test(
 	var generated_ids: Array[StringName] = []
 	var generated_bark: ItemInstance
 	screen.call("select_equipment_slot", &"bark")
-	for drop_index in range(10):
+	for drop_index in range(30):
 		var dropped_item: ItemInstance = EquipmentLoot.process_enemy_defeat(
 			forced_drop_enemy,
 			GameContent.get_stage(&"guardian_grove"),

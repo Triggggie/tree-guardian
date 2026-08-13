@@ -89,8 +89,20 @@ func test_affix_rules() -> void:
 		and EquipmentLootRules.get_affix_pool_for_slot(&"bark") == [
 			EquipmentStatRules.BRANCH_DAMAGE,
 			EquipmentStatRules.ATTACK_SPEED
+		]
+		and EquipmentLootRules.get_affix_pool_for_slot(&"heartwood") == [
+			EquipmentStatRules.MAXIMUM_HEALTH,
+			EquipmentStatRules.BRANCH_DAMAGE
+		]
+		and EquipmentLootRules.get_affix_pool_for_slot(&"canopy") == [
+			EquipmentStatRules.BRANCH_DAMAGE,
+			EquipmentStatRules.ATTACK_SPEED
+		]
+		and EquipmentLootRules.get_affix_pool_for_slot(&"sap") == [
+			EquipmentStatRules.HEALTH_REGENERATION,
+			EquipmentStatRules.ATTACK_SPEED
 		],
-		"Bark or Roots affix pool is wrong."
+		"Production equipment affix pools are wrong."
 	)
 
 
@@ -131,7 +143,7 @@ func test_generator() -> void:
 	enemy.equipment_minimum_rarity_id = ItemRarityRules.UNCOMMON
 	var rng := RandomNumberGenerator.new()
 	var found_slots: Dictionary = {}
-	for item_index in range(100):
+	for item_index in range(250):
 		rng.seed = item_index + 10
 		var item: ItemInstance = generator.generate_item(
 			StringName("generator_test_%03d" % item_index),
@@ -156,7 +168,16 @@ func test_generator() -> void:
 			expect(affix.stat_id in expected_pool and affix.value > 0.0, "Generator rolled an invalid affix.")
 		expect(rolled_ids.size() == 2 and rolled_ids[0] != rolled_ids[1], "Generator did not produce two distinct affixes.")
 		expect(item.item_level == 5 and item.rarity_id in [ItemRarityRules.UNCOMMON, ItemRarityRules.EPIC] and not item.is_locked, "Generated item metadata is wrong.")
-	expect(found_slots.has(&"bark") and found_slots.has(&"roots"), "Seeded generator coverage missed Bark or Roots.")
+	expect(
+		found_slots.keys().size() == 5
+		and found_slots.has(&"bark")
+		and found_slots.has(&"roots")
+		and found_slots.has(&"heartwood")
+		and found_slots.has(&"canopy")
+		and found_slots.has(&"sap")
+		and not found_slots.has(&"soul_relic"),
+		"Seeded generator coverage missed a production slot or generated Soul Relic."
+	)
 
 
 func expect(condition: bool, message: String) -> void:

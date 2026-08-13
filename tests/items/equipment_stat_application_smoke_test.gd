@@ -37,6 +37,34 @@ func run_test(
 	equipment_stats: EquipmentStatService
 ) -> void:
 	test_fresh_state(inventory, equipment, equipment_stats)
+	var expanded_items: Array[ItemInstance] = [
+		create_item(&"stats_heartwood", &"elder_heartwood", 1, ItemRarityRules.COMMON, false, [
+			ItemAffixRoll.new(&"maximum_health", 11.0),
+			ItemAffixRoll.new(&"branch_damage", 0.03)
+		]),
+		create_item(&"stats_canopy", &"verdant_canopy", 1, ItemRarityRules.COMMON, false, [
+			ItemAffixRoll.new(&"branch_damage", 0.04),
+			ItemAffixRoll.new(&"attack_speed", 0.05)
+		]),
+		create_item(&"stats_sap", &"luminous_sap", 1, ItemRarityRules.COMMON, false, [
+			ItemAffixRoll.new(&"health_regeneration", 0.6),
+			ItemAffixRoll.new(&"attack_speed", 0.07)
+		])
+	]
+	for item in expanded_items:
+		expect(inventory.add_item(item), "Expanded stat fixture Inventory add failed.")
+		expect(equipment.equip_item(item.instance_id), "Expanded stat fixture equip failed.")
+	expect(
+		is_equal_approx(equipment_stats.get_total_affix_value(&"maximum_health"), 11.0)
+		and is_equal_approx(equipment_stats.get_total_affix_value(&"health_regeneration"), 0.6)
+		and is_equal_approx(equipment_stats.get_total_affix_value(&"branch_damage"), 0.07)
+		and is_equal_approx(equipment_stats.get_total_affix_value(&"attack_speed"), 0.12),
+		"EquipmentStats did not aggregate Heartwood, Canopy, and Sap."
+	)
+	for item in expanded_items:
+		inventory.remove_item(item.instance_id)
+	equipment_stats.rebuild_from_equipment()
+	test_fresh_state(inventory, equipment, equipment_stats)
 
 	var roots_a: ItemInstance = create_item(
 		&"equipment_stats_roots_a",
