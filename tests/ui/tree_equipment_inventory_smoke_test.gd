@@ -63,6 +63,9 @@ func run_test(
 	var bark_a: ItemInstance = create_item(&"test_bark_epic_001", &"living_bark", 12, ItemRarityRules.EPIC, &"maximum_health", 15.0)
 	var bark_b: ItemInstance = create_item(&"test_bark_common_002", &"living_bark", 4, ItemRarityRules.COMMON, &"health_regeneration", 0.5)
 	var roots_a: ItemInstance = create_item(&"test_roots_uncommon_001", &"deep_roots", 8, ItemRarityRules.UNCOMMON, &"health_regeneration", 1.0)
+	bark_a.affix_rolls.append(ItemAffixRoll.new(&"branch_damage", 0.10))
+	bark_a.affix_rolls.append(ItemAffixRoll.new(&"attack_speed", 0.15))
+	bark_a.affix_rolls.append(ItemAffixRoll.new(&"future_stat", 2.0))
 	inventory.add_item(bark_b)
 	inventory.add_item(roots_a)
 	inventory.add_item(bark_a)
@@ -78,14 +81,14 @@ func run_test(
 	expect(candidate_ids == [bark_a.instance_id, bark_b.instance_id], "Inventory UI sorting is not rarity/Item Level deterministic.")
 
 	expect(screen.call("select_equipment_candidate", bark_a.instance_id), "Bark A candidate selection failed.")
-	expect(selected_label.text.contains("Living Bark") and selected_label.text.contains("Epic") and selected_label.text.contains("Item Level 12") and selected_label.text.contains("Maximum Health: +15"), "Selected Bark A factual detail is incomplete.")
+	expect(selected_label.text.contains("Living Bark") and selected_label.text.contains("Epic") and selected_label.text.contains("Item Level 12") and selected_label.text.contains("Maximum Health: +15") and selected_label.text.contains("Branch Damage: +10%") and selected_label.text.contains("Attack Speed: +15%") and selected_label.text.contains("Future Stat: +2"), "Selected Bark A factual detail or affix formatting is incomplete.")
 	expect(not selected_label.text.contains("Power") and not selected_label.text.contains("Tier"), "Equipment comparison invented Power or Branch Tier.")
 	expect(not equip_button.disabled and (candidate_buttons[bark_a.instance_id] as Button).get_theme_color("font_color") == ItemRarityRules.get_rarity_color(ItemRarityRules.EPIC), "Bark A Equip or rarity color is wrong.")
 	expect(screen.call("equip_selected_equipment"), "Bark A UI equip failed.")
 	expect(equipment.get_equipped_item(&"bark") == bark_a and bark_button.text == "BARK\nLiving Bark" and current_label.text.contains("Item Level 12") and equip_button.disabled and equip_button.text == "EQUIPPED" and not unequip_button.disabled, "Bark A equipped UI did not live-refresh.")
 
 	expect(screen.call("select_equipment_candidate", bark_b.instance_id), "Bark B candidate selection failed.")
-	expect(current_label.text.contains("Epic") and selected_label.text.contains("Common") and selected_label.text.contains("Item Level 4"), "Side-by-side factual replacement comparison is wrong.")
+	expect(current_label.text.contains("Epic") and selected_label.text.contains("Common") and selected_label.text.contains("Item Level 4") and selected_label.text.contains("Health Regeneration: +0.5/s"), "Side-by-side factual replacement comparison is wrong.")
 	expect(screen.call("equip_selected_equipment"), "Bark replacement UI equip failed.")
 	expect(equipment.get_equipped_item(&"bark") == bark_b and inventory.get_item(bark_a.instance_id) == bark_a and inventory.get_item(bark_b.instance_id) == bark_b, "Replacement removed or copied an inventory item.")
 	candidate_buttons = screen.get("equipment_candidate_buttons_by_instance_id") as Dictionary
@@ -109,12 +112,13 @@ func run_test(
 
 	expect(manager.continue_from_preparation(), "Could not leave Preparation for live equipment test.")
 	var live_wave: int = director.current_wave
-	var health_before: float = float(tree_node.get("current_health"))
+	var health_ratio_before: float = float(tree_node.get("current_health")) / float(tree_node.get("max_health"))
+	var maximum_health_before: float = float(tree_node.get("max_health"))
 	screen.call("select_equipment_slot", &"bark")
 	screen.call("select_equipment_candidate", bark_a.instance_id)
 	expect(screen.call("equip_selected_equipment"), "Live Wave Bark equip failed.")
-	expect(director.current_wave == live_wave and not get_tree().paused and is_equal_approx(float(tree_node.get("current_health")), health_before), "Live equip paused/reset the Wave or changed Tree HP.")
-	expect(screen.call("unequip_selected_equipment") and director.current_wave == live_wave and not get_tree().paused, "Live unequip paused/reset the Wave.")
+	expect(director.current_wave == live_wave and not get_tree().paused and is_equal_approx(float(tree_node.get("max_health")), maximum_health_before + 15.0) and is_equal_approx(float(tree_node.get("current_health")) / float(tree_node.get("max_health")), health_ratio_before), "Live equip paused/reset the Wave or failed ratio-preserving Maximum Health refresh.")
+	expect(screen.call("unequip_selected_equipment") and director.current_wave == live_wave and not get_tree().paused and is_equal_approx(float(tree_node.get("max_health")), maximum_health_before) and is_equal_approx(float(tree_node.get("current_health")) / float(tree_node.get("max_health")), health_ratio_before), "Live unequip paused/reset the Wave or changed the Tree health ratio.")
 
 	manager.set("tree_defeated", true)
 	screen.call("select_equipment_candidate", bark_a.instance_id)
