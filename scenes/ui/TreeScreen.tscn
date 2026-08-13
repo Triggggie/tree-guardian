@@ -193,6 +193,22 @@ offset_right = 755.0
 offset_bottom = 680.0
 toggle_mode = true
 
+[node name="BarkButton" type="Button" parent="MainPanel/TreeCanvas"]
+offset_left = 310.0
+offset_top = 500.0
+offset_right = 490.0
+offset_bottom = 570.0
+toggle_mode = true
+text = "BARK\nEMPTY"
+
+[node name="RootsButton" type="Button" parent="MainPanel/TreeCanvas"]
+offset_left = 310.0
+offset_top = 800.0
+offset_right = 490.0
+offset_bottom = 870.0
+toggle_mode = true
+text = "ROOTS\nEMPTY"
+
 [node name="SeedPanel" type="Panel" parent="MainPanel"]
 offset_left = 1340.0
 offset_top = 80.0
@@ -214,6 +230,92 @@ offset_top = 75.0
 offset_right = 450.0
 offset_bottom = 850.0
 text = "No Legendary Branch Seeds unlocked."
+autowrap_mode = 2
+
+[node name="EquipmentDetailPanel" type="Panel" parent="MainPanel"]
+visible = false
+offset_left = 28.0
+offset_top = 80.0
+offset_right = 500.0
+offset_bottom = 970.0
+
+[node name="TitleLabel" type="Label" parent="MainPanel/EquipmentDetailPanel"]
+offset_left = 20.0
+offset_top = 18.0
+offset_right = 450.0
+offset_bottom = 58.0
+theme_override_font_sizes/font_size = 22
+text = "EQUIPMENT SLOT"
+
+[node name="CurrentlyEquippedLabel" type="Label" parent="MainPanel/EquipmentDetailPanel"]
+offset_left = 20.0
+offset_top = 78.0
+offset_right = 450.0
+offset_bottom = 350.0
+text = "CURRENTLY EQUIPPED\nEMPTY"
+autowrap_mode = 2
+
+[node name="SelectedItemLabel" type="Label" parent="MainPanel/EquipmentDetailPanel"]
+offset_left = 20.0
+offset_top = 370.0
+offset_right = 450.0
+offset_bottom = 650.0
+text = "SELECTED ITEM\nSelect an item from inventory."
+autowrap_mode = 2
+
+[node name="StatusLabel" type="Label" parent="MainPanel/EquipmentDetailPanel"]
+offset_left = 20.0
+offset_top = 670.0
+offset_right = 450.0
+offset_bottom = 735.0
+text = "EQUIPMENT EDITING ENABLED"
+horizontal_alignment = 1
+
+[node name="EquipButton" type="Button" parent="MainPanel/EquipmentDetailPanel"]
+offset_left = 20.0
+offset_top = 760.0
+offset_right = 215.0
+offset_bottom = 825.0
+text = "EQUIP"
+
+[node name="UnequipButton" type="Button" parent="MainPanel/EquipmentDetailPanel"]
+offset_left = 235.0
+offset_top = 760.0
+offset_right = 450.0
+offset_bottom = 825.0
+text = "UNEQUIP"
+
+[node name="EquipmentInventoryPanel" type="Panel" parent="MainPanel"]
+visible = false
+offset_left = 1340.0
+offset_top = 80.0
+offset_right = 1812.0
+offset_bottom = 970.0
+
+[node name="TitleLabel" type="Label" parent="MainPanel/EquipmentInventoryPanel"]
+offset_left = 20.0
+offset_top = 18.0
+offset_right = 450.0
+offset_bottom = 55.0
+theme_override_font_sizes/font_size = 20
+text = "BARK INVENTORY"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainPanel/EquipmentInventoryPanel"]
+offset_left = 20.0
+offset_top = 75.0
+offset_right = 450.0
+offset_bottom = 850.0
+
+[node name="CandidateList" type="VBoxContainer" parent="MainPanel/EquipmentInventoryPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EmptyLabel" type="Label" parent="MainPanel/EquipmentInventoryPanel"]
+offset_left = 20.0
+offset_top = 75.0
+offset_right = 450.0
+offset_bottom = 130.0
+text = "No Bark items in inventory."
 autowrap_mode = 2
 
 [node name="BranchPicker" type="Panel" parent="."]

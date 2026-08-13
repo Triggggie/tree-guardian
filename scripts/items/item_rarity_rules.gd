@@ -47,5 +47,9 @@ static func get_rarity_color(rarity_id: StringName) -> Color:
 	return Color.TRANSPARENT
 
 
+static func get_rarity_rank(rarity_id: StringName) -> int:
+	return SUPPORTED_RARITY_IDS.find(rarity_id)
+
+
 static func get_supported_rarity_ids() -> Array[StringName]:
 	return SUPPORTED_RARITY_IDS.duplicate()

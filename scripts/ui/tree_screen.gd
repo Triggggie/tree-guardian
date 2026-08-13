@@ -7,6 +7,11 @@ enum PickerMode {
 	APEX
 }
 
+enum SelectionMode {
+	BRANCH,
+	EQUIPMENT
+}
+
 @onready var close_button: Button = $MainPanel/CloseButton
 @onready var detail_title_label: Label = $MainPanel/DetailPanel/DetailTitleLabel
 @onready var category_label: Label = $MainPanel/DetailPanel/CategoryLabel
@@ -29,6 +34,23 @@ enum PickerMode {
 @onready var candidate_saved_build_label: Label = $BranchPicker/PreviewPanel/SavedBuildLabel
 @onready var confirm_candidate_button: Button = $BranchPicker/ConfirmButton
 @onready var cancel_picker_button: Button = $BranchPicker/CancelButton
+@onready var detail_panel: Panel = $MainPanel/DetailPanel
+@onready var seed_panel: Panel = $MainPanel/SeedPanel
+@onready var equipment_detail_panel: Panel = $MainPanel/EquipmentDetailPanel
+@onready var equipment_title_label: Label = $MainPanel/EquipmentDetailPanel/TitleLabel
+@onready var currently_equipped_label: Label = $MainPanel/EquipmentDetailPanel/CurrentlyEquippedLabel
+@onready var selected_item_label: Label = $MainPanel/EquipmentDetailPanel/SelectedItemLabel
+@onready var equipment_status_label: Label = $MainPanel/EquipmentDetailPanel/StatusLabel
+@onready var equip_button: Button = $MainPanel/EquipmentDetailPanel/EquipButton
+@onready var unequip_button: Button = $MainPanel/EquipmentDetailPanel/UnequipButton
+@onready var equipment_inventory_panel: Panel = $MainPanel/EquipmentInventoryPanel
+@onready var equipment_inventory_title: Label = $MainPanel/EquipmentInventoryPanel/TitleLabel
+@onready var equipment_candidate_list: VBoxContainer = $MainPanel/EquipmentInventoryPanel/ScrollContainer/CandidateList
+@onready var equipment_empty_label: Label = $MainPanel/EquipmentInventoryPanel/EmptyLabel
+@onready var equipment_slot_buttons: Dictionary = {
+	EquipmentSlotRules.BARK_SLOT_ID: $MainPanel/TreeCanvas/BarkButton,
+	EquipmentSlotRules.ROOTS_SLOT_ID: $MainPanel/TreeCanvas/RootsButton
+}
 
 @onready var slot_buttons: Dictionary = {
 	BranchSlotRules.STANDARD_SLOT_1_ID: $MainPanel/TreeCanvas/Slot1Button,
@@ -48,6 +70,12 @@ var candidate_buttons_by_branch_id: Dictionary = {}
 var selected_candidate_branch_id: StringName = &""
 var wave_manager: Node
 var picker_mode: PickerMode = PickerMode.NONE
+var selection_mode: SelectionMode = SelectionMode.BRANCH
+var selected_equipment_slot_id: StringName = &""
+var selected_equipment_instance_id: StringName = &""
+var equipment_candidate_buttons_by_instance_id: Dictionary = {}
+var inventory_service: InventoryService
+var equipment_service: EquipmentService
 
 
 func _ready() -> void:
@@ -56,11 +84,17 @@ func _ready() -> void:
 	change_branch_button.pressed.connect(open_branch_picker)
 	confirm_candidate_button.pressed.connect(confirm_selected_branch_candidate)
 	cancel_picker_button.pressed.connect(close_branch_picker)
+	equip_button.pressed.connect(equip_selected_equipment)
+	unequip_button.pressed.connect(unequip_selected_equipment)
 	for slot_id in slot_buttons:
 		var button: Button = slot_buttons[slot_id]
 		button.pressed.connect(select_slot.bind(StringName(slot_id)))
+	for slot_id in equipment_slot_buttons:
+		var button: Button = equipment_slot_buttons[slot_id]
+		button.pressed.connect(select_equipment_slot.bind(StringName(slot_id)))
 	_connect_loadout_controller()
 	_connect_branch_seed_service()
+	_connect_equipment_services()
 	hide()
 
 
@@ -101,6 +135,8 @@ func set_preparation_mode(
 		close_branch_picker()
 	if is_node_ready():
 		_refresh_loadout_controls()
+		if selection_mode == SelectionMode.EQUIPMENT:
+			_refresh_equipment_ui()
 
 
 func refresh_screen() -> void:
@@ -108,19 +144,44 @@ func refresh_screen() -> void:
 	_find_active_branches()
 	_connect_branch_signals()
 	_refresh_slot_buttons()
-	_validate_selection()
-	_refresh_selected_detail()
+	_refresh_equipment_slot_buttons()
+	if selection_mode == SelectionMode.EQUIPMENT:
+		_validate_equipment_selection()
+		_refresh_equipment_ui()
+	else:
+		_validate_selection()
+		_refresh_selected_detail()
 	_refresh_seed_panel()
 	_refresh_loadout_controls()
+	_refresh_mode_visibility()
 
 
 func select_slot(slot_id: StringName) -> void:
 	if BranchSlotRules.get_slot_index(slot_id) < 0:
 		return
+	close_branch_picker()
+	selection_mode = SelectionMode.BRANCH
 	selected_slot_id = slot_id
+	selected_equipment_slot_id = &""
+	selected_equipment_instance_id = &""
 	_refresh_slot_buttons()
 	_refresh_selected_detail()
 	_refresh_loadout_controls()
+	_refresh_mode_visibility()
+
+
+func select_equipment_slot(slot_id: StringName) -> bool:
+	if not EquipmentSlotRules.is_valid_slot_id(slot_id):
+		return false
+	close_branch_picker()
+	selection_mode = SelectionMode.EQUIPMENT
+	selected_equipment_slot_id = slot_id
+	selected_equipment_instance_id = &""
+	_refresh_slot_buttons()
+	_refresh_equipment_slot_buttons()
+	_refresh_equipment_ui()
+	_refresh_mode_visibility()
+	return true
 
 
 func _find_active_branches() -> void:
@@ -157,6 +218,251 @@ func _refresh_slot_buttons() -> void:
 			button.text = "SLOT %d\n%s" % [slot_index, _get_short_branch_name(branch) if is_instance_valid(branch) else "EMPTY"]
 		button.disabled = false
 		button.button_pressed = slot_id == selected_slot_id
+
+
+func _refresh_equipment_slot_buttons() -> void:
+	for slot_id_value in equipment_slot_buttons:
+		var slot_id := StringName(slot_id_value)
+		var button: Button = equipment_slot_buttons[slot_id]
+		var item: ItemInstance = null
+		if is_instance_valid(equipment_service):
+			item = equipment_service.get_equipped_item(slot_id)
+		var item_name: String = "EMPTY"
+		if item != null:
+			var definition: ItemDefinition = GameContent.get_item(item.definition_id)
+			if is_instance_valid(definition):
+				item_name = definition.display_name
+		button.text = "%s\n%s" % [
+			EquipmentSlotRules.get_slot_display_name(slot_id).to_upper(),
+			item_name
+		]
+		button.button_pressed = (
+			selection_mode == SelectionMode.EQUIPMENT
+			and slot_id == selected_equipment_slot_id
+		)
+		if item == null:
+			button.remove_theme_color_override("font_color")
+		else:
+			button.add_theme_color_override(
+				"font_color",
+				ItemRarityRules.get_rarity_color(item.rarity_id)
+			)
+
+
+func _refresh_mode_visibility() -> void:
+	var equipment_mode: bool = selection_mode == SelectionMode.EQUIPMENT
+	detail_panel.visible = not equipment_mode
+	seed_panel.visible = not equipment_mode
+	equipment_detail_panel.visible = equipment_mode
+	equipment_inventory_panel.visible = equipment_mode
+
+
+func _validate_equipment_selection() -> void:
+	if not EquipmentSlotRules.is_valid_slot_id(selected_equipment_slot_id):
+		selected_equipment_slot_id = EquipmentSlotRules.BARK_SLOT_ID
+	if (
+		selected_equipment_instance_id == &""
+		or not is_instance_valid(inventory_service)
+	):
+		return
+	var selected_item: ItemInstance = inventory_service.get_item(
+		selected_equipment_instance_id
+	)
+	if selected_item == null:
+		selected_equipment_instance_id = &""
+		return
+	var definition: ItemDefinition = GameContent.get_item(
+		selected_item.definition_id
+	)
+	if (
+		not is_instance_valid(definition)
+		or definition.equipment_slot_id != selected_equipment_slot_id
+	):
+		selected_equipment_instance_id = &""
+
+
+func _refresh_equipment_ui() -> void:
+	_validate_equipment_selection()
+	_rebuild_equipment_candidate_list()
+	var slot_name: String = EquipmentSlotRules.get_slot_display_name(
+		selected_equipment_slot_id
+	)
+	equipment_title_label.text = "%s EQUIPMENT" % slot_name.to_upper()
+	equipment_inventory_title.text = "%s INVENTORY" % slot_name.to_upper()
+	equipment_empty_label.text = "No %s items in inventory." % slot_name
+	var equipped_item: ItemInstance = null
+	if is_instance_valid(equipment_service):
+		equipped_item = equipment_service.get_equipped_item(
+			selected_equipment_slot_id
+		)
+	currently_equipped_label.text = _format_item_detail(
+		"CURRENTLY EQUIPPED",
+		equipped_item,
+		"EMPTY"
+	)
+	var selected_item: ItemInstance = null
+	if is_instance_valid(inventory_service):
+		selected_item = inventory_service.get_item(
+			selected_equipment_instance_id
+		)
+	selected_item_label.text = _format_item_detail(
+		"SELECTED ITEM",
+		selected_item,
+		"Select an item from inventory."
+	)
+	var edit_allowed: bool = _is_branch_loadout_edit_allowed()
+	var selected_is_equipped: bool = (
+		selected_item != null
+		and is_instance_valid(equipment_service)
+		and equipment_service.is_item_equipped(selected_item.instance_id)
+	)
+	equip_button.disabled = (
+		not edit_allowed
+		or selected_item == null
+		or selected_is_equipped
+	)
+	equip_button.text = "EQUIPPED" if selected_is_equipped else "EQUIP"
+	unequip_button.disabled = not edit_allowed or equipped_item == null
+	equipment_status_label.text = (
+		"EQUIPMENT EDITING ENABLED"
+		if edit_allowed
+		else "EQUIPMENT UNAVAILABLE\nTree is defeated."
+	)
+
+
+func _rebuild_equipment_candidate_list() -> void:
+	equipment_candidate_buttons_by_instance_id.clear()
+	for child in equipment_candidate_list.get_children():
+		child.queue_free()
+	var items: Array[ItemInstance] = []
+	if is_instance_valid(inventory_service):
+		items = inventory_service.get_items_for_slot(selected_equipment_slot_id)
+	items.sort_custom(_inventory_item_precedes)
+	equipment_empty_label.visible = items.is_empty()
+	for item in items:
+		var definition: ItemDefinition = GameContent.get_item(item.definition_id)
+		if not is_instance_valid(definition):
+			continue
+		var button := Button.new()
+		button.toggle_mode = true
+		button.text = "%s\n%s • Item Level %d" % [
+			definition.display_name,
+			ItemRarityRules.get_rarity_display_name(item.rarity_id),
+			item.item_level
+		]
+		if (
+			is_instance_valid(equipment_service)
+			and equipment_service.is_item_equipped(item.instance_id)
+		):
+			button.text += "\nEQUIPPED"
+		button.button_pressed = item.instance_id == selected_equipment_instance_id
+		button.add_theme_color_override(
+			"font_color",
+			ItemRarityRules.get_rarity_color(item.rarity_id)
+		)
+		button.pressed.connect(
+			select_equipment_candidate.bind(item.instance_id)
+		)
+		equipment_candidate_list.add_child(button)
+		equipment_candidate_buttons_by_instance_id[item.instance_id] = button
+
+
+func _inventory_item_precedes(
+	item_a: ItemInstance,
+	item_b: ItemInstance
+) -> bool:
+	var rarity_a: int = ItemRarityRules.get_rarity_rank(item_a.rarity_id)
+	var rarity_b: int = ItemRarityRules.get_rarity_rank(item_b.rarity_id)
+	if rarity_a != rarity_b:
+		return rarity_a > rarity_b
+	if item_a.item_level != item_b.item_level:
+		return item_a.item_level > item_b.item_level
+	var definition_a: ItemDefinition = GameContent.get_item(item_a.definition_id)
+	var definition_b: ItemDefinition = GameContent.get_item(item_b.definition_id)
+	var name_a: String = definition_a.display_name if is_instance_valid(definition_a) else ""
+	var name_b: String = definition_b.display_name if is_instance_valid(definition_b) else ""
+	if name_a != name_b:
+		return name_a.naturalnocasecmp_to(name_b) < 0
+	return String(item_a.instance_id) < String(item_b.instance_id)
+
+
+func select_equipment_candidate(instance_id: StringName) -> bool:
+	if selection_mode != SelectionMode.EQUIPMENT:
+		return false
+	if not is_instance_valid(inventory_service):
+		return false
+	var item: ItemInstance = inventory_service.get_item(instance_id)
+	if item == null:
+		return false
+	var definition: ItemDefinition = GameContent.get_item(item.definition_id)
+	if (
+		not is_instance_valid(definition)
+		or definition.equipment_slot_id != selected_equipment_slot_id
+	):
+		return false
+	selected_equipment_instance_id = instance_id
+	_refresh_equipment_ui()
+	return true
+
+
+func equip_selected_equipment() -> bool:
+	if (
+		selection_mode != SelectionMode.EQUIPMENT
+		or not _is_branch_loadout_edit_allowed()
+		or not is_instance_valid(equipment_service)
+	):
+		return false
+	return equipment_service.equip_item(selected_equipment_instance_id)
+
+
+func unequip_selected_equipment() -> bool:
+	if (
+		selection_mode != SelectionMode.EQUIPMENT
+		or not _is_branch_loadout_edit_allowed()
+		or not is_instance_valid(equipment_service)
+	):
+		return false
+	return equipment_service.unequip_slot(selected_equipment_slot_id)
+
+
+func _format_item_detail(
+	heading: String,
+	item: ItemInstance,
+	empty_text: String
+) -> String:
+	var lines: Array[String] = [heading]
+	if item == null:
+		lines.append(empty_text)
+		return "\n".join(lines)
+	var definition: ItemDefinition = GameContent.get_item(item.definition_id)
+	if not is_instance_valid(definition):
+		lines.append("Unknown item")
+		return "\n".join(lines)
+	lines.append(definition.display_name)
+	lines.append(ItemRarityRules.get_rarity_display_name(item.rarity_id))
+	lines.append("Item Level %d" % item.item_level)
+	if item.affix_rolls.is_empty():
+		lines.append("No affixes.")
+	else:
+		for affix in item.affix_rolls:
+			lines.append("%s: +%s" % [
+				_humanize_stat_id(affix.stat_id),
+				_format_affix_value(affix.value)
+			])
+	return "\n".join(lines)
+
+
+func _humanize_stat_id(stat_id: StringName) -> String:
+	var words: PackedStringArray = String(stat_id).split("_", false)
+	for word_index in range(words.size()):
+		words[word_index] = words[word_index].capitalize()
+	return " ".join(words)
+
+
+func _format_affix_value(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return str(int(roundf(value)))
+	return str(value)
 
 
 func _refresh_selected_detail() -> void:
@@ -235,6 +541,8 @@ func _refresh_seed_panel() -> void:
 
 
 func _refresh_loadout_controls() -> void:
+	if selection_mode == SelectionMode.EQUIPMENT:
+		return
 	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
 	var is_standard_slot: bool = BranchSlotRules.is_standard_slot(slot_index)
 	var is_apex_slot: bool = BranchSlotRules.is_apex_slot(slot_index)
@@ -266,7 +574,10 @@ func _refresh_loadout_controls() -> void:
 
 
 func open_branch_picker() -> bool:
-	if not _is_branch_loadout_edit_allowed():
+	if (
+		selection_mode != SelectionMode.BRANCH
+		or not _is_branch_loadout_edit_allowed()
+	):
 		return false
 	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
 	if BranchSlotRules.is_standard_slot(slot_index):
@@ -686,6 +997,56 @@ func _connect_branch_seed_service() -> void:
 		)
 	):
 		seed_service.branch_seed_unlocked.connect(_on_branch_seed_unlocked)
+
+
+func _connect_equipment_services() -> void:
+	inventory_service = get_node_or_null("/root/Inventory") as InventoryService
+	equipment_service = get_node_or_null("/root/Equipment") as EquipmentService
+	if (
+		is_instance_valid(inventory_service)
+		and not inventory_service.item_added.is_connected(_on_inventory_item_added)
+	):
+		inventory_service.item_added.connect(_on_inventory_item_added)
+	if (
+		is_instance_valid(inventory_service)
+		and not inventory_service.item_removed.is_connected(_on_inventory_item_removed)
+	):
+		inventory_service.item_removed.connect(_on_inventory_item_removed)
+	if (
+		is_instance_valid(equipment_service)
+		and not equipment_service.equipment_slot_changed.is_connected(
+			_on_equipment_slot_changed
+		)
+	):
+		equipment_service.equipment_slot_changed.connect(
+			_on_equipment_slot_changed
+		)
+
+
+func _on_inventory_item_added(_instance_id: StringName) -> void:
+	if visible and selection_mode == SelectionMode.EQUIPMENT:
+		_refresh_equipment_ui()
+
+
+func _on_inventory_item_removed(instance_id: StringName) -> void:
+	if selected_equipment_instance_id == instance_id:
+		selected_equipment_instance_id = &""
+	if visible:
+		_refresh_equipment_slot_buttons()
+		if selection_mode == SelectionMode.EQUIPMENT:
+			_refresh_equipment_ui()
+
+
+func _on_equipment_slot_changed(
+	_slot_id: StringName,
+	_previous_instance_id: StringName,
+	_new_instance_id: StringName
+) -> void:
+	if not visible:
+		return
+	_refresh_equipment_slot_buttons()
+	if selection_mode == SelectionMode.EQUIPMENT:
+		_refresh_equipment_ui()
 
 
 func _on_branch_seed_unlocked(_branch_id: StringName) -> void:
