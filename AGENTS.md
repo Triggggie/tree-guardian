@@ -71,6 +71,10 @@ Use `ContentRegistry` and `GameContent` for content lookup. Do not hardcode cont
 
 Equipment rarity uses exactly Common, Uncommon, Epic, and Legendary and is separate from Legendary Branch Tier I-III. Equipment Foundation V1 supports only Bark and Roots through stable `StringName` slot IDs. Future slot expansion must preserve stable IDs and must not repurpose enum indexes as persistent identity.
 
+`Inventory` owns concrete `ItemInstance` objects by stable `instance_id`. `Equipment` references inventory items only by `instance_id`, never by `definition_id`; equipped items remain in the inventory collection and are not copied, removed, or destroyed by equip, replacement, or unequip. Slot compatibility always comes from `ItemDefinition.equipment_slot_id` and `EquipmentSlotRules`, and runtime equipment operations never mutate shared `ItemDefinition` Resources.
+
+Inventory and equipment are in-memory only until the general save system is implemented. Production inventory starts empty and must not silently receive starter items. TREE equipment selection is allowed whenever the tree is alive, including Preparation and active Waves, and must not pause or reset gameplay. Equipment V1 records state only and does not apply affix stats; equipment state and gameplay stat application remain separate layers. Bark and Roots are the only production equipment slots in V1.
+
 Use reusable modifiers/effects for mechanics that may apply to more than one branch, enemy, talent, or Soul. Do not hardcode a reusable mechanic into one branch script merely because that branch is the first user.
 
 Branch Seed unlocks are persistent meta-progression stored as stable legendary Branch IDs. Normal death and prestige runs do not clear them. Run modifiers and shared Resources must never mutate Branch Seed unlock state.

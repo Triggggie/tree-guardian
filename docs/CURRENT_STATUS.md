@@ -497,6 +497,18 @@ Automated regression evidence for this checkpoint:
 - Added deterministic smoke coverage for definitions, slot and rarity rules, registry lookup/rebuild, duplicate IDs, invalid entries, mutable instance independence, shared-definition safety, and equipment-rarity versus Branch-Tier separation.
 - Not implemented: inventory, comparison, equip/unequip, item drop generation, auto-loot, equipment UI, equipment stat application, persistence, crafting, dismantle, reroll, unique Legendary effects, or Soul Relic gameplay.
 
+### Inventory & Equipment V1
+
+- `InventoryService` is an in-memory authority over concrete `ItemInstance` objects keyed by stable `instance_id`. It rejects duplicate instance IDs, invalid instance data, unknown definitions, and unsupported slots without mutation or signals. It exposes stable-ID lookup, removal, counts, full collection reads, and filtering through each `ItemDefinition.equipment_slot_id`. Production inventory starts empty.
+- `EquipmentService` stores only Bark and Roots slot mappings to concrete inventory `instance_id` values. Both slots start EMPTY. Equip derives compatibility from the shared definition, replacement preserves both old and new items in Inventory, unequip removes only the slot reference, and removing an equipped inventory item safely clears that slot.
+- Equip, replacement, and unequip preserve the same mutable `ItemInstance`; no operation copies an item, uses `definition_id` as concrete identity, changes lock state, or mutates shared `ItemDefinition` content. Locked items remain equipable. Inventory and equipment survive MainWorld recreation within one process but have no disk persistence.
+- TREE now has distinct BARK and ROOTS selectors at the trunk and roots. Equipment mode replaces the Branch detail and Seed panels with an equipment detail/comparison panel and a scrollable, slot-filtered inventory panel. Returning to any Standard or Apex slot restores the original Branch UI and safely closes conflicting picker interaction.
+- Equipment detail presents currently equipped versus selected item facts: display name, centralized rarity text/color, Item Level, and humanized affix values. It does not calculate power scores, recommendations, deltas, effective HP, DPS, or stat-application previews.
+- Inventory candidates are independently keyed by `instance_id`, so multiple pieces from one `ItemDefinition` remain distinct. UI ordering is deterministic: rarity descending, Item Level descending, display name, then instance ID. Empty Bark and Roots states provide explicit messages and disabled actions.
+- TREE refreshes from `item_added`, `item_removed`, and `equipment_slot_changed` signals without frame polling. Removed candidates clear stale selection. Equip/unequip works during Preparation and active Waves while the tree is alive; tree defeat keeps browsing available but disables mutations.
+- Equipment operations never pause SceneTree, restart WaveDirector, remove enemies, reset HP, or alter Tree/Branch stats. Equipment V1 applies no affix effects.
+- Not implemented: equipment gameplay stat application, enemy item drops, Item Level or rarity generation, affix generation, auto-loot, persistence, crafting, dismantle, reroll, Legendary unique effects, Heartwood, Canopy, Sap, or Soul Relic.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
@@ -556,9 +568,9 @@ The first legendary concepts are:
 
 The next recommended steps are:
 
-1. Implement Inventory & Equipment V1 with an in-memory inventory and Bark/Roots equipment state.
-2. Add equip/unequip, filtered TREE integration, and a basic comparison foundation without item drop generation if that remains cleaner as a separate checkpoint.
-3. Follow with Basic Equipment Loot V1.
+1. Implement Equipment Stat Application V1 so affix state has one centralized, tested gameplay resolution layer.
+2. Follow with Basic Equipment Loot V1: deterministic/testable item generation, Item Level derivation, rarity and minimal affix rolls, automatic Inventory insertion, and a drop notification.
+3. Keep production art, persistence, crafting, dismantle, reroll, and later equipment slots outside those focused checkpoints.
 4. Add production art only after the core systems are stable.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
