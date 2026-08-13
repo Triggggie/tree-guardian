@@ -22,6 +22,13 @@ static func validate_registry(
 	)
 
 	validate_definition_list(
+		"Item",
+		registry.items,
+		&"item_id",
+		errors
+	)
+
+	validate_definition_list(
 		"Tree Soul",
 		registry.tree_souls,
 		&"tree_soul_id",

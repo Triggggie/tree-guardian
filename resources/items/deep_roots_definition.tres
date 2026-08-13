@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/item_definition.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"deep_roots"
+display_name = "Deep Roots"
+description = "Ancient roots that anchor the Tree deep into the living earth."
+equipment_slot_id = &"roots"

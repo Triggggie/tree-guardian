@@ -45,6 +45,24 @@ func get_branch(
 	)
 
 
+func get_items() -> Array[ItemDefinition]:
+	if registry == null:
+		return []
+
+	return registry.items
+
+
+func get_item(
+	item_id: StringName
+) -> ItemDefinition:
+	if registry == null:
+		return null
+
+	return registry.get_item_definition(
+		item_id
+	)
+
+
 func get_upgrades(
 	branch_id: StringName
 ) -> Array[UpgradeDefinition]:

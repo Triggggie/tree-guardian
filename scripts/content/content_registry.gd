@@ -7,6 +7,11 @@ extends Resource
 @export var branches: Array[BranchDefinition] = []
 
 
+@export_category("Items")
+
+@export var items: Array[ItemDefinition] = []
+
+
 @export_category("Tree Souls")
 
 @export var tree_souls: Array[TreeSoulDefinition] = []
@@ -28,6 +33,7 @@ extends Resource
 
 
 var branches_by_id: Dictionary = {}
+var items_by_id: Dictionary = {}
 var upgrades_by_branch_id: Dictionary = {}
 var talent_trees_by_id: Dictionary = {}
 var talents_by_branch_id: Dictionary = {}
@@ -44,6 +50,7 @@ func rebuild_indexes() -> void:
 	indexes_ready = false
 
 	branches_by_id.clear()
+	items_by_id.clear()
 	upgrades_by_branch_id.clear()
 	talent_trees_by_id.clear()
 	talents_by_branch_id.clear()
@@ -57,6 +64,12 @@ func rebuild_indexes() -> void:
 		branches,
 		&"branch_id",
 		branches_by_id
+	)
+
+	index_definitions(
+		items,
+		&"item_id",
+		items_by_id
 	)
 
 	index_definitions(
@@ -108,6 +121,16 @@ func get_branch_definition(
 	return branches_by_id.get(
 		branch_id
 	) as BranchDefinition
+
+
+func get_item_definition(
+	item_id: StringName
+) -> ItemDefinition:
+	ensure_indexes()
+
+	return items_by_id.get(
+		item_id
+	) as ItemDefinition
 
 
 func get_upgrade_definition(
