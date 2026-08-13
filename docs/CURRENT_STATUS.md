@@ -578,6 +578,59 @@ Inventory continues to start empty. A natural or forced drop triggers the existi
 
 Not implemented: Legendary unique equipment, Defense, damage reduction, materials, Garden loot, pet loot, Soul Relic, physical item pickup, loot filter, auto-dismantle, inventory capacity, persistent Inventory/Equipment, crafting, reroll, or explicit Stage equipment loot pools.
 
+### Gameplay Feel & Inventory Expansion V1
+
+Checkpoint date: 2026-08-13.
+
+#### Equipment Notification
+
+- Equipment reward presentation is now horizontally centered in the screen with a short scale/fade/drift treatment and rarity border. The existing bounded sequential queue and approximately three-second timing are preserved.
+- It remains non-blocking, ignores mouse input, and never pauses gameplay. The Branch Seed notification remains independent and can be visible simultaneously without pixel overlap.
+
+#### Inventory Overview
+
+- TREE now exposes a one-click `INVENTORY` entry point and a global all-items view in its main central area. A dynamic `ScrollContainer` plus three-column grid displays every concrete `ItemInstance` independently by `instance_id`.
+- Cards show display name, rarity, Item Level, equipment slot, affix summary, LOCKED when applicable, and EQUIPPED from `Equipment.is_item_equipped(instance_id)`. Sorting is centralized rarity rank descending, Item Level descending, display name, then instance ID.
+- Required filters are ALL, BARK, ROOTS, HEARTWOOD, CANOPY, and SAP. Empty states are safe and explicit.
+- Selecting a card shows its full factual detail and the currently equipped item in the same slot. Existing `EquipmentService` performs equip, replacement, and unequip; no score or Better/Worse judgment was added.
+- `Inventory.item_added`, `item_removed`, and `Equipment.equipment_slot_changed` refresh the open view without polling. A valid selected instance survives live drops.
+- The layout leaves room for later management actions, but scrap, dismantle, materials, crafting, inventory capacity, and persistence are intentionally not implemented.
+
+#### Equipment Slots and Content
+
+- Production slots are Bark, Roots, Heartwood, Canopy, and Sap. All five default to EMPTY and derive from `EquipmentSlotRules`; `EquipmentStatService` aggregates every equipped slot. Soul Relic remains future-only and is not supported.
+- New registered definitions are Elder Heartwood (`elder_heartwood`), Verdant Canopy (`verdant_canopy`), and Luminous Sap (`luminous_sap`). `GameContent.get_items()` now returns Living Bark, Deep Roots, Elder Heartwood, Verdant Canopy, and Luminous Sap.
+- Prototype affix pools are Bark: Branch Damage / Attack Speed; Roots: Maximum Health / Health Regeneration; Heartwood: Maximum Health / Branch Damage; Canopy: Branch Damage / Attack Speed; Sap: Health Regeneration / Attack Speed.
+- Bark's pool remains temporary until a real Defense identity exists. No Defense, Healing Power, Range, Essence Gain, or Tree Soul Power equipment stat was added.
+- Successful equipment drops choose uniformly from the five valid registered definitions. Normal 1% drop chance, Warden/Colossus guarantees, affix counts, formulas, and Legendary generation weight 0 remain unchanged.
+
+#### Thorn Crown Readability
+
+- Every real Thorn Crown attack activation now starts one 0.28-second procedural bilateral snap/pulse with arm extension, small scale pulse, and brighter wood/thorn/leaf flash. Overgrowth may use the simple 1.2 intensity variant.
+- No-target cooldown ticks do not animate. Presentation cleanup kills and resets the Tween during `stop_combat()`, replacement, defeat, or node removal.
+- Damage, cooldown, range, Burst Radius, targeting, and attack timing are unchanged.
+
+#### Wave Pacing
+
+- Waves 1–10 require strict clear. Waves 11–25 may launch the next adjacent normal Wave at at most 20% survivors; Waves 26–49 at 30%; Wave 51+ at 35%.
+- Overlap begins only after the current Wave finishes spawning. At most two adjacent normal cohorts may be active. A third cannot launch until the oldest cohort completes.
+- Miniboss/boss Waves cannot overlap in or out. Substage/Preparation boundaries are hard barriers, so W50, W100, rewards, completion, and Preparation retain their encounter ordering.
+- `EnemyTracker` indexes live enemies by origin global Wave without per-frame node scanning. `WaveDirector.current_wave` means the newest launched Wave, while completion is queued and finalized in global-Wave order.
+- Age advances only from ordered first-time completion. Every enemy retains its origin Wave for health/damage spawn scaling and reward context, including equipment Item Level and boss guarantee keys. Retry clears cohort runtime and tracked enemies without changing guarantee anti-farm state.
+
+#### Unchanged and Not Implemented
+
+- Enemy HP, speed, damage, XP, Forest Essence, boss ability values, Branch balance, Branch Seed loot/pity, Tree Souls, Guardian Grove schedule data, and equipment drop rates are unchanged.
+- Not implemented: save/persistence, scrap, materials, crafting, reroll, inventory cap, auto-dismantle, Defense, Soul Relic, Legendary equipment effects, or additional Stage loot pools.
+
+#### Recommended Next Work
+
+1. Manual pacing and Inventory UX playtest.
+2. Save & Persistence Foundation V1.
+3. Inventory Scrap & Materials V1.
+4. Bark Defense identity.
+5. Legendary Equipment V1 only after the common loot and Inventory loop is stable.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.

@@ -69,11 +69,11 @@ Use `ContentRegistry` and `GameContent` for content lookup. Do not hardcode cont
 
 `ItemDefinition` is immutable shared content identified by stable `item_id` and registered through the central `ContentRegistry` / `GameContent` path. `ItemInstance` owns mutable per-item state: `instance_id`, `definition_id`, Item Level, equipment rarity, affix rolls, and lock state. Never mutate a shared `ItemDefinition` Resource to represent a rolled item. Inventory, equipment activation, loot generation, and persistence remain separate runtime layers from definition content; do not create a parallel item registry.
 
-Equipment rarity uses exactly Common, Uncommon, Epic, and Legendary and is separate from Legendary Branch Tier I-III. Equipment Foundation V1 supports only Bark and Roots through stable `StringName` slot IDs. Future slot expansion must preserve stable IDs and must not repurpose enum indexes as persistent identity.
+Equipment rarity uses exactly Common, Uncommon, Epic, and Legendary and is separate from Legendary Branch Tier I-III. Production equipment slots are Bark, Roots, Heartwood, Canopy, and Sap through stable `StringName` slot IDs. Soul Relic remains reserved for future Tree Soul-specific design. Equipment slot lists, runtime state, stat aggregation, loot filtering, and TREE filters derive from `EquipmentSlotRules`; never repurpose enum indexes as persistent identity or duplicate Bark/Roots-only lists.
 
 `Inventory` owns concrete `ItemInstance` objects by stable `instance_id`. `Equipment` references inventory items only by `instance_id`, never by `definition_id`; equipped items remain in the inventory collection and are not copied, removed, or destroyed by equip, replacement, or unequip. Slot compatibility always comes from `ItemDefinition.equipment_slot_id` and `EquipmentSlotRules`, and runtime equipment operations never mutate shared `ItemDefinition` Resources.
 
-Inventory and equipment are in-memory only until the general save system is implemented. Production inventory starts empty and must not silently receive starter items. TREE equipment selection is allowed whenever the tree is alive, including Preparation and active Waves, and must not pause or reset gameplay. Equipment V1 records state only and does not apply affix stats; equipment state and gameplay stat application remain separate layers. Bark and Roots are the only production equipment slots in V1.
+Inventory and equipment are in-memory only until the general save system is implemented. Production inventory starts empty and must not silently receive starter items. TREE equipment selection is allowed whenever the tree is alive, including Preparation and active Waves, and must not pause or reset gameplay. Equipment state and gameplay stat application remain separate runtime layers.
 
 Use reusable modifiers/effects for mechanics that may apply to more than one branch, enemy, talent, or Soul. Do not hardcode a reusable mechanic into one branch script merely because that branch is the first user.
 
@@ -96,6 +96,8 @@ Player-facing Apex selection is allowed whenever the tree is alive. Candidate ID
 Replacing any runtime Branch must stop and remove the previous instance before the replacement becomes active. Delayed attacks, projectiles, healing effects, Timers, Tweens, and other combat state from a removed Branch must not survive replacement. Changing Branch loadout must never pause or reset SceneTree, WaveDirector, enemies, tree state, progression, loot, or pity.
 
 Thorn Crown is the first production Legendary Branch. Its stable ID is `thorn_crown`; it is a Tier I Legendary restricted to the Apex Slot. One physical runtime Branch independently finds the nearest valid primary target on the left and right during each attack cycle. Each populated side creates one Thorn Burst that deals area damage through `AttackResolver`; either side may attack when the other has no valid target. V1 base balance is 12 damage, 2.40-second cooldown, 0.80-second minimum cooldown, 350 range, and 90 Burst Radius. Its Essence upgrades are Thorn Damage (+2 damage per level), Attack Speed (-0.08 seconds per level), and Burst Radius (+8 per level). Its talents are Barbed Core (primary target +40%), Twin Torment (both sides active gives +25% cycle damage), and Overgrowth (every third real attack cycle gives +30% damage and +50% radius).
+
+Thorn Crown attacks require visible procedural presentation feedback tied to actual attack execution. The pulse, snap, flash, and cleanup are presentation-only and must never alter damage, range, targeting, cooldown, or attack timing. Replacement, `stop_combat()`, defeat, and node removal must cancel the presentation safely.
 
 Guardian Grove has exactly one production Legendary Branch Seed entry: Thorn Crown (`thorn_crown`), Tier I, weight 1.0. Branch Seed encounter roll values remain enemy-owned: Bark Warden is a miniboss with a 5% roll chance and +1 Tier I pity on a failed eligible roll; Ancient Bark Colossus is a boss with a 15% roll chance and +3 Tier I pity. The Guardian Grove Tier I pity threshold remains 12. When Thorn Crown is already unlocked and no other locked Tier I entries exist, further Guardian Grove boss encounters do not roll a duplicate Seed or increase Tier I pity.
 
@@ -148,6 +150,7 @@ Modifier semantics:
 - A boss guarantee is claimed only after successful Inventory insertion. Claimed guarantees survive ordinary Retry within the current process to prevent reward farming.
 - Basic Equipment Loot V1 generates only Common, Uncommon, and Epic. Legendary remains valid foundation data but is reserved for future unique-effect items.
 - Production normal-enemy equipment chance must never be temporarily raised for manual testing and committed.
+- Equipment drop notifications are centered reward feedback with a bounded queue. They ignore mouse input and must never pause gameplay or conflict with the independent Branch Seed notification.
 
 ## Tree Soul rules
 
@@ -204,6 +207,8 @@ Example:
 
 Do not reintroduce Age farming from repeated waves.
 
+Normal Wave overlap is disabled for onboarding Waves 1–10. After onboarding, only adjacent normal Waves may overlap, only after the current Wave finishes spawning and reaches its configured survivor threshold, and never with more than two active cohorts. Boss/miniboss Waves and Preparation boundaries are hard no-overlap boundaries. Every enemy retains its origin global Wave for tracking, scaling, completion, Item Level, and reward context even when `current_wave` represents a newer launched Wave. Wave completion remains ordered, and Age advances only from ordered completion rather than Wave launch.
+
 ## Combat targeting
 
 - Enemies use explicit lane information.
@@ -219,6 +224,7 @@ Do not reintroduce Age farming from repeated waves.
 - TREE is the fullscreen Branch/loadout overview. It may replace standard and unlocked Apex Branches whenever the tree is alive; tree defeat disables editing. It must not mutate progress, buy talents or upgrades, bypass Branch Seed unlocks, or duplicate gameplay stat calculations.
 - TREE slot selection uses stable `slot_id`. Its physical layout is Slot 2 upper-left, Slot 1 lower-left, Slot 4 upper-right, Slot 3 lower-right, and Apex top-center.
 - TREE reads shared archetype progress from `BranchProgress`, the per-slot talent build from `slot_id + branch_id`, effective stats from the actual runtime Branch, and unlocked Legendary Branch Seeds from `BranchSeeds`.
+- TREE exposes a global Inventory overview in addition to per-slot equipment selection. Inventory cards always identify concrete items by `instance_id`, so multiple instances of one `ItemDefinition` remain independent.
 - Player-facing Legendary Tier text in TREE comes from `BranchDefinition`.
 - Only one of `BranchUpgradePanel`, `TreeUpgradePanel`, and `TreeSoulStatusPanel` may be visible at a time.
 - The active tab button is disabled; the other tab buttons remain enabled.
