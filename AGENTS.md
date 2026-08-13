@@ -125,6 +125,18 @@ Modifier semantics:
 - `ESSENCE_GAIN` affects actual gameplay Essence rewards, not refunds, loading, restoration, or debug grants.
 - `HEALING_POWER` is reserved for healing mechanics and future talents. No base Tree Soul currently grants it.
 
+## Equipment stat application
+
+- Equipped `ItemInstance` affixes are projected into gameplay through the shared runtime modifier layer. Never mutate `ItemDefinition`, Branch base values, or Tree base values to apply equipment.
+- Equipment modifier rebuilds own only the dedicated `equipment` RunModifiers source and must never clear unrelated sources.
+- Equipment percentage affixes use fractional values: `0.10` means +10%. Percentage bonuses aggregate additively within the Equipment source before that source composes multiplicatively with other RunModifier sources.
+- Equipment `maximum_health` is flat HP. Equipment `health_regeneration` is flat HP per second and remains separate from percentage-of-maximum-health regeneration.
+- Equipment `branch_damage` is percentage Branch Damage. Equipment `attack_speed` is percentage offensive Branch Attack Speed and must not affect Blossom healing timing.
+- Live equipment Maximum HP changes preserve the current-health percentage, never create an equip/unequip healing exploit, and never revive a dead tree.
+- Equipment stat rebuilds must remain idempotent across repeated rebuilds and MainWorld recreation.
+- Item Level, rarity, and lock state do not independently scale or suppress an already rolled `ItemAffixRoll.value`.
+- Equipment Stat Application V1 supports only Maximum Health, Health Regeneration, Branch Damage, and Attack Speed. Unknown affixes remain valid item data but are ignored by gameplay projection.
+
 ## Tree Soul rules
 
 Tree Souls are a run-long specialization selected during a prestige run.

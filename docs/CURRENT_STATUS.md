@@ -2,9 +2,9 @@
 
 Updated: 2026-08-13
 
-Implementation parent for this checkpoint: `ca5ae0c` (`Fix Apex placement and add loadout regressions`)
+Implementation parent for this checkpoint: `5315d5a` (`Update status after inventory and equipment`)
 
-Checkpoint commit: `Update status after Tree loadout fixes`
+Checkpoint commit: `Update status after equipment stat application`
 
 Baseline branch: `main`
 
@@ -14,7 +14,7 @@ Tree Guardian is a playable 2D idle/tower-defense prototype built for Godot 4.7.
 
 The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. Stable identities are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`. Thorn Crown (`thorn_crown`) is the first production Legendary Branch: a Tier I, Apex-only bilateral area-damage Branch registered in `GameContent`. Global content, run, persistent Branch Seed, runtime loadout, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, `BranchLoadout`, and `BranchProgress` autoloads.
 
-This document describes the repository after the Tree Loadout UX & Apex Placement Fix checkpoint built on the implementation parent above.
+This document describes the repository after the Equipment Stat Application V1 checkpoint built on the implementation parent above.
 
 ## 2. Current Playable Prototype
 
@@ -506,8 +506,43 @@ Automated regression evidence for this checkpoint:
 - Equipment detail presents currently equipped versus selected item facts: display name, centralized rarity text/color, Item Level, and humanized affix values. It does not calculate power scores, recommendations, deltas, effective HP, DPS, or stat-application previews.
 - Inventory candidates are independently keyed by `instance_id`, so multiple pieces from one `ItemDefinition` remain distinct. UI ordering is deterministic: rarity descending, Item Level descending, display name, then instance ID. Empty Bark and Roots states provide explicit messages and disabled actions.
 - TREE refreshes from `item_added`, `item_removed`, and `equipment_slot_changed` signals without frame polling. Removed candidates clear stale selection. Equip/unequip works during Preparation and active Waves while the tree is alive; tree defeat keeps browsing available but disables mutations.
-- Equipment operations never pause SceneTree, restart WaveDirector, remove enemies, reset HP, or alter Tree/Branch stats. Equipment V1 applies no affix effects.
-- Not implemented: equipment gameplay stat application, enemy item drops, Item Level or rarity generation, affix generation, auto-loot, persistence, crafting, dismantle, reroll, Legendary unique effects, Heartwood, Canopy, Sap, or Soul Relic.
+- Equipment operations never pause SceneTree, restart WaveDirector, remove enemies, or reset combat state. Equipment gameplay effects are provided separately by Equipment Stat Application V1.
+- Not implemented: enemy item drops, Item Level or rarity generation, affix generation, auto-loot, persistence, crafting, dismantle, reroll, Legendary unique effects, Heartwood, Canopy, Sap, or Soul Relic.
+
+### Equipment Stat Application V1
+
+#### Supported Equipment Stats
+
+- `maximum_health` is flat Maximum HP.
+- `health_regeneration` is flat HP per second.
+- `branch_damage` is percentage global Branch Damage.
+- `attack_speed` is percentage offensive Branch Attack Speed.
+
+Percentage values use fractional storage: `0.10` means +10%. Duplicate rolls and Bark plus Roots values are summed inside the Equipment source before its percentage multiplier composes multiplicatively with other RunModifier sources. Item Level, rarity, and lock state do not rescale an already rolled affix value. Unknown non-empty affixes remain valid item data, are ignored by gameplay, and retain the generic factual UI fallback.
+
+#### Runtime Architecture
+
+`EquipmentService` remains the in-memory authority for slot-to-`instance_id` ownership. The new `EquipmentStatService`, registered once as the `EquipmentStats` autoload after `Equipment`, listens to `equipment_slot_changed`, performs an initial rebuild, aggregates supported affixes from all equipped Bark and Roots instances, and exposes `rebuild_from_equipment()`, `get_total_affix_value()`, and `get_all_total_affix_values()`. Its `equipment_stats_changed` signal is emitted only after a completed rebuild.
+
+Equipment projection uses the dedicated RunModifiers source `equipment`. A rebuild clears only that source, never calls `RunModifiers.clear_all()`, and therefore preserves Tree Soul, external, and future sources. Flat health regeneration uses the new `TREE_FLAT_REGEN` ID rather than overloading percentage `TREE_REGEN_RATE`. Rebuilds are idempotent, and the autoload state plus initial modifier projection remains correct across MainWorld recreation.
+
+#### Tree Integration
+
+The Tree remains the authority for final Maximum HP and regeneration. Equipment Maximum HP enters the existing `TREE_MAX_HEALTH` additive path; a dedicated equipment refresh preserves the current-health ratio at full, damaged, and non-round health values. Repeated equip/unequip cannot heal the Tree, and a dead Tree remains at zero HP and dead while its maximum changes.
+
+Final regeneration combines the existing flat Tree Essence upgrade, Equipment `TREE_FLAT_REGEN`, and the existing percentage-of-maximum-health `TREE_REGEN_RATE`, with the existing non-negative clamp intact. Verdant and other Tree-health modifier sources continue composing through RunModifiers without duplicated Soul logic.
+
+#### Branch Integration
+
+Equipment Branch Damage flows through `BranchStatCalculator` and therefore affects Strength damage, Blossom petal damage, and Thorn Crown damage while preserving Essence upgrades, talents, and other modifier sources. Equipment Attack Speed uses the existing offensive cooldown calculation for Strength, Blossom ranged attacks, and Thorn Crown. Strength and Thorn Crown refresh their Timer `wait_time` when equipment stats change; Blossom reads its current ranged interval when scheduling the next attack countdown. Existing minimum cooldowns remain enforced, and Blossom healing amount and healing tick interval are unchanged.
+
+#### UI and Runtime Safety
+
+TREE uses `EquipmentStatRules` for centralized display names and formatting: `+20`, `+0.5/s`, `+10%`, and `+15%`. Its current-versus-selected comparison remains factual; no power score or recommendation was added. Equip, replacement, unequip, and removal of an equipped item rebuild immediately during Preparation or a live Wave without pausing SceneTree, resetting WaveDirector, removing enemies, or bypassing the existing tree-defeat UI lock.
+
+Production Inventory still starts empty and no starter item, item drop, item generator, rarity roll, affix generator, affix pool, percentage-HP affix, Defense, damage reduction, Range, Healing Power equipment, Essence Gain equipment, Tree Soul Power equipment, unique Legendary effect, or equipment persistence was added.
+
+Deterministic Equipment Stat Rules and Equipment Stat Application smoke tests cover fresh state, aggregation, duplicate affixes, unknown affixes, exact rolled-value semantics, stacking, external-source survival, replacement, unequip, equipped-item removal, idempotence, MainWorld recreation, health-ratio preservation, dead-tree safety, actual regeneration, all three damage paths, all three offensive timing paths, timer refresh, and unchanged Blossom healing timing. TREE Equipment coverage verifies the four known formats, generic unknown formatting, factual comparison, Preparation/live-Wave behavior, defeat gating, and no SceneTree or Wave reset.
 
 ## 9. Known Gaps and Limitations
 
@@ -515,7 +550,7 @@ Automated regression evidence for this checkpoint:
 - Branch archetype progression is retained only in memory and is not included in the disk save.
 - TREE supports live standard and unlocked Apex Branch replacement while the tree is alive; player-facing unequip and standard Branch unlock progression do not exist.
 - There is no talent respec, copy-build, or save-preset flow.
-- Tier data and the first miniboss/boss encounters are implemented, and the Bark/Roots equipment data foundation exists, but Tier badges, inventory, equipment activation, and equipment UI are not implemented.
+- Tier data and the first miniboss/boss encounters are implemented. Bark/Roots inventory, equipment UI, activation, and the first four equipment stats exist, but item loot and generation do not.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
 - All ten Guardian Grove Substages currently share one schedule; later Substages are not yet differentiated.
@@ -566,12 +601,12 @@ The first legendary concepts are:
 
 ## 11. Recommended Next Work
 
-The next recommended steps are:
+The next recommended checkpoint is Basic Equipment Loot V1:
 
-1. Implement Equipment Stat Application V1 so affix state has one centralized, tested gameplay resolution layer.
-2. Follow with Basic Equipment Loot V1: deterministic/testable item generation, Item Level derivation, rarity and minimal affix rolls, automatic Inventory insertion, and a drop notification.
-3. Keep production art, persistence, crafting, dismantle, reroll, and later equipment slots outside those focused checkpoints.
-4. Add production art only after the core systems are stable.
+1. Add the first normal-enemy equipment drop path and a deterministic/testable item generator.
+2. Generate stable instance IDs, derive Item Level from encounter progress, roll rarity, and use a deliberately small affix pool.
+3. Insert successful drops into Inventory and present a player-facing item-drop notification while limiting item spam.
+4. Keep production art, persistence, crafting, dismantle, reroll, unique Legendary effects, and later equipment slots outside that checkpoint.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
@@ -582,7 +617,7 @@ General save/load, prestige integration, later talent tiers, Status Effects, and
 - Run `git status --short` and verify the working tree is clean before starting a new task.
 - Run `git log -1 --oneline` and review the current HEAD.
 - Expected baseline branch: `main`.
-- Implementation parent for this checkpoint: `ca5ae0c`.
+- Implementation parent for this checkpoint: `5315d5a`.
 - Verify that the current HEAD contains this implementation baseline or is a descendant of it.
 - The 25A and 25B implementation was accumulated in the working tree before this checkpoint document and committed as one focused package.
 - After the checkpoint commit, the working tree should be clean before new development begins.
