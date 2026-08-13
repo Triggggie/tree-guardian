@@ -95,10 +95,22 @@ func _ready() -> void:
 	add_to_group("combat_branch")
 	find_tree_node()
 
+	EquipmentStats.equipment_stats_changed.connect(
+		_on_equipment_stats_changed
+	)
+
 
 func _exit_tree() -> void:
 	if is_instance_valid(branch_progress_service):
 		branch_progress_service.unregister_branch(self)
+
+
+func _on_equipment_stats_changed() -> void:
+	on_runtime_modifiers_changed()
+
+
+func on_runtime_modifiers_changed() -> void:
+	pass
 
 
 func resolve_branch_progress_service() -> void:

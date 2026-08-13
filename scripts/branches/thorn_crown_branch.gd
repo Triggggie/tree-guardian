@@ -251,6 +251,10 @@ func update_attack_cooldown() -> void:
 		cooldown_timer.wait_time = get_current_attack_cooldown()
 
 
+func on_runtime_modifiers_changed() -> void:
+	update_attack_cooldown()
+
+
 func sync_visual_state() -> void:
 	if not is_instance_valid(branch_visual):
 		return

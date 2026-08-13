@@ -156,6 +156,10 @@ func _ready() -> void:
 		_on_tree_soul_cleared
 	)
 
+	EquipmentStats.equipment_stats_changed.connect(
+		_on_equipment_stats_changed
+	)
+
 	store_attachment_positions()
 	update_tree_growth()
 
@@ -568,10 +572,38 @@ func refresh_maximum_health(
 		max_health
 	)
 
+
+func refresh_maximum_health_preserving_ratio() -> void:
+	var previous_maximum_health: float = max(max_health, 1.0)
+	var previous_health_ratio: float = clamp(
+		current_health / previous_maximum_health,
+		0.0,
+		1.0
+	)
+
+	max_health = get_modified_max_health()
+
+	if is_dead:
+		current_health = 0.0
+	else:
+		current_health = clamp(
+			max_health * previous_health_ratio,
+			0.0,
+			max_health
+		)
+
+	health_changed.emit(
+		current_health,
+		max_health
+	)
+
 func get_current_health_regeneration() -> float:
 	var flat_regeneration: float = (
 		health_regeneration_upgrade_level
 		* health_regeneration_per_upgrade
+		+ RunModifiers.get_total_additive(
+			RunModifierIds.TREE_FLAT_REGEN
+		)
 	)
 
 	var maximum_health_regeneration_rate: float = max(
@@ -1001,6 +1033,10 @@ func _on_tree_soul_cleared() -> void:
 	refresh_maximum_health(
 		false
 	)
+
+
+func _on_equipment_stats_changed() -> void:
+	refresh_maximum_health_preserving_ratio()
 
 func heal(
 	amount: float,

@@ -8,6 +8,7 @@ const ATTACK_SPEED: StringName = &"attack_speed"
 
 const TREE_MAX_HEALTH: StringName = &"tree_max_health"
 const TREE_REGEN_RATE: StringName = &"tree_regen_rate"
+const TREE_FLAT_REGEN: StringName = &"tree_flat_regen"
 
 const ESSENCE_GAIN: StringName = &"essence_gain"
 

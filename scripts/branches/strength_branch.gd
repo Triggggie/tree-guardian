@@ -262,6 +262,10 @@ func print_upgrade_result(
 func update_attack_cooldown() -> void:
 	cooldown_timer.wait_time = get_current_attack_cooldown()
 
+
+func on_runtime_modifiers_changed() -> void:
+	update_attack_cooldown()
+
 func _on_tree_growth_changed(_growth_factor: float) -> void:
 	if not is_instance_valid(branch_visual):
 		warn_missing_branch_visual_once()

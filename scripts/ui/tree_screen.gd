@@ -445,10 +445,19 @@ func _format_item_detail(
 		lines.append("No affixes.")
 	else:
 		for affix in item.affix_rolls:
-			lines.append("%s: +%s" % [
-				_humanize_stat_id(affix.stat_id),
-				_format_affix_value(affix.value)
-			])
+			if EquipmentStatRules.is_supported_stat_id(affix.stat_id):
+				lines.append("%s: %s" % [
+					EquipmentStatRules.get_stat_display_name(affix.stat_id),
+					EquipmentStatRules.format_stat_value(
+						affix.stat_id,
+						affix.value
+					)
+				])
+			else:
+				lines.append("%s: +%s" % [
+					_humanize_stat_id(affix.stat_id),
+					_format_affix_value(affix.value)
+				])
 	return "\n".join(lines)
 
 
