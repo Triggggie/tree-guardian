@@ -2,9 +2,9 @@
 
 Updated: 2026-08-13
 
-Implementation parent for this checkpoint: `5315d5a` (`Update status after inventory and equipment`)
+Implementation parent for this checkpoint: `169f667` (`Update status after equipment stat application`)
 
-Checkpoint commit: `Update status after equipment stat application`
+Checkpoint commit: `Update status after basic equipment loot`
 
 Baseline branch: `main`
 
@@ -14,7 +14,7 @@ Tree Guardian is a playable 2D idle/tower-defense prototype built for Godot 4.7.
 
 The current prototype has one central tree and four standard branch instances: Strength and Blossom on both the left and right sides. Stable identities are `standard_slot_1`, `standard_slot_2`, `standard_slot_3`, `standard_slot_4`, and `apex_slot`. Thorn Crown (`thorn_crown`) is the first production Legendary Branch: a Tier I, Apex-only bilateral area-damage Branch registered in `GameContent`. Global content, run, persistent Branch Seed, runtime loadout, and shared Branch progression services are provided by the `GameContent`, `TreeSouls`, `RunModifiers`, `BranchSeeds`, `BranchLoadout`, and `BranchProgress` autoloads.
 
-This document describes the repository after the Equipment Stat Application V1 checkpoint built on the implementation parent above.
+This document describes the repository after the Basic Equipment Loot V1 checkpoint built on the implementation parent above.
 
 ## 2. Current Playable Prototype
 
@@ -544,6 +544,40 @@ Production Inventory still starts empty and no starter item, item drop, item gen
 
 Deterministic Equipment Stat Rules and Equipment Stat Application smoke tests cover fresh state, aggregation, duplicate affixes, unknown affixes, exact rolled-value semantics, stacking, external-source survival, replacement, unequip, equipped-item removal, idempotence, MainWorld recreation, health-ratio preservation, dead-tree safety, actual regeneration, all three damage paths, all three offensive timing paths, timer refresh, and unchanged Blossom healing timing. TREE Equipment coverage verifies the four known formats, generic unknown formatting, factual comparison, Preparation/live-Wave behavior, defeat gating, and no SceneTree or Wave reset.
 
+### Basic Equipment Loot V1
+
+#### Enemy Equipment Rewards
+
+- Bark Beetle and Bark Runner each have a 1% equipment drop chance, minimum Common, no guarantee, and no Item Level bonus.
+- Bark Warden has one guaranteed equipment reward per stage/global-Wave/enemy encounter, minimum Uncommon, with +2 Item Levels.
+- Ancient Bark Colossus has one guaranteed equipment reward per encounter, minimum Epic, with +4 Item Levels.
+- The left and right runtime instances share one encounter guarantee. The guarantee key is `stage_id + global_wave + enemy_id`, survives ordinary Retry in the current process, and is claimed only after successful Inventory insertion.
+- Equipment rewards are independent from Branch Seed rolls and pity. A boss may grant both rewards from the same death without either system modifying the other.
+
+#### Item Level and Rarity
+
+Prototype Item Level is `1 + floor((global_wave - 1) / 10)`, minimum 1, plus the enemy source bonus. Wave 1 and Wave 10 normal drops are Item Level 1, Wave 11 is Item Level 2, Wave 50 Bark Warden is Item Level 7, and Wave 100 Ancient Bark Colossus is Item Level 14. Tree Age is not used.
+
+Random rarity weights are Common 78, Uncommon 20, Epic 2, and Legendary 0. Enemy minimum rarity filters lower entries before the remaining weights are used. `ItemRarityRules` still contains Legendary for future content, but Basic Equipment Loot V1 never randomly generates it. Rarity affects rolled values only during generation: Common ×1.00, Uncommon ×1.25, and Epic ×1.50, followed by a seeded ±10% variance.
+
+#### Affixes and Generation
+
+Common items receive one affix; Uncommon and Epic receive two distinct affixes. Deep Roots uses Maximum Health and Health Regeneration. Living Bark temporarily uses Branch Damage and Attack Speed as a prototype pool until a future Defense/damage-reduction system exists; this is not the final thematic Bark design.
+
+Centralized formulas use Item Level `L`: Maximum Health `(8 + 2L)` rounded to whole HP; Health Regeneration `(0.15 + 0.04L)` rounded to 0.05 HP/s; Branch Damage `(0.03 + 0.004L)` and Attack Speed `(0.03 + 0.003L)` rounded to 0.005 fractional steps. Each base value is multiplied by rarity and variance before rounding.
+
+`EquipmentItemGenerator` selects a valid production Bark/Roots `ItemDefinition` from `GameContent`, then creates a new mutable `ItemInstance` with rarity, Item Level, affixes, and `is_locked = false`. It never mutates definitions or creates a parallel registry. `EquipmentLootService` owns a process-local monotonic identity counter such as `equipment_loot_000001`, checks Inventory for collisions, inserts the result automatically, and emits `equipment_item_dropped` only after successful insertion. Items are never auto-equipped. Before persistent Inventory is implemented, this process-local identity must be replaced by a save-safe globally unique scheme.
+
+#### Reward Context and Presentation
+
+`WaveDirector` writes the current global Wave into `EnemySpawnRequest`; `SpawnDirector` passes it with the exact `StageDefinition` into each enemy's reward context. Enemy death preserves XP and physical Forest Essence rewards, then processes Branch Seed and equipment rewards as independent siblings.
+
+`UI/EquipmentDropNotification` listens to `EquipmentLoot`, presents EQUIPMENT FOUND, item name, centralized rarity color, Item Level, centralized affix formatting, known enemy source, and “Available in TREE”. It occupies the upper-right separately from the Branch Seed notification, ignores mouse input, and never pauses combat. A bounded FIFO queue retains at most five pending presentations, drops the oldest pending entry on overflow, and never removes the corresponding Inventory item. There is no physical equipment pickup.
+
+Inventory continues to start empty. A natural or forced drop triggers the existing `Inventory.item_added` signal, so an already-open TREE equipment panel refreshes without a direct loot-to-UI dependency. Automated coverage verifies formulas, rarity minima, distinct affixes, deterministic RNG, 100 collision-free IDs, W50/W100 guarantees, left/right and Retry suppression, failed insertion rollback, no auto-equip, generated EquipmentStats effects, actual enemy death integration, live TREE refresh, notification content/queue, and simultaneous non-overlapping Seed/equipment presentation.
+
+Not implemented: Legendary unique equipment, Defense, damage reduction, materials, Garden loot, pet loot, Soul Relic, physical item pickup, loot filter, auto-dismantle, inventory capacity, persistent Inventory/Equipment, crafting, reroll, or explicit Stage equipment loot pools.
+
 ## 9. Known Gaps and Limitations
 
 - There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
@@ -565,7 +599,7 @@ Deterministic Equipment Stat Rules and Equipment Stat Application smoke tests co
 - Branch category data, Slot 5 rules, the Apex runtime/equip foundation, persistent Branch Seed unlock storage, the legendary drop-processing foundation, natural production Thorn Crown acquisition, and a non-blocking acquisition notification exist. There is still no physical loot object, player-facing Apex unequip, or disk Apex loadout save.
 - There is no found-versus-equipped Apex Branch comparison.
 - Bark Warden and Ancient Bark Colossus now have their first unique abilities, but there is no dedicated boss health-bar or encounter-intro UI and no additional boss ability set.
-- Normal enemies do not drop equipment.
+- Normal enemies can drop Bark/Roots equipment at the production 1% chance; no material, Garden, pet, or Soul Relic loot exists.
 - The Tree Soul orb described in project guidance as visible from Age 1 is not a persistent world-space element; only the hidden-by-default SOUL panel and selection cards draw orb glyphs.
 - A service-level prestige reset hook exists, but there is no integrated player-facing prestige flow.
 - Gameplay scripts contain extensive prototype debug logging.
@@ -601,12 +635,12 @@ The first legendary concepts are:
 
 ## 11. Recommended Next Work
 
-The next recommended checkpoint is Basic Equipment Loot V1:
+The next recommended work is:
 
-1. Add the first normal-enemy equipment drop path and a deterministic/testable item generator.
-2. Generate stable instance IDs, derive Item Level from encounter progress, roll rarity, and use a deliberately small affix pool.
-3. Insert successful drops into Inventory and present a player-facing item-drop notification while limiting item spam.
-4. Keep production art, persistence, crafting, dismantle, reroll, unique Legendary effects, and later equipment slots outside that checkpoint.
+1. Perform a short manual loot and balance playtest, especially the 1% normal drop cadence and Wave 50/100 reward readability.
+2. Choose the next vertical-slice priority between Inventory Persistence / Save Foundation V1 and First Material Loot & Dismantle Foundation.
+3. Add the first real Bark defensive stat in a later focused checkpoint.
+4. Add Legendary unique equipment only after the Common-to-Epic loot loop is stable.
 
 General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
@@ -617,7 +651,7 @@ General save/load, prestige integration, later talent tiers, Status Effects, and
 - Run `git status --short` and verify the working tree is clean before starting a new task.
 - Run `git log -1 --oneline` and review the current HEAD.
 - Expected baseline branch: `main`.
-- Implementation parent for this checkpoint: `5315d5a`.
+- Implementation parent for this checkpoint: `169f667`.
 - Verify that the current HEAD contains this implementation baseline or is a descendant of it.
 - The 25A and 25B implementation was accumulated in the working tree before this checkpoint document and committed as one focused package.
 - After the checkpoint commit, the working tree should be clean before new development begins.

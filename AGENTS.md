@@ -137,6 +137,18 @@ Modifier semantics:
 - Item Level, rarity, and lock state do not independently scale or suppress an already rolled `ItemAffixRoll.value`.
 - Equipment Stat Application V1 supports only Maximum Health, Health Regeneration, Branch Damage, and Attack Speed. Unknown affixes remain valid item data but are ignored by gameplay projection.
 
+## Equipment loot
+
+- Equipment loot is automatically collected into `Inventory`; it has no physical pickup and requires no player interaction. A drop never auto-equips an item.
+- Enemy equipment reward eligibility is data-driven through `EnemyDefinition` reward fields. Branch Seed loot and equipment loot are independent reward systems.
+- Item Level is mutable runtime `ItemInstance` data derived from encounter progression and source difficulty. Never write Item Level, rarity, or affix rolls into `ItemDefinition`.
+- Equipment rarity and affixes are rolled when the concrete `ItemInstance` is generated. Generated ownership identity is always the unique `instance_id`, never `definition_id`.
+- Random equipment generation must use an owned, testable RNG and deterministic seeded tests. Prototype generation values belong in centralized equipment loot rules.
+- Boss equipment guarantees are encounter-level. Left and right runtime instances of the same boss archetype share one `stage_id + global_wave + enemy_id` guarantee.
+- A boss guarantee is claimed only after successful Inventory insertion. Claimed guarantees survive ordinary Retry within the current process to prevent reward farming.
+- Basic Equipment Loot V1 generates only Common, Uncommon, and Epic. Legendary remains valid foundation data but is reserved for future unique-effect items.
+- Production normal-enemy equipment chance must never be temporarily raised for manual testing and committed.
+
 ## Tree Soul rules
 
 Tree Souls are a run-long specialization selected during a prestige run.
