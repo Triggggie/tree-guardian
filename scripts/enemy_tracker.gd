@@ -9,13 +9,15 @@ signal enemies_cleared
 
 
 var _enemies_by_instance_id: Dictionary = {}
+var _global_wave_by_instance_id: Dictionary = {}
+var _active_enemy_count_by_global_wave: Dictionary = {}
 
 
 func _ready() -> void:
 	add_to_group("enemy_tracker")
 
 
-func register_enemy(enemy: Node) -> void:
+func register_enemy(enemy: Node, origin_global_wave: int = 0) -> void:
 	if not is_instance_valid(enemy):
 		return
 
@@ -25,6 +27,11 @@ func register_enemy(enemy: Node) -> void:
 		return
 
 	_enemies_by_instance_id[instance_id] = enemy
+	if origin_global_wave > 0:
+		_global_wave_by_instance_id[instance_id] = origin_global_wave
+		_active_enemy_count_by_global_wave[origin_global_wave] = (
+			get_active_enemy_count_for_wave(origin_global_wave) + 1
+		)
 
 	enemy.tree_exiting.connect(
 		_on_enemy_tree_exiting.bind(instance_id),
@@ -53,6 +60,30 @@ func get_enemy_count() -> int:
 	_remove_stale_enemies()
 
 	return _enemies_by_instance_id.size()
+
+
+func get_total_active_enemy_count() -> int:
+	return get_enemy_count()
+
+
+func get_active_enemy_count_for_wave(global_wave: int) -> int:
+	if global_wave < 1:
+		return 0
+	return int(_active_enemy_count_by_global_wave.get(global_wave, 0))
+
+
+func has_active_enemies_for_wave(global_wave: int) -> bool:
+	return get_active_enemy_count_for_wave(global_wave) > 0
+
+
+func get_tracked_global_waves() -> Array[int]:
+	var global_waves: Array[int] = []
+	for global_wave_value in _active_enemy_count_by_global_wave:
+		var global_wave: int = int(global_wave_value)
+		if get_active_enemy_count_for_wave(global_wave) > 0:
+			global_waves.append(global_wave)
+	global_waves.sort()
+	return global_waves
 
 
 func has_enemies() -> bool:
@@ -106,8 +137,21 @@ func _unregister_enemy_by_instance_id(
 		_enemies_by_instance_id.get(instance_id)
 		as Node
 	)
+	var global_wave: int = int(
+		_global_wave_by_instance_id.get(instance_id, 0)
+	)
 
 	_enemies_by_instance_id.erase(instance_id)
+	_global_wave_by_instance_id.erase(instance_id)
+	if global_wave > 0:
+		var remaining_count: int = max(
+			get_active_enemy_count_for_wave(global_wave) - 1,
+			0
+		)
+		if remaining_count == 0:
+			_active_enemy_count_by_global_wave.erase(global_wave)
+		else:
+			_active_enemy_count_by_global_wave[global_wave] = remaining_count
 
 	if is_instance_valid(enemy):
 		enemy_unregistered.emit(enemy)

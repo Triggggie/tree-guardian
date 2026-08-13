@@ -41,6 +41,7 @@ var highest_completed_wave: int = 0
 var _wave_cycle_id: int = 0
 var _cycle_running: bool = false
 var _debug_start_applied: bool = false
+var active_wave_cohorts: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -218,6 +219,7 @@ func start_cycle(
 
 	_wave_cycle_id += 1
 	_cycle_running = true
+	active_wave_cohorts.clear()
 
 	var new_cycle_id: int = _wave_cycle_id
 	var debug_start_applied: bool = (
@@ -263,6 +265,7 @@ func cancel_cycle(
 ) -> void:
 	_wave_cycle_id += 1
 	_cycle_running = false
+	active_wave_cohorts.clear()
 
 	if clear_message:
 		wave_message_changed.emit("")
@@ -348,15 +351,19 @@ func has_wave_for_global_wave(
 
 
 func get_current_wave_definition() -> WaveDefinition:
-	if not has_wave_for_global_wave(current_wave):
+	return get_wave_definition_for_global_wave(current_wave)
+
+
+func get_wave_definition_for_global_wave(global_wave: int) -> WaveDefinition:
+	if not has_wave_for_global_wave(global_wave):
 		return null
 
-	var safe_current_wave: int = max(
-		current_wave,
+	var safe_global_wave: int = max(
+		global_wave,
 		1
 	)
 	var wave_index_in_stage: int = (
-		safe_current_wave - 1
+		safe_global_wave - 1
 	)
 
 	if stage_definition.repeat_indefinitely:
@@ -564,270 +571,240 @@ func _run_wave_loop(
 	cycle_id: int,
 	retry_current_wave: bool
 ) -> void:
-	var repeat_wave: bool = retry_current_wave
+	var first_wave: int = current_wave if retry_current_wave else current_wave + 1
+	if not await _launch_wave(cycle_id, first_wave):
+		return
 
 	while is_cycle_active(cycle_id):
-		if not repeat_wave:
-			current_wave += 1
-
-		repeat_wave = false
-
-		var wave_definition: WaveDefinition = (
-			get_current_wave_definition()
-		)
-
-		if not is_instance_valid(wave_definition):
-			_cycle_running = false
-
+		while not active_wave_cohorts.is_empty():
+			var oldest_cohort: Dictionary = active_wave_cohorts.front()
+			var oldest_wave: int = int(oldest_cohort.get("global_wave", 0))
 			if (
-				is_instance_valid(stage_definition)
-				and not stage_definition.repeat_indefinitely
-				and current_wave
-				> stage_definition.get_wave_count()
+				not bool(oldest_cohort.get("spawn_completed", false))
+				or enemy_tracker.has_active_enemies_for_wave(oldest_wave)
 			):
-				return
-
-			push_error(
-				(
-					"WaveDirector could not resolve a "
-					+ "WaveDefinition for global Wave %d."
-				)
-				% current_wave
-			)
-			return
-
-		var stage_wave: int = get_current_wave_in_stage()
-
-		var enemy_count: int = (
-			get_current_enemies_per_side()
-		)
-		var displayed_enemy_health: float = (
-			get_current_enemy_health()
-		)
-
-		wave_changed.emit(
-			current_wave,
-			enemy_count
-		)
-
-		print(
-			"Začíná ",
-			get_current_progress_code(),
-			" | globální vlna ",
-			current_wave,
-			" | nepřátel na každé straně: ",
-			enemy_count,
-			" | HP nepřítele: ",
-			displayed_enemy_health
-		)
-
-		var spawn_requests: Array[EnemySpawnRequest] = []
-
-		for enemy_id in wave_definition.get_enemy_ids():
+				break
+			active_wave_cohorts.pop_front()
+			await _finalize_wave_cohort(cycle_id, oldest_cohort)
 			if not is_cycle_active(cycle_id):
 				return
-
-			var loaded_enemy_definition: EnemyDefinition = (
-				get_enemy_definition(enemy_id)
-			)
-
-			if not is_instance_valid(loaded_enemy_definition):
-				push_error(
-					(
-						"WaveDirector could not resolve EnemyDefinition "
-						+ "'%s' for Wave '%s'."
-					)
-					% [
-						enemy_id,
-						wave_definition.wave_id
-					]
-				)
-
-				if cycle_id == _wave_cycle_id:
-					_cycle_running = false
-
+			if _reach_substage_checkpoint_if_needed(oldest_wave):
 				return
 
-			var enemy_count_for_type: int = (
-				stage_definition.get_enemy_count_for_stage_wave(
-					wave_definition,
-					enemy_id,
-					stage_wave
-				)
-			)
+		if active_wave_cohorts.is_empty():
+			if not await _launch_wave(cycle_id, current_wave + 1):
+				return
+			continue
 
-			if enemy_count_for_type < 1:
-				continue
+		if _can_launch_overlapped_wave():
+			if not await _launch_wave(cycle_id, current_wave + 1):
+				return
+			continue
 
-			var enemy_health: float = (
-				stage_definition.get_enemy_health_for_stage_wave(
-					wave_definition,
-					loaded_enemy_definition,
-					stage_wave
-				)
-			)
-			var damage_multiplier: float = (
-				stage_definition.get_enemy_damage_multiplier(
-					wave_definition,
-					enemy_id,
-					stage_wave
-				)
-			)
-
-			spawn_requests.append(
-				EnemySpawnRequest.new(
-					loaded_enemy_definition,
-					enemy_count_for_type,
-					enemy_health,
-					damage_multiplier,
-					stage_definition,
-					current_wave
-				)
-			)
-
-		if spawn_requests.is_empty():
-			push_error(
-				(
-					"WaveDirector Wave '%s' produced no valid "
-					+ "spawn requests."
-				)
-				% wave_definition.wave_id
-			)
-
-			if cycle_id == _wave_cycle_id:
-				_cycle_running = false
-
-			return
-
-		var spawn_completed: bool = await (
-			spawn_director.spawn_wave(
-				spawn_requests,
-				wave_definition.spawn_interval,
-				is_cycle_active.bind(cycle_id)
-			)
-		)
-
-		if not spawn_completed:
-			if cycle_id == _wave_cycle_id:
-				_cycle_running = false
-
-			return
-
-		if not is_cycle_active(cycle_id):
-			return
-
-		await _wait_until_all_enemies_are_dead(
-			cycle_id
-		)
-
-		if not is_cycle_active(cycle_id):
-			return
-
-		_complete_wave()
-
-		await _show_wave_complete_message(
-			cycle_id,
-			wave_definition
-		)
-
-		if not is_cycle_active(cycle_id):
-			return
-
-		var safe_time_after_wave: float = max(
-			wave_definition.time_after_wave,
-			0.0
-		)
-
-		if safe_time_after_wave > 0.0:
-			await get_tree().create_timer(
-				safe_time_after_wave
-			).timeout
-
-		if not is_cycle_active(cycle_id):
-			return
-
-		if _reach_substage_checkpoint_if_needed():
-			return
-
-
-func _reach_substage_checkpoint_if_needed() -> bool:
-	if not is_current_wave_substage_end():
-		return false
-
-	_cycle_running = false
-	substage_checkpoint_reached.emit(current_wave)
-	return true
-
-
-func _wait_until_all_enemies_are_dead(
-	cycle_id: int
-) -> void:
-	if not is_instance_valid(enemy_tracker):
-		await _wait_until_all_enemies_are_dead_fallback(
-			cycle_id
-		)
-		return
-
-	if not enemy_tracker.has_enemies():
-		return
-
-	await enemy_tracker.enemies_cleared
-
-	if not is_cycle_active(cycle_id):
-		return
-
-
-func _wait_until_all_enemies_are_dead_fallback(
-	cycle_id: int
-) -> void:
-	while is_cycle_active(cycle_id):
-		if get_tree().get_nodes_in_group(
-			"enemies"
-		).is_empty():
-			return
-
+		await enemy_tracker.enemy_count_changed
 		await get_tree().process_frame
 
 
-func _complete_wave() -> void:
+func _launch_wave(cycle_id: int, global_wave: int) -> bool:
+	if not is_cycle_active(cycle_id):
+		return false
+	var wave_definition: WaveDefinition = get_wave_definition_for_global_wave(global_wave)
+	if not is_instance_valid(wave_definition):
+		_cycle_running = false
+		push_error(
+			"WaveDirector could not resolve a WaveDefinition for global Wave %d."
+			% global_wave
+		)
+		return false
+
+	current_wave = global_wave
+	var stage_wave: int = _get_wave_in_stage(global_wave)
+	var spawn_requests: Array[EnemySpawnRequest] = []
+	var enemies_per_side: int = 0
+	var displayed_enemy_health: float = 1.0
+	for enemy_id in wave_definition.get_enemy_ids():
+		var loaded_enemy_definition: EnemyDefinition = get_enemy_definition(enemy_id)
+		if not is_instance_valid(loaded_enemy_definition):
+			push_error(
+				"WaveDirector could not resolve EnemyDefinition '%s' for Wave '%s'."
+				% [enemy_id, wave_definition.wave_id]
+			)
+			_cycle_running = false
+			return false
+		var enemy_count_for_type: int = stage_definition.get_enemy_count_for_stage_wave(
+			wave_definition,
+			enemy_id,
+			stage_wave
+		)
+		if enemy_count_for_type < 1:
+			continue
+		var enemy_health: float = stage_definition.get_enemy_health_for_stage_wave(
+			wave_definition,
+			loaded_enemy_definition,
+			stage_wave
+		)
+		if spawn_requests.is_empty():
+			displayed_enemy_health = enemy_health
+		enemies_per_side += enemy_count_for_type
+		spawn_requests.append(EnemySpawnRequest.new(
+			loaded_enemy_definition,
+			enemy_count_for_type,
+			enemy_health,
+			stage_definition.get_enemy_damage_multiplier(
+				wave_definition,
+				enemy_id,
+				stage_wave
+			),
+			stage_definition,
+			global_wave
+		))
+	if spawn_requests.is_empty():
+		push_error("WaveDirector Wave '%s' produced no valid spawn requests." % wave_definition.wave_id)
+		_cycle_running = false
+		return false
+
+	wave_changed.emit(global_wave, enemies_per_side)
 	print(
-		get_current_progress_code(),
-		" dokončena"
+		"Začíná ",
+		_get_progress_code(global_wave),
+		" | globální vlna ",
+		global_wave,
+		" | nepřátel na každé straně: ",
+		enemies_per_side,
+		" | HP nepřítele: ",
+		displayed_enemy_health
+	)
+	var cohort: Dictionary = {
+		"global_wave": global_wave,
+		"wave_definition": wave_definition,
+		"initial_enemy_count": enemies_per_side * 2,
+		"spawn_completed": false
+	}
+	active_wave_cohorts.append(cohort)
+	var spawn_completed: bool = await spawn_director.spawn_wave(
+		spawn_requests,
+		wave_definition.spawn_interval,
+		is_cycle_active.bind(cycle_id)
+	)
+	if not spawn_completed or not is_cycle_active(cycle_id):
+		if cycle_id == _wave_cycle_id:
+			_cycle_running = false
+		return false
+	cohort["spawn_completed"] = true
+	active_wave_cohorts[active_wave_cohorts.size() - 1] = cohort
+	return true
+
+
+func _can_launch_overlapped_wave() -> bool:
+	if active_wave_cohorts.size() >= WavePacingRules.MAXIMUM_ACTIVE_COHORTS:
+		return false
+	var latest_cohort: Dictionary = active_wave_cohorts.back()
+	if not bool(latest_cohort.get("spawn_completed", false)):
+		return false
+	var latest_wave: int = int(latest_cohort.get("global_wave", 0))
+	if (
+		not WavePacingRules.is_overlap_enabled(latest_wave)
+		or _is_substage_end_wave(latest_wave)
+		or not _is_normal_wave_definition(
+			latest_cohort.get("wave_definition") as WaveDefinition
+		)
+	):
+		return false
+	var next_definition: WaveDefinition = get_wave_definition_for_global_wave(latest_wave + 1)
+	if not _is_normal_wave_definition(next_definition):
+		return false
+	return WavePacingRules.is_survivor_ratio_eligible(
+		latest_wave,
+		enemy_tracker.get_active_enemy_count_for_wave(latest_wave),
+		int(latest_cohort.get("initial_enemy_count", 0))
 	)
 
-	if current_wave <= highest_completed_wave:
+
+func _is_normal_wave_definition(wave_definition: WaveDefinition) -> bool:
+	if not is_instance_valid(wave_definition):
+		return false
+	for enemy_id in wave_definition.get_enemy_ids():
+		var enemy_definition: EnemyDefinition = get_enemy_definition(enemy_id)
+		if not is_instance_valid(enemy_definition) or not enemy_definition.is_normal_enemy():
+			return false
+	return true
+
+
+func _finalize_wave_cohort(cycle_id: int, cohort: Dictionary) -> void:
+	var global_wave: int = int(cohort.get("global_wave", 0))
+	var wave_definition := cohort.get("wave_definition") as WaveDefinition
+	_complete_wave(global_wave)
+	await _show_wave_complete_message(cycle_id, wave_definition, global_wave)
+	if not is_cycle_active(cycle_id):
 		return
+	var safe_time_after_wave: float = max(wave_definition.time_after_wave, 0.0)
+	if safe_time_after_wave > 0.0:
+		await get_tree().create_timer(safe_time_after_wave).timeout
 
-	highest_completed_wave = current_wave
 
-	new_highest_wave_completed.emit(
-		current_wave
-	)
+func _reach_substage_checkpoint_if_needed(completed_global_wave: int) -> bool:
+	if not _is_substage_end_wave(completed_global_wave):
+		return false
+	_cycle_running = false
+	substage_checkpoint_reached.emit(completed_global_wave)
+	return true
+
+
+func _complete_wave(completed_global_wave: int) -> void:
+	print(_get_progress_code(completed_global_wave), " dokončena")
+	if completed_global_wave <= highest_completed_wave:
+		return
+	highest_completed_wave = completed_global_wave
+	new_highest_wave_completed.emit(completed_global_wave)
 
 
 func _show_wave_complete_message(
 	cycle_id: int,
-	wave_definition: WaveDefinition
+	wave_definition: WaveDefinition,
+	completed_global_wave: int
 ) -> void:
 	if not is_cycle_active(cycle_id):
 		return
-
 	wave_message_changed.emit(
-		"WAVE %d COMPLETE"
-		% get_current_wave_in_substage()
+		"WAVE %d COMPLETE" % _get_wave_in_substage(completed_global_wave)
 	)
-
 	var safe_message_duration: float = max(
 		wave_definition.completion_message_duration,
 		0.0
 	)
-
 	if safe_message_duration > 0.0:
-		await get_tree().create_timer(
-			safe_message_duration
-		).timeout
-
+		await get_tree().create_timer(safe_message_duration).timeout
 	if not is_cycle_active(cycle_id):
 		return
-
 	wave_message_changed.emit("")
+
+
+func _get_wave_in_stage(global_wave: int) -> int:
+	return ((max(global_wave, 1) - 1) % get_safe_waves_per_stage()) + 1
+
+
+func _get_wave_in_substage(global_wave: int) -> int:
+	return ((max(global_wave, 1) - 1) % get_safe_waves_per_substage()) + 1
+
+
+func _is_substage_end_wave(global_wave: int) -> bool:
+	return (
+		global_wave > 0
+		and _get_wave_in_substage(global_wave) == get_safe_waves_per_substage()
+	)
+
+
+func _get_progress_code(global_wave: int) -> String:
+	var safe_global_wave: int = max(global_wave, 1)
+	var stage_number: int = int(floor(
+		float(safe_global_wave - 1) / float(get_safe_waves_per_stage())
+	)) + 1
+	var wave_in_stage: int = _get_wave_in_stage(safe_global_wave)
+	var substage_number: int = int(floor(
+		float(wave_in_stage - 1) / float(get_safe_waves_per_substage())
+	)) + 1
+	return "%d-%d-%d" % [
+		stage_number,
+		substage_number,
+		_get_wave_in_substage(safe_global_wave)
+	]

@@ -70,6 +70,21 @@ static func get_affix_pool_for_slot(slot_id: StringName) -> Array[StringName]:
 				EquipmentStatRules.MAXIMUM_HEALTH,
 				EquipmentStatRules.HEALTH_REGENERATION
 			]
+		EquipmentSlotRules.HEARTWOOD_SLOT_ID:
+			return [
+				EquipmentStatRules.MAXIMUM_HEALTH,
+				EquipmentStatRules.BRANCH_DAMAGE
+			]
+		EquipmentSlotRules.CANOPY_SLOT_ID:
+			return [
+				EquipmentStatRules.BRANCH_DAMAGE,
+				EquipmentStatRules.ATTACK_SPEED
+			]
+		EquipmentSlotRules.SAP_SLOT_ID:
+			return [
+				EquipmentStatRules.HEALTH_REGENERATION,
+				EquipmentStatRules.ATTACK_SPEED
+			]
 	return []
 
 

@@ -184,7 +184,7 @@ func _ready() -> void:
 	)
 
 	if is_instance_valid(enemy_tracker):
-		enemy_tracker.register_enemy(self)
+		enemy_tracker.register_enemy(self, reward_global_wave)
 	else:
 		push_warning(
 			"Bark Beetle could not find EnemyTracker; "

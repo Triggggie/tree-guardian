@@ -11,6 +11,7 @@ const MAXIMUM_PENDING_NOTIFICATIONS: int = 5
 const FADE_IN_DURATION: float = 0.20
 const FADE_OUT_DURATION: float = 0.30
 const SLIDE_OFFSET: float = 18.0
+const START_SCALE: Vector2 = Vector2(0.94, 0.94)
 
 
 @export_range(0.05, 30.0, 0.05)
@@ -64,14 +65,15 @@ func create_interface() -> void:
 	notification_panel = PanelContainer.new()
 	notification_panel.name = "NotificationPanel"
 	notification_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	notification_panel.anchor_left = 1.0
-	notification_panel.anchor_top = 0.0
-	notification_panel.anchor_right = 1.0
-	notification_panel.anchor_bottom = 0.0
-	notification_panel.offset_left = -520.0
-	notification_panel.offset_top = 110.0
-	notification_panel.offset_right = -40.0
-	notification_panel.offset_bottom = 380.0
+	notification_panel.anchor_left = 0.5
+	notification_panel.anchor_top = 0.5
+	notification_panel.anchor_right = 0.5
+	notification_panel.anchor_bottom = 0.5
+	notification_panel.offset_left = -260.0
+	notification_panel.offset_top = 40.0
+	notification_panel.offset_right = 260.0
+	notification_panel.offset_bottom = 310.0
+	notification_panel.pivot_offset = Vector2(260.0, 135.0)
 	notification_style = create_notification_panel_style()
 	notification_panel.add_theme_stylebox_override("panel", notification_style)
 	add_child(notification_panel)
@@ -229,6 +231,7 @@ func start_presentation() -> void:
 		presentation_tween.kill()
 	visible = true
 	modulate.a = 0.0
+	notification_panel.scale = START_SCALE
 	notification_panel.position.y = panel_rest_y - SLIDE_OFFSET
 	presentation_tween = create_tween()
 	presentation_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
@@ -239,6 +242,12 @@ func start_presentation() -> void:
 		notification_panel,
 		"position:y",
 		panel_rest_y,
+		FADE_IN_DURATION
+	)
+	presentation_tween.parallel().tween_property(
+		notification_panel,
+		"scale",
+		Vector2.ONE,
 		FADE_IN_DURATION
 	)
 	presentation_tween.tween_interval(display_duration)
@@ -263,6 +272,7 @@ func _finish_presentation() -> void:
 	modulate.a = 1.0
 	if is_instance_valid(notification_panel):
 		notification_panel.position.y = panel_rest_y
+		notification_panel.scale = Vector2.ONE
 	presentation_tween = null
 	current_instance_id = &""
 	_show_next_notification()

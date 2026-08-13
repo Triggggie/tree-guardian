@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/item_definition.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"verdant_canopy"
+display_name = "Verdant Canopy"
+description = "A living canopy that channels the Tree's offensive growth."
+equipment_slot_id = &"canopy"

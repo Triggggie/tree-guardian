@@ -9,10 +9,13 @@ enum PickerMode {
 
 enum SelectionMode {
 	BRANCH,
-	EQUIPMENT
+	EQUIPMENT,
+	INVENTORY
 }
 
 @onready var close_button: Button = $MainPanel/CloseButton
+@onready var inventory_button: Button = $MainPanel/InventoryButton
+@onready var tree_canvas: Panel = $MainPanel/TreeCanvas
 @onready var detail_title_label: Label = $MainPanel/DetailPanel/DetailTitleLabel
 @onready var category_label: Label = $MainPanel/DetailPanel/CategoryLabel
 @onready var shared_progress_label: Label = $MainPanel/DetailPanel/SharedProgressLabel
@@ -47,9 +50,17 @@ enum SelectionMode {
 @onready var equipment_inventory_title: Label = $MainPanel/EquipmentInventoryPanel/TitleLabel
 @onready var equipment_candidate_list: VBoxContainer = $MainPanel/EquipmentInventoryPanel/ScrollContainer/CandidateList
 @onready var equipment_empty_label: Label = $MainPanel/EquipmentInventoryPanel/EmptyLabel
+@onready var inventory_overview_panel: Panel = $MainPanel/InventoryOverviewPanel
+@onready var inventory_item_count_label: Label = $MainPanel/InventoryOverviewPanel/ItemCountLabel
+@onready var inventory_filter_container: HBoxContainer = $MainPanel/InventoryOverviewPanel/FilterContainer
+@onready var inventory_item_grid: GridContainer = $MainPanel/InventoryOverviewPanel/ScrollContainer/ItemGrid
+@onready var inventory_overview_empty_label: Label = $MainPanel/InventoryOverviewPanel/EmptyLabel
 @onready var equipment_slot_buttons: Dictionary = {
 	EquipmentSlotRules.BARK_SLOT_ID: $MainPanel/TreeCanvas/BarkButton,
-	EquipmentSlotRules.ROOTS_SLOT_ID: $MainPanel/TreeCanvas/RootsButton
+	EquipmentSlotRules.ROOTS_SLOT_ID: $MainPanel/TreeCanvas/RootsButton,
+	EquipmentSlotRules.HEARTWOOD_SLOT_ID: $MainPanel/TreeCanvas/HeartwoodButton,
+	EquipmentSlotRules.CANOPY_SLOT_ID: $MainPanel/TreeCanvas/CanopyButton,
+	EquipmentSlotRules.SAP_SLOT_ID: $MainPanel/TreeCanvas/SapButton
 }
 
 @onready var slot_buttons: Dictionary = {
@@ -74,12 +85,15 @@ var selection_mode: SelectionMode = SelectionMode.BRANCH
 var selected_equipment_slot_id: StringName = &""
 var selected_equipment_instance_id: StringName = &""
 var equipment_candidate_buttons_by_instance_id: Dictionary = {}
+var inventory_filter_buttons_by_slot_id: Dictionary = {}
+var inventory_filter_slot_id: StringName = &""
 var inventory_service: InventoryService
 var equipment_service: EquipmentService
 
 
 func _ready() -> void:
 	close_button.pressed.connect(close_screen)
+	inventory_button.pressed.connect(open_inventory_overview)
 	continue_button.pressed.connect(_on_continue_pressed)
 	change_branch_button.pressed.connect(open_branch_picker)
 	confirm_candidate_button.pressed.connect(confirm_selected_branch_candidate)
@@ -92,6 +106,7 @@ func _ready() -> void:
 	for slot_id in equipment_slot_buttons:
 		var button: Button = equipment_slot_buttons[slot_id]
 		button.pressed.connect(select_equipment_slot.bind(StringName(slot_id)))
+	_create_inventory_filter_buttons()
 	_connect_loadout_controller()
 	_connect_branch_seed_service()
 	_connect_equipment_services()
@@ -135,7 +150,7 @@ func set_preparation_mode(
 		close_branch_picker()
 	if is_node_ready():
 		_refresh_loadout_controls()
-		if selection_mode == SelectionMode.EQUIPMENT:
+		if selection_mode in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 			_refresh_equipment_ui()
 
 
@@ -145,7 +160,7 @@ func refresh_screen() -> void:
 	_connect_branch_signals()
 	_refresh_slot_buttons()
 	_refresh_equipment_slot_buttons()
-	if selection_mode == SelectionMode.EQUIPMENT:
+	if selection_mode in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 		_validate_equipment_selection()
 		_refresh_equipment_ui()
 	else:
@@ -182,6 +197,56 @@ func select_equipment_slot(slot_id: StringName) -> bool:
 	_refresh_equipment_ui()
 	_refresh_mode_visibility()
 	return true
+
+
+func open_inventory_overview() -> void:
+	close_branch_picker()
+	selection_mode = SelectionMode.INVENTORY
+	selected_equipment_slot_id = &""
+	_validate_equipment_selection()
+	_refresh_slot_buttons()
+	_refresh_equipment_slot_buttons()
+	_refresh_equipment_ui()
+	_refresh_mode_visibility()
+
+
+func select_inventory_filter(slot_id: StringName) -> bool:
+	if slot_id != &"" and not EquipmentSlotRules.is_valid_slot_id(slot_id):
+		return false
+	inventory_filter_slot_id = slot_id
+	_refresh_inventory_filter_buttons()
+	if selection_mode == SelectionMode.INVENTORY:
+		_refresh_equipment_ui()
+	return true
+
+
+func _create_inventory_filter_buttons() -> void:
+	for child in inventory_filter_container.get_children():
+		child.queue_free()
+	inventory_filter_buttons_by_slot_id.clear()
+	var filter_slot_ids: Array[StringName] = [&""]
+	filter_slot_ids.append_array(EquipmentSlotRules.get_supported_slot_ids())
+	for slot_id in filter_slot_ids:
+		var button := Button.new()
+		button.toggle_mode = true
+		button.custom_minimum_size = Vector2(145.0, 44.0)
+		button.text = (
+			"ALL"
+			if slot_id == &""
+			else EquipmentSlotRules.get_slot_display_name(slot_id).to_upper()
+		)
+		button.pressed.connect(select_inventory_filter.bind(slot_id))
+		inventory_filter_container.add_child(button)
+		inventory_filter_buttons_by_slot_id[slot_id] = button
+	_refresh_inventory_filter_buttons()
+
+
+func _refresh_inventory_filter_buttons() -> void:
+	for slot_id_value in inventory_filter_buttons_by_slot_id:
+		var slot_id := StringName(slot_id_value)
+		var button := inventory_filter_buttons_by_slot_id[slot_id] as Button
+		if is_instance_valid(button):
+			button.button_pressed = slot_id == inventory_filter_slot_id
 
 
 func _find_active_branches() -> void:
@@ -250,15 +315,22 @@ func _refresh_equipment_slot_buttons() -> void:
 
 
 func _refresh_mode_visibility() -> void:
-	var equipment_mode: bool = selection_mode == SelectionMode.EQUIPMENT
-	detail_panel.visible = not equipment_mode
-	seed_panel.visible = not equipment_mode
-	equipment_detail_panel.visible = equipment_mode
-	equipment_inventory_panel.visible = equipment_mode
+	var equipment_slot_mode: bool = selection_mode == SelectionMode.EQUIPMENT
+	var inventory_mode: bool = selection_mode == SelectionMode.INVENTORY
+	detail_panel.visible = not equipment_slot_mode and not inventory_mode
+	seed_panel.visible = not equipment_slot_mode and not inventory_mode
+	tree_canvas.visible = not inventory_mode
+	equipment_detail_panel.visible = equipment_slot_mode or inventory_mode
+	equipment_inventory_panel.visible = equipment_slot_mode
+	inventory_overview_panel.visible = inventory_mode
+	inventory_button.disabled = inventory_mode
 
 
 func _validate_equipment_selection() -> void:
-	if not EquipmentSlotRules.is_valid_slot_id(selected_equipment_slot_id):
+	if (
+		selection_mode == SelectionMode.EQUIPMENT
+		and not EquipmentSlotRules.is_valid_slot_id(selected_equipment_slot_id)
+	):
 		selected_equipment_slot_id = EquipmentSlotRules.BARK_SLOT_ID
 	if (
 		selected_equipment_instance_id == &""
@@ -274,15 +346,20 @@ func _validate_equipment_selection() -> void:
 	var definition: ItemDefinition = GameContent.get_item(
 		selected_item.definition_id
 	)
-	if (
-		not is_instance_valid(definition)
-		or definition.equipment_slot_id != selected_equipment_slot_id
+	if not is_instance_valid(definition):
+		selected_equipment_instance_id = &""
+	elif (
+		selection_mode == SelectionMode.EQUIPMENT
+		and definition.equipment_slot_id != selected_equipment_slot_id
 	):
 		selected_equipment_instance_id = &""
 
 
 func _refresh_equipment_ui() -> void:
 	_validate_equipment_selection()
+	if selection_mode == SelectionMode.INVENTORY:
+		_refresh_inventory_overview()
+		return
 	_rebuild_equipment_candidate_list()
 	var slot_name: String = EquipmentSlotRules.get_slot_display_name(
 		selected_equipment_slot_id
@@ -328,6 +405,118 @@ func _refresh_equipment_ui() -> void:
 		if edit_allowed
 		else "EQUIPMENT UNAVAILABLE\nTree is defeated."
 	)
+
+
+func _refresh_inventory_overview() -> void:
+	_rebuild_inventory_overview_cards()
+	var item_count: int = (
+		inventory_service.get_item_count()
+		if is_instance_valid(inventory_service)
+		else 0
+	)
+	inventory_item_count_label.text = "Items: %d" % item_count
+	equipment_title_label.text = "INVENTORY ITEM"
+	var selected_item: ItemInstance = null
+	if is_instance_valid(inventory_service):
+		selected_item = inventory_service.get_item(selected_equipment_instance_id)
+	var equipped_item: ItemInstance = null
+	if selected_item != null and is_instance_valid(equipment_service):
+		var definition: ItemDefinition = GameContent.get_item(selected_item.definition_id)
+		if is_instance_valid(definition):
+			equipped_item = equipment_service.get_equipped_item(
+				definition.equipment_slot_id
+			)
+	currently_equipped_label.text = _format_item_detail(
+		"CURRENTLY EQUIPPED IN THIS SLOT",
+		equipped_item,
+		"EMPTY"
+	)
+	selected_item_label.text = _format_item_detail(
+		"SELECTED ITEM",
+		selected_item,
+		"Select an item card."
+	)
+	var edit_allowed: bool = _is_branch_loadout_edit_allowed()
+	var selected_is_equipped: bool = (
+		selected_item != null
+		and is_instance_valid(equipment_service)
+		and equipment_service.is_item_equipped(selected_item.instance_id)
+	)
+	equip_button.disabled = not edit_allowed or selected_item == null or selected_is_equipped
+	equip_button.text = "EQUIPPED" if selected_is_equipped else "EQUIP"
+	unequip_button.disabled = not edit_allowed or not selected_is_equipped
+	equipment_status_label.text = (
+		"EQUIPMENT EDITING ENABLED"
+		if edit_allowed
+		else "EQUIPMENT UNAVAILABLE\nTree is defeated."
+	)
+
+
+func _rebuild_inventory_overview_cards() -> void:
+	equipment_candidate_buttons_by_instance_id.clear()
+	for child in inventory_item_grid.get_children():
+		child.queue_free()
+	var items: Array[ItemInstance] = []
+	if is_instance_valid(inventory_service):
+		items = inventory_service.get_items()
+	items.sort_custom(_inventory_item_precedes)
+	var visible_item_count: int = 0
+	for item in items:
+		var definition: ItemDefinition = GameContent.get_item(item.definition_id)
+		if not is_instance_valid(definition):
+			continue
+		if (
+			inventory_filter_slot_id != &""
+			and definition.equipment_slot_id != inventory_filter_slot_id
+		):
+			continue
+		var button := Button.new()
+		button.toggle_mode = true
+		button.custom_minimum_size = Vector2(390.0, 190.0)
+		button.text = _format_inventory_card(item, definition)
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.button_pressed = item.instance_id == selected_equipment_instance_id
+		button.add_theme_color_override(
+			"font_color",
+			ItemRarityRules.get_rarity_color(item.rarity_id)
+		)
+		button.pressed.connect(select_equipment_candidate.bind(item.instance_id))
+		inventory_item_grid.add_child(button)
+		equipment_candidate_buttons_by_instance_id[item.instance_id] = button
+		visible_item_count += 1
+	inventory_overview_empty_label.visible = visible_item_count == 0
+	inventory_overview_empty_label.text = (
+		"No equipment in inventory.\nDrops from enemies will appear here."
+		if inventory_filter_slot_id == &""
+		else "No %s equipment in inventory."
+		% EquipmentSlotRules.get_slot_display_name(inventory_filter_slot_id)
+	)
+
+
+func _format_inventory_card(
+	item: ItemInstance,
+	definition: ItemDefinition
+) -> String:
+	var lines: Array[String] = [
+		definition.display_name,
+		ItemRarityRules.get_rarity_display_name(item.rarity_id).to_upper(),
+		"Item Level %d" % item.item_level,
+		EquipmentSlotRules.get_slot_display_name(definition.equipment_slot_id)
+	]
+	for affix in item.affix_rolls:
+		if affix != null and EquipmentStatRules.is_supported_stat_id(affix.stat_id):
+			lines.append("%s %s" % [
+				EquipmentStatRules.get_stat_display_name(affix.stat_id),
+				EquipmentStatRules.format_stat_value(affix.stat_id, affix.value)
+			])
+	if item.is_locked:
+		lines.append("LOCKED")
+	if (
+		is_instance_valid(equipment_service)
+		and equipment_service.is_item_equipped(item.instance_id)
+	):
+		lines.append("EQUIPPED")
+	return "\n".join(lines)
 
 
 func _rebuild_equipment_candidate_list() -> void:
@@ -387,7 +576,7 @@ func _inventory_item_precedes(
 
 
 func select_equipment_candidate(instance_id: StringName) -> bool:
-	if selection_mode != SelectionMode.EQUIPMENT:
+	if selection_mode not in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 		return false
 	if not is_instance_valid(inventory_service):
 		return false
@@ -397,7 +586,10 @@ func select_equipment_candidate(instance_id: StringName) -> bool:
 	var definition: ItemDefinition = GameContent.get_item(item.definition_id)
 	if (
 		not is_instance_valid(definition)
-		or definition.equipment_slot_id != selected_equipment_slot_id
+		or (
+			selection_mode == SelectionMode.EQUIPMENT
+			and definition.equipment_slot_id != selected_equipment_slot_id
+		)
 	):
 		return false
 	selected_equipment_instance_id = instance_id
@@ -407,7 +599,7 @@ func select_equipment_candidate(instance_id: StringName) -> bool:
 
 func equip_selected_equipment() -> bool:
 	if (
-		selection_mode != SelectionMode.EQUIPMENT
+		selection_mode not in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]
 		or not _is_branch_loadout_edit_allowed()
 		or not is_instance_valid(equipment_service)
 	):
@@ -417,12 +609,23 @@ func equip_selected_equipment() -> bool:
 
 func unequip_selected_equipment() -> bool:
 	if (
-		selection_mode != SelectionMode.EQUIPMENT
+		selection_mode not in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]
 		or not _is_branch_loadout_edit_allowed()
 		or not is_instance_valid(equipment_service)
 	):
 		return false
-	return equipment_service.unequip_slot(selected_equipment_slot_id)
+	var slot_id: StringName = selected_equipment_slot_id
+	if selection_mode == SelectionMode.INVENTORY:
+		var item: ItemInstance = inventory_service.get_item(
+			selected_equipment_instance_id
+		) if is_instance_valid(inventory_service) else null
+		if item == null:
+			return false
+		var definition: ItemDefinition = GameContent.get_item(item.definition_id)
+		if not is_instance_valid(definition):
+			return false
+		slot_id = definition.equipment_slot_id
+	return equipment_service.unequip_slot(slot_id)
 
 
 func _format_item_detail(
@@ -441,6 +644,14 @@ func _format_item_detail(
 	lines.append(definition.display_name)
 	lines.append(ItemRarityRules.get_rarity_display_name(item.rarity_id))
 	lines.append("Item Level %d" % item.item_level)
+	lines.append(EquipmentSlotRules.get_slot_display_name(definition.equipment_slot_id))
+	if item.is_locked:
+		lines.append("LOCKED")
+	if (
+		is_instance_valid(equipment_service)
+		and equipment_service.is_item_equipped(item.instance_id)
+	):
+		lines.append("EQUIPPED")
 	if item.affix_rolls.is_empty():
 		lines.append("No affixes.")
 	else:
@@ -550,7 +761,7 @@ func _refresh_seed_panel() -> void:
 
 
 func _refresh_loadout_controls() -> void:
-	if selection_mode == SelectionMode.EQUIPMENT:
+	if selection_mode in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 		return
 	var slot_index: int = BranchSlotRules.get_slot_index(selected_slot_id)
 	var is_standard_slot: bool = BranchSlotRules.is_standard_slot(slot_index)
@@ -1033,7 +1244,7 @@ func _connect_equipment_services() -> void:
 
 
 func _on_inventory_item_added(_instance_id: StringName) -> void:
-	if visible and selection_mode == SelectionMode.EQUIPMENT:
+	if visible and selection_mode in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 		_refresh_equipment_ui()
 
 
@@ -1042,7 +1253,7 @@ func _on_inventory_item_removed(instance_id: StringName) -> void:
 		selected_equipment_instance_id = &""
 	if visible:
 		_refresh_equipment_slot_buttons()
-		if selection_mode == SelectionMode.EQUIPMENT:
+		if selection_mode in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 			_refresh_equipment_ui()
 
 
@@ -1054,7 +1265,7 @@ func _on_equipment_slot_changed(
 	if not visible:
 		return
 	_refresh_equipment_slot_buttons()
-	if selection_mode == SelectionMode.EQUIPMENT:
+	if selection_mode in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 		_refresh_equipment_ui()
 
 

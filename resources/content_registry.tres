@@ -21,11 +21,14 @@
 [ext_resource type="Script" path="res://scripts/definitions/item_definition.gd" id="18_item"]
 [ext_resource type="Resource" path="res://resources/items/living_bark_definition.tres" id="19_living_bark"]
 [ext_resource type="Resource" path="res://resources/items/deep_roots_definition.tres" id="20_deep_roots"]
+[ext_resource type="Resource" path="res://resources/items/elder_heartwood_definition.tres" id="21_heartwood"]
+[ext_resource type="Resource" path="res://resources/items/verdant_canopy_definition.tres" id="22_canopy"]
+[ext_resource type="Resource" path="res://resources/items/luminous_sap_definition.tres" id="23_sap"]
 
 [resource]
 script = ExtResource("3_4duaa")
 branches = Array[ExtResource("1_2lhgq")]([ExtResource("11_strength"), ExtResource("12_blossom"), ExtResource("17_thorn_crown")])
-items = Array[ExtResource("18_item")]([ExtResource("19_living_bark"), ExtResource("20_deep_roots")])
+items = Array[ExtResource("18_item")]([ExtResource("19_living_bark"), ExtResource("20_deep_roots"), ExtResource("21_heartwood"), ExtResource("22_canopy"), ExtResource("23_sap")])
 tree_souls = Array[ExtResource("6_5v1wl")]([ExtResource("7_18yq4"), ExtResource("8_5v1wl"), ExtResource("9_ehhbu"), ExtResource("10_efp16")])
 enemies = Array[ExtResource("2_y02xv")]([ExtResource("13_bark_beetle"), ExtResource("14_bark_runner"), ExtResource("15_bark_warden"), ExtResource("16_colossus")])
 stages = Array[ExtResource("4_eq0p3")]([ExtResource("14_guardian_grove")])

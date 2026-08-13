@@ -2,6 +2,9 @@ class_name ThornCrownVisual
 extends Node2D
 
 
+signal attack_animation_started(intensity: float)
+
+
 @export_category("Visual Growth")
 @export_range(2, 50, 1) var mature_branch_level: int = 10
 @export var bud_arm_length: float = 62.0
@@ -15,6 +18,64 @@ extends Node2D
 
 var branch_level: int = 1
 var tree_growth_factor: float = 1.0
+var attack_progress: float = 0.0:
+	set(value):
+		attack_progress = clamp(value, 0.0, 1.0)
+		queue_redraw()
+var attack_intensity: float = 1.0
+var attack_tween: Tween
+var idle_scale: Vector2 = Vector2.ONE
+
+
+func _ready() -> void:
+	idle_scale = scale
+
+
+func _exit_tree() -> void:
+	stop_attack_animation()
+
+
+func play_attack(new_intensity: float = 1.0) -> void:
+	stop_attack_animation()
+	attack_intensity = clamp(new_intensity, 1.0, 1.2)
+	attack_animation_started.emit(attack_intensity)
+	attack_tween = create_tween()
+	attack_tween.set_trans(Tween.TRANS_QUAD)
+	attack_tween.set_ease(Tween.EASE_OUT)
+	attack_tween.tween_property(self, "attack_progress", 1.0, 0.09)
+	attack_tween.parallel().tween_property(
+		self,
+		"scale",
+		idle_scale * (1.07 + 0.03 * (attack_intensity - 1.0)),
+		0.09
+	)
+	attack_tween.set_ease(Tween.EASE_IN_OUT)
+	attack_tween.tween_property(self, "attack_progress", 0.0, 0.19)
+	attack_tween.parallel().tween_property(
+		self,
+		"scale",
+		idle_scale,
+		0.19
+	)
+	attack_tween.tween_callback(_finish_attack_animation)
+
+
+func stop_attack_animation() -> void:
+	if is_instance_valid(attack_tween):
+		attack_tween.kill()
+	attack_tween = null
+	attack_progress = 0.0
+	scale = idle_scale
+
+
+func is_attack_animation_active() -> bool:
+	return is_instance_valid(attack_tween)
+
+
+func _finish_attack_animation() -> void:
+	attack_tween = null
+	attack_progress = 0.0
+	scale = idle_scale
 
 
 func set_branch_level(new_level: int) -> void:
@@ -69,7 +130,9 @@ func get_thorns_per_arm() -> int:
 
 func get_arm_tip(side_direction: float) -> Vector2:
 	var direction: float = -1.0 if side_direction < 0.0 else 1.0
-	var arm_length: float = get_current_arm_length()
+	var arm_length: float = get_current_arm_length() * (
+		1.0 + 0.16 * attack_progress * attack_intensity
+	)
 	return Vector2(direction * arm_length, -arm_length * arm_rise_ratio)
 
 
@@ -78,10 +141,11 @@ func has_bilateral_geometry() -> bool:
 
 
 func _draw() -> void:
-	var wood_color := Color("5d351f")
-	var inner_wood_color := Color("80502b")
-	var thorn_color := Color("b7c96b")
-	var leaf_color := Color("6f9348")
+	var flash_strength: float = attack_progress * attack_intensity
+	var wood_color := Color("5d351f").lerp(Color("a86a35"), flash_strength * 0.55)
+	var inner_wood_color := Color("80502b").lerp(Color("d4a84f"), flash_strength * 0.60)
+	var thorn_color := Color("b7c96b").lerp(Color("f1ffb0"), flash_strength * 0.85)
+	var leaf_color := Color("6f9348").lerp(Color("b7e873"), flash_strength * 0.65)
 	var thickness: float = get_current_thickness()
 
 	draw_circle(Vector2.ZERO, thickness * 0.72, wood_color)

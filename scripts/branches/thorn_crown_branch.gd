@@ -71,6 +71,12 @@ func perform_attack_cycle() -> bool:
 		get_current_burst_radius()
 		* talent_effect_set.get_cycle_radius_multiplier()
 	)
+	if is_instance_valid(branch_visual):
+		branch_visual.play_attack(
+			1.2
+			if talent_effect_set.get_cycle_radius_multiplier() > 1.0
+			else 1.0
+		)
 	if has_left_target:
 		perform_burst(
 			left_target,
@@ -344,6 +350,8 @@ func stop_combat() -> void:
 		cooldown_timer.stop()
 	if is_instance_valid(talent_effect_set):
 		talent_effect_set.reset_runtime_state()
+	if is_instance_valid(branch_visual):
+		branch_visual.stop_attack_animation()
 	clear_burst_visuals()
 
 

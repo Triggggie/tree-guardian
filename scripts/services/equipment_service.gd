@@ -9,15 +9,17 @@ signal equipment_slot_changed(
 )
 
 
-var equipped_instance_ids_by_slot_id: Dictionary = {
-	EquipmentSlotRules.BARK_SLOT_ID: &"",
-	EquipmentSlotRules.ROOTS_SLOT_ID: &""
-}
+var equipped_instance_ids_by_slot_id: Dictionary = {}
 
 var inventory: InventoryService
 
 
+func _init() -> void:
+	_initialize_supported_slots()
+
+
 func _ready() -> void:
+	_initialize_supported_slots()
 	inventory = get_node_or_null("/root/Inventory") as InventoryService
 	if not is_instance_valid(inventory):
 		push_error("EquipmentService requires Inventory.")
@@ -71,6 +73,12 @@ func is_item_equipped(instance_id: StringName) -> bool:
 
 func get_equipped_loadout_copy() -> Dictionary:
 	return equipped_instance_ids_by_slot_id.duplicate(true)
+
+
+func _initialize_supported_slots() -> void:
+	for slot_id in EquipmentSlotRules.get_supported_slot_ids():
+		if not equipped_instance_ids_by_slot_id.has(slot_id):
+			equipped_instance_ids_by_slot_id[slot_id] = &""
 
 
 func clear_runtime_state_for_testing() -> void:
