@@ -196,6 +196,18 @@ func test_encounter_ranks() -> void:
 	var invalid_rank: EnemyDefinition = BEETLE.duplicate(true)
 	invalid_rank.encounter_rank_id = &"unknown"
 	expect(not invalid_rank.is_valid_definition(), "Unknown encounter rank was valid.")
+	var negative_equipment_chance: EnemyDefinition = BEETLE.duplicate(true)
+	negative_equipment_chance.equipment_drop_chance = -0.01
+	expect(not negative_equipment_chance.is_valid_definition(), "Negative equipment chance was valid.")
+	var excessive_equipment_chance: EnemyDefinition = BEETLE.duplicate(true)
+	excessive_equipment_chance.equipment_drop_chance = 1.01
+	expect(not excessive_equipment_chance.is_valid_definition(), "Equipment chance above one was valid.")
+	var invalid_equipment_rarity: EnemyDefinition = BEETLE.duplicate(true)
+	invalid_equipment_rarity.equipment_minimum_rarity_id = &"mythic"
+	expect(not invalid_equipment_rarity.is_valid_definition(), "Invalid equipment minimum rarity was valid.")
+	var negative_item_level_bonus: EnemyDefinition = BEETLE.duplicate(true)
+	negative_item_level_bonus.equipment_item_level_bonus = -1
+	expect(not negative_item_level_bonus.is_valid_definition(), "Negative equipment Item Level bonus was valid.")
 
 
 func test_tier_selection_and_pity() -> void:
@@ -408,13 +420,14 @@ func test_schedule_and_stage_context() -> void:
 	expect(miniboss_wave.get_total_enemies_per_side(999) == 1, "Miniboss count scales.")
 	expect(boss_wave.get_total_enemies_per_side(999) == 1, "Boss count scales.")
 
-	var request := EnemySpawnRequest.new(WARDEN, 1, 120.0, 1.0, STAGE)
+	var request := EnemySpawnRequest.new(WARDEN, 1, 120.0, 1.0, STAGE, 50)
 	expect(request.is_valid_request(), "Stage-aware Warden request is invalid.")
 	expect(request.stage_definition == STAGE, "Request lost exact Stage instance.")
 	var enemy: Node = WARDEN.enemy_scene.instantiate()
 	enemy.call("configure_from_definition", WARDEN)
-	enemy.call("configure_stage_context", request.stage_definition)
+	enemy.call("configure_stage_context", request.stage_definition, request.global_wave)
 	expect(enemy.get("stage_definition") == STAGE, "Enemy lost exact Stage instance.")
+	expect(int(enemy.get("reward_global_wave")) == 50, "Enemy lost global Wave reward context.")
 	enemy.free()
 
 

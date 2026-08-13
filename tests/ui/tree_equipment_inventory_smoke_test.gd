@@ -2,6 +2,9 @@ extends Node
 
 
 const MAIN_WORLD_SCENE: PackedScene = preload("res://scenes/main_world.tscn")
+const BARK_BEETLE: EnemyDefinition = preload(
+	"res://resources/enemies/bark_beetle_definition.tres"
+)
 
 var failures: Array[String] = []
 
@@ -11,9 +14,11 @@ func _ready() -> void:
 	var equipment := get_node("/root/Equipment") as EquipmentService
 	equipment.clear_runtime_state_for_testing()
 	inventory.clear_runtime_state_for_testing()
+	EquipmentLoot.clear_runtime_state_for_testing()
 	await run_test(inventory, equipment)
 	equipment.clear_runtime_state_for_testing()
 	inventory.clear_runtime_state_for_testing()
+	EquipmentLoot.clear_runtime_state_for_testing()
 
 	if failures.is_empty():
 		print("TREE EQUIPMENT INVENTORY SMOKE TEST PASS")
@@ -59,6 +64,41 @@ func run_test(
 	expect(empty_label.visible and empty_label.text == "No Bark items in inventory." and equip_button.disabled and unequip_button.disabled, "Empty Bark inventory state is wrong.")
 	expect(screen.call("select_equipment_slot", &"roots"), "Roots empty selection failed.")
 	expect(empty_label.text == "No Roots items in inventory." and equip_button.disabled and unequip_button.disabled, "Empty Roots inventory state is wrong.")
+
+	var forced_drop_enemy: EnemyDefinition = BARK_BEETLE.duplicate(true)
+	forced_drop_enemy.equipment_drop_chance = 1.0
+	EquipmentLoot.set_random_seed_for_testing(311)
+	var generated_ids: Array[StringName] = []
+	var generated_bark: ItemInstance
+	screen.call("select_equipment_slot", &"bark")
+	for drop_index in range(10):
+		var dropped_item: ItemInstance = EquipmentLoot.process_enemy_defeat(
+			forced_drop_enemy,
+			GameContent.get_stage(&"guardian_grove"),
+			1,
+			Vector2.ZERO
+		)
+		if dropped_item == null:
+			continue
+		generated_ids.append(dropped_item.instance_id)
+		var dropped_definition: ItemDefinition = GameContent.get_item(
+			dropped_item.definition_id
+		)
+		if dropped_definition.equipment_slot_id == EquipmentSlotRules.BARK_SLOT_ID:
+			generated_bark = dropped_item
+			break
+	var live_drop_buttons: Dictionary = screen.get(
+		"equipment_candidate_buttons_by_instance_id"
+	) as Dictionary
+	expect(
+		generated_bark != null
+		and live_drop_buttons.has(generated_bark.instance_id),
+		"Open TREE did not live-refresh from an equipment loot item_added signal."
+	)
+	for generated_id in generated_ids:
+		inventory.remove_item(generated_id)
+	EquipmentLoot.clear_runtime_state_for_testing()
+	expect(empty_label.visible, "TREE did not return to empty Bark inventory after fixture cleanup.")
 
 	var bark_a: ItemInstance = create_item(&"test_bark_epic_001", &"living_bark", 12, ItemRarityRules.EPIC, &"maximum_health", 15.0)
 	var bark_b: ItemInstance = create_item(&"test_bark_common_002", &"living_bark", 4, ItemRarityRules.COMMON, &"health_regeneration", 0.5)

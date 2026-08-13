@@ -112,6 +112,14 @@ func test_enemy_definition() -> void:
 		"Bark Beetle XP reward is not 1."
 	)
 	expect(
+		is_equal_approx(definition.equipment_drop_chance, 0.01)
+		and not definition.equipment_guaranteed_once_per_wave
+		and definition.equipment_minimum_rarity_id == ItemRarityRules.COMMON
+		and definition.equipment_item_level_bonus == 0
+		and definition.can_roll_equipment(),
+		"Bark Beetle equipment reward data is wrong."
+	)
+	expect(
 		GameContent.get_enemy(&"missing_enemy") == null,
 		"Missing enemy lookup did not return null."
 	)
@@ -148,6 +156,14 @@ func test_bark_runner_definition() -> void:
 	expect(
 		bark_runner.enemy_scene != null,
 		"Bark Runner enemy scene is missing."
+	)
+	expect(
+		is_equal_approx(bark_runner.equipment_drop_chance, 0.01)
+		and not bark_runner.equipment_guaranteed_once_per_wave
+		and bark_runner.equipment_minimum_rarity_id == ItemRarityRules.COMMON
+		and bark_runner.equipment_item_level_bonus == 0
+		and bark_runner.can_roll_equipment(),
+		"Bark Runner equipment reward data is wrong."
 	)
 	expect(
 		is_equal_approx(
@@ -2696,7 +2712,9 @@ func test_guardian_grove_boss_definitions_and_scenes() -> void:
 			"essence": 8,
 			"xp": 8,
 			"chance": 0.05,
-			"pity": 1
+			"pity": 1,
+			"equipment_minimum": ItemRarityRules.UNCOMMON,
+			"equipment_bonus": 2
 		},
 		{
 			"id": &"ancient_bark_colossus",
@@ -2709,7 +2727,9 @@ func test_guardian_grove_boss_definitions_and_scenes() -> void:
 			"essence": 20,
 			"xp": 20,
 			"chance": 0.15,
-			"pity": 3
+			"pity": 3,
+			"equipment_minimum": ItemRarityRules.EPIC,
+			"equipment_bonus": 4
 		}
 	]
 	var stage: StageDefinition = GameContent.get_stage(&"guardian_grove")
@@ -2731,6 +2751,13 @@ func test_guardian_grove_boss_definitions_and_scenes() -> void:
 		expect(definition.experience_reward == expected["xp"], "Boss XP differs.")
 		expect(is_equal_approx(definition.branch_seed_roll_chance, expected["chance"]), "Boss seed chance differs.")
 		expect(definition.branch_seed_pity_points == expected["pity"], "Boss pity differs.")
+		expect(
+			definition.equipment_guaranteed_once_per_wave
+			and is_zero_approx(definition.equipment_drop_chance)
+			and definition.equipment_minimum_rarity_id == expected["equipment_minimum"]
+			and definition.equipment_item_level_bonus == expected["equipment_bonus"],
+			"Boss equipment reward data differs."
+		)
 
 		var enemy: Node = definition.enemy_scene.instantiate()
 		expect(enemy is CharacterBody2D, "Boss scene root is not CharacterBody2D.")
@@ -2739,10 +2766,11 @@ func test_guardian_grove_boss_definitions_and_scenes() -> void:
 		expect(enemy.has_node("MovementComponent"), "Boss has no MovementComponent.")
 		expect(
 			bool(enemy.call("configure_from_definition", definition))
-			and bool(enemy.call("configure_stage_context", stage)),
+			and bool(enemy.call("configure_stage_context", stage, 100)),
 			"Boss scene rejected definition or Stage context."
 		)
 		expect(enemy.get("stage_definition") == stage, "Boss did not retain Stage context.")
+		expect(int(enemy.get("reward_global_wave")) == 100, "Boss did not retain reward Wave context.")
 		enemy.free()
 
 	var schedule: SubstageWaveScheduleDefinition = preload(
@@ -2778,7 +2806,8 @@ func test_enemy_spawn_request() -> void:
 		2,
 		definition.maximum_health,
 		1.0,
-		stage
+		stage,
+		37
 	)
 
 	expect(
@@ -2871,6 +2900,22 @@ func test_enemy_spawn_request() -> void:
 	expect(
 		valid_request.stage_definition == stage,
 		"EnemySpawnRequest did not retain the StageDefinition instance."
+	)
+	expect(
+		valid_request.global_wave == 37,
+		"EnemySpawnRequest did not retain global Wave 37."
+	)
+	var zero_wave_request := EnemySpawnRequest.new(
+		definition,
+		2,
+		12.0,
+		1.0,
+		stage,
+		0
+	)
+	expect(
+		not zero_wave_request.is_valid_request(),
+		"EnemySpawnRequest accepted global Wave 0."
 	)
 
 	var mixed_wave: WaveDefinition = GameContent.get_wave(
@@ -3567,14 +3612,16 @@ func test_spawn_director_multi_request_batch() -> void:
 			6,
 			30.0,
 			1.0,
-			stage
+			stage,
+			88
 		),
 		EnemySpawnRequest.new(
 			definition,
 			4,
 			30.0,
 			1.0,
-			stage
+			stage,
+			88
 		)
 	]
 
@@ -3812,28 +3859,32 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 			1,
 			bark_beetle.maximum_health,
 			1.0,
-			stage
+			stage,
+			88
 		),
 		EnemySpawnRequest.new(
 			bark_runner,
 			1,
 			bark_runner.maximum_health,
 			1.0,
-			stage
+			stage,
+			88
 		),
 		EnemySpawnRequest.new(
 			bark_warden,
 			1,
 			bark_warden.maximum_health,
 			1.0,
-			stage
+			stage,
+			88
 		),
 		EnemySpawnRequest.new(
 			ancient_bark_colossus,
 			1,
 			ancient_bark_colossus.maximum_health,
 			1.0,
-			stage
+			stage,
+			88
 		)
 	]
 
@@ -3873,6 +3924,10 @@ func test_spawn_director_mixed_enemy_batch() -> void:
 		expect(
 			enemy.get("stage_definition") == stage,
 			"Mixed SpawnDirector lost the exact StageDefinition."
+		)
+		expect(
+			int(enemy.get("reward_global_wave")) == 88,
+			"SpawnDirector lost global Wave reward context."
 		)
 		var enemy_definition: EnemyDefinition = (
 			enemy.get("enemy_definition") as EnemyDefinition
