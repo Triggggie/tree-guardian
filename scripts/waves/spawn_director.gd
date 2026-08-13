@@ -325,7 +325,8 @@ func _spawn_enemy(
 	var stage_configured: bool = bool(
 		enemy.call(
 			"configure_stage_context",
-			request.stage_definition
+			request.stage_definition,
+			request.global_wave
 		)
 	)
 	if not stage_configured:

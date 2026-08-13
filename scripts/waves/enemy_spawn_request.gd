@@ -7,6 +7,7 @@ var enemies_per_side: int = 0
 var maximum_health: float = 1.0
 var attack_damage_multiplier: float = 1.0
 var stage_definition: StageDefinition
+var global_wave: int = 1
 
 
 func _init(
@@ -14,13 +15,15 @@ func _init(
 	new_enemies_per_side: int = 0,
 	new_maximum_health: float = 1.0,
 	new_attack_damage_multiplier: float = 1.0,
-	new_stage_definition: StageDefinition = null
+	new_stage_definition: StageDefinition = null,
+	new_global_wave: int = 1
 ) -> void:
 	enemy_definition = new_enemy_definition
 	enemies_per_side = new_enemies_per_side
 	maximum_health = new_maximum_health
 	attack_damage_multiplier = new_attack_damage_multiplier
 	stage_definition = new_stage_definition
+	global_wave = new_global_wave
 
 
 func is_valid_request() -> bool:
@@ -33,6 +36,7 @@ func is_valid_request() -> bool:
 		and attack_damage_multiplier > 0.0
 		and is_instance_valid(stage_definition)
 		and stage_definition.is_valid_definition()
+		and global_wave >= 1
 	)
 
 

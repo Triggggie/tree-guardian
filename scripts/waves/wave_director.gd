@@ -680,7 +680,8 @@ func _run_wave_loop(
 					enemy_count_for_type,
 					enemy_health,
 					damage_multiplier,
-					stage_definition
+					stage_definition,
+					current_wave
 				)
 			)
 

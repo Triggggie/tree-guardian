@@ -15,3 +15,4 @@ attack_damage = 1.5
 attack_interval = 1.5
 attack_range = 130.0
 essence_reward = 1
+equipment_drop_chance = 0.01

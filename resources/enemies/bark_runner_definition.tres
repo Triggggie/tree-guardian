@@ -14,3 +14,4 @@ maximum_health = 7.0
 attack_damage = 0.75
 attack_range = 110.0
 essence_reward = 1
+equipment_drop_chance = 0.01

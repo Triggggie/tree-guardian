@@ -67,6 +67,18 @@ var branch_seed_roll_chance: float = 0.0
 @export_range(0, 1000000, 1)
 var branch_seed_pity_points: int = 0
 
+@export_range(0.0, 1.0, 0.0001)
+var equipment_drop_chance: float = 0.0
+
+@export var equipment_guaranteed_once_per_wave: bool = false
+
+@export var equipment_minimum_rarity_id: StringName = (
+	ItemRarityRules.COMMON
+)
+
+@export_range(0, 1000000, 1)
+var equipment_item_level_bonus: int = 0
+
 
 @export_category("Classification")
 
@@ -127,6 +139,17 @@ func is_valid_definition() -> bool:
 	if branch_seed_pity_points < 0:
 		return false
 
+	if equipment_drop_chance < 0.0 or equipment_drop_chance > 1.0:
+		return false
+
+	if not ItemRarityRules.is_valid_rarity_id(
+		equipment_minimum_rarity_id
+	):
+		return false
+
+	if equipment_item_level_bonus < 0:
+		return false
+
 	if is_normal_enemy() and (
 		branch_seed_roll_chance != 0.0
 		or branch_seed_pity_points != 0
@@ -165,6 +188,13 @@ func can_roll_branch_seed() -> bool:
 			branch_seed_roll_chance > 0.0
 			or branch_seed_pity_points > 0
 		)
+	)
+
+
+func can_roll_equipment() -> bool:
+	return (
+		equipment_drop_chance > 0.0
+		or equipment_guaranteed_once_per_wave
 	)
 
 

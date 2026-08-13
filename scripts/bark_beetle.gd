@@ -55,6 +55,8 @@ var target_tree: Node2D
 var enemy_tracker: EnemyTracker
 var lane_registry: LaneRegistry
 var branch_seed_service: BranchSeedService
+var equipment_loot_service: EquipmentLootService
+var reward_global_wave: int = 1
 
 var formation_side: float = 1.0
 var lane_index: int = 0
@@ -63,6 +65,7 @@ var queue_order: int = 0
 var combat_enabled: bool = true
 var is_dying: bool = false
 var has_warned_missing_branch_seed_service: bool = false
+var has_warned_missing_equipment_loot_service: bool = false
 
 var resting_rotation: float
 var resting_scale: Vector2
@@ -138,7 +141,8 @@ func configure_boss_ability_runtime(
 
 
 func configure_stage_context(
-	new_stage_definition: StageDefinition
+	new_stage_definition: StageDefinition,
+	new_global_wave: int = 1
 ) -> bool:
 	if (
 		not is_instance_valid(new_stage_definition)
@@ -147,6 +151,7 @@ func configure_stage_context(
 		return false
 
 	stage_definition = new_stage_definition
+	reward_global_wave = max(new_global_wave, 1)
 	return true
 
 
@@ -163,6 +168,12 @@ func _ready() -> void:
 		branch_seed_service = (
 			get_node_or_null("/root/BranchSeeds")
 			as BranchSeedService
+		)
+
+	if not is_instance_valid(equipment_loot_service):
+		equipment_loot_service = (
+			get_node_or_null("/root/EquipmentLoot")
+			as EquipmentLootService
 		)
 
 	enemy_tracker = (
@@ -621,6 +632,7 @@ func die(killer: Node = null) -> void:
 		actual_essence_reward
 	)
 	process_branch_seed_loot()
+	process_equipment_loot()
 
 	play_death_feedback()
 
@@ -660,6 +672,33 @@ func process_branch_seed_loot() -> void:
 	branch_seed_service.process_enemy_defeat(
 		enemy_definition,
 		stage_definition,
+		global_position
+	)
+
+
+func process_equipment_loot() -> void:
+	if (
+		not is_instance_valid(enemy_definition)
+		or not enemy_definition.is_valid_definition()
+		or not enemy_definition.can_roll_equipment()
+		or not is_instance_valid(stage_definition)
+		or not stage_definition.is_valid_definition()
+	):
+		return
+
+	if not is_instance_valid(equipment_loot_service):
+		if not has_warned_missing_equipment_loot_service:
+			has_warned_missing_equipment_loot_service = true
+			push_warning(
+				"Enemy '%s' has eligible equipment loot but EquipmentLoot is unavailable."
+				% enemy_definition.enemy_id
+			)
+		return
+
+	equipment_loot_service.process_enemy_defeat(
+		enemy_definition,
+		stage_definition,
+		reward_global_wave,
 		global_position
 	)
 
