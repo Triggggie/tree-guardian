@@ -152,6 +152,20 @@ Modifier semantics:
 - Production normal-enemy equipment chance must never be temporarily raised for manual testing and committed.
 - Equipment drop notifications are centered reward feedback with a bounded queue. They ignore mouse input and must never pause gameplay or conflict with the independent Branch Seed notification.
 
+## Save and persistence
+
+- `SaveGame` is the central versioned persistence orchestrator for stable player progression data. Gameplay services remain the authoritative owners of runtime state and validation.
+- Persistence uses stable textual IDs and explicit plain data, never runtime Node references or mutable Resource identity.
+- `ItemInstance` persistence includes instance ID, definition ID, Item Level, rarity, lock state, and affix rolls. Item presentation resolves optional icon metadata from `ItemDefinition` through `GameContent`; icon data is never persisted and UI must provide slot-aware fallbacks.
+- Equipment persistence references Inventory items by concrete `instance_id`. `InventoryService` continues to own equipped ItemInstances; equip, replacement, and unequip never physically remove or re-add them.
+- Player-facing TREE Inventory shows only unequipped ItemInstances. Equipped items are represented directly by their equipment-slot tiles on the Tree. Both tile types identify concrete items by `instance_id`.
+- Inventory filters derive from `EquipmentSlotRules`, and equipment rarity visuals derive from `ItemRarityRules`.
+- Branch Progress persistence is shared by `branch_id`, while talent loadouts remain keyed by `slot_id + branch_id`.
+- Saved Apex loadout never bypasses persistent Branch Seed unlock validation. `BranchSeeds` keeps its independent versioned `user://branch_seed_unlocks.cfg` save.
+- Unsupported future player-save versions must never be overwritten by older builds. Frequent Branch XP autosaves are coalesced.
+- Save Foundation V1 does not persist active run snapshots: Wave/cohort/enemy state, Tree HP, Age, Forest Essence, Tree upgrades, Tree Soul state, Stage/Substage, guarantee claims, and offline progress remain outside the save.
+- Equipment Drop Notification remains horizontally centered directly below Tree HP, with independent readable space for Branch Seed presentation.
+
 ## Tree Soul rules
 
 Tree Souls are a run-long specialization selected during a prestige run.
@@ -225,6 +239,7 @@ Normal Wave overlap is disabled for onboarding Waves 1–10. After onboarding, o
 - TREE slot selection uses stable `slot_id`. Its physical layout is Slot 2 upper-left, Slot 1 lower-left, Slot 4 upper-right, Slot 3 lower-right, and Apex top-center.
 - TREE reads shared archetype progress from `BranchProgress`, the per-slot talent build from `slot_id + branch_id`, effective stats from the actual runtime Branch, and unlocked Legendary Branch Seeds from `BranchSeeds`.
 - TREE exposes a global Inventory overview in addition to per-slot equipment selection. Inventory cards always identify concrete items by `instance_id`, so multiple instances of one `ItemDefinition` remain independent.
+- TREE Inventory tiles show only unequipped items; equipped concrete items appear on the five Tree equipment-slot tiles and remain owned by `InventoryService`.
 - Player-facing Legendary Tier text in TREE comes from `BranchDefinition`.
 - Only one of `BranchUpgradePanel`, `TreeUpgradePanel`, and `TreeSoulStatusPanel` may be visible at a time.
 - The active tab button is disabled; the other tab buttons remain enabled.

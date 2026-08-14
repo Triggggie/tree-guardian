@@ -1,10 +1,10 @@
 # Tree Guardian — Current Project Status
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-Implementation parent for this checkpoint: `169f667` (`Update status after equipment stat application`)
+Implementation parent for this checkpoint: `d6c6302` (`Update status after gameplay UX pass`)
 
-Checkpoint commit: `Update status after basic equipment loot`
+Checkpoint commit: `Update status after persistence foundation`
 
 Baseline branch: `main`
 
@@ -28,7 +28,7 @@ The main loop is functional:
 - Tree death stops the active combat cycle and opens a defeat panel. The player can retry immediately, or the tree revives automatically after a 10-second countdown. Retry now opens Preparation before restarting the current Substage at its Wave 1.
 - Normal death preserves in-memory long-term run progression: Age, Forest Essence, Branch XP and levels, purchased branch upgrades and talents, tree upgrades, and the selected Tree Soul and rank.
 
-The prototype has no general save/load system, so this preserved run state lasts only for the running game process. Unlocked legendary Branch Seed IDs are the isolated exception: `BranchSeeds` persists that meta-progression across sessions.
+Stable Inventory, Equipment, Branch Progress, per-slot talent builds, and Branch Loadout state now persist through the versioned `SaveGame` service. Active run state remains process-local. Legendary Branch Seed unlocks and pity remain an independent persistence domain owned by `BranchSeeds`.
 
 ## 3. Branches
 
@@ -566,17 +566,17 @@ Common items receive one affix; Uncommon and Epic receive two distinct affixes. 
 
 Centralized formulas use Item Level `L`: Maximum Health `(8 + 2L)` rounded to whole HP; Health Regeneration `(0.15 + 0.04L)` rounded to 0.05 HP/s; Branch Damage `(0.03 + 0.004L)` and Attack Speed `(0.03 + 0.003L)` rounded to 0.005 fractional steps. Each base value is multiplied by rarity and variance before rounding.
 
-`EquipmentItemGenerator` selects a valid production Bark/Roots `ItemDefinition` from `GameContent`, then creates a new mutable `ItemInstance` with rarity, Item Level, affixes, and `is_locked = false`. It never mutates definitions or creates a parallel registry. `EquipmentLootService` owns a process-local monotonic identity counter such as `equipment_loot_000001`, checks Inventory for collisions, inserts the result automatically, and emits `equipment_item_dropped` only after successful insertion. Items are never auto-equipped. Before persistent Inventory is implemented, this process-local identity must be replaced by a save-safe globally unique scheme.
+`EquipmentItemGenerator` selects a valid production Bark/Roots `ItemDefinition` from `GameContent`, then creates a new mutable `ItemInstance` with rarity, Item Level, affixes, and `is_locked = false`. It never mutates definitions or creates a parallel registry. `EquipmentLootService` owns a monotonic identity counter such as `equipment_loot_000001`, checks Inventory for collisions, reconciles the counter after save restore, inserts the result automatically, and emits `equipment_item_dropped` only after successful insertion. Items are never auto-equipped.
 
 #### Reward Context and Presentation
 
 `WaveDirector` writes the current global Wave into `EnemySpawnRequest`; `SpawnDirector` passes it with the exact `StageDefinition` into each enemy's reward context. Enemy death preserves XP and physical Forest Essence rewards, then processes Branch Seed and equipment rewards as independent siblings.
 
-`UI/EquipmentDropNotification` listens to `EquipmentLoot`, presents EQUIPMENT FOUND, item name, centralized rarity color, Item Level, centralized affix formatting, known enemy source, and “Available in TREE”. It occupies the upper-right separately from the Branch Seed notification, ignores mouse input, and never pauses combat. A bounded FIFO queue retains at most five pending presentations, drops the oldest pending entry on overflow, and never removes the corresponding Inventory item. There is no physical equipment pickup.
+`UI/EquipmentDropNotification` listens to `EquipmentLoot`, presents EQUIPMENT FOUND, item name, centralized rarity color, Item Level, centralized affix formatting, known enemy source, and “Available in TREE”. It is horizontally centered directly below Tree HP with separate space before the Branch Seed notification, ignores mouse input, and never pauses combat. A bounded FIFO queue retains at most five pending presentations, drops the oldest pending entry on overflow, and never removes the corresponding Inventory item. There is no physical equipment pickup.
 
 Inventory continues to start empty. A natural or forced drop triggers the existing `Inventory.item_added` signal, so an already-open TREE equipment panel refreshes without a direct loot-to-UI dependency. Automated coverage verifies formulas, rarity minima, distinct affixes, deterministic RNG, 100 collision-free IDs, W50/W100 guarantees, left/right and Retry suppression, failed insertion rollback, no auto-equip, generated EquipmentStats effects, actual enemy death integration, live TREE refresh, notification content/queue, and simultaneous non-overlapping Seed/equipment presentation.
 
-Not implemented: Legendary unique equipment, Defense, damage reduction, materials, Garden loot, pet loot, Soul Relic, physical item pickup, loot filter, auto-dismantle, inventory capacity, persistent Inventory/Equipment, crafting, reroll, or explicit Stage equipment loot pools.
+Not implemented: Legendary unique equipment, Defense, damage reduction, materials, Garden loot, pet loot, Soul Relic, physical item pickup, loot filter, auto-dismantle, inventory capacity, crafting, reroll, or explicit Stage equipment loot pools.
 
 ### Gameplay Feel & Inventory Expansion V1
 
@@ -594,7 +594,7 @@ Checkpoint date: 2026-08-13.
 - Required filters are ALL, BARK, ROOTS, HEARTWOOD, CANOPY, and SAP. Empty states are safe and explicit.
 - Selecting a card shows its full factual detail and the currently equipped item in the same slot. Existing `EquipmentService` performs equip, replacement, and unequip; no score or Better/Worse judgment was added.
 - `Inventory.item_added`, `item_removed`, and `Equipment.equipment_slot_changed` refresh the open view without polling. A valid selected instance survives live drops.
-- The layout leaves room for later management actions, but scrap, dismantle, materials, crafting, inventory capacity, and persistence are intentionally not implemented.
+- The layout leaves room for later management actions, but scrap, dismantle, materials, crafting, and inventory capacity are intentionally not implemented.
 
 #### Equipment Slots and Content
 
@@ -631,13 +631,65 @@ Checkpoint date: 2026-08-13.
 4. Bark Defense identity.
 5. Legendary Equipment V1 only after the common loot and Inventory loop is stable.
 
+### Save & Persistence Foundation V1
+
+Checkpoint date: 2026-08-14.
+
+#### SaveGame
+
+- `SaveGame` is the final gameplay-service autoload and central persistence orchestrator. Runtime ownership and validation remain in `Inventory`, `Equipment`, `BranchProgress`, `BranchLoadout`, and the independent `BranchSeeds` service.
+- The single local player slot is `user://player_progress.cfg` with `SAVE_VERSION = 1`. Startup automatically restores valid data before MainWorld creates runtime Branches.
+- Restore order is Inventory, Equipment, Branch Progress/talent builds, then Branch Loadout, followed by an idempotent EquipmentStats rebuild and equipment-loot instance-counter reconciliation.
+- Inventory add/remove, Equipment equip/unequip, and Branch Loadout changes request autosave. Branch Progress changes share one 0.75-second one-shot coalescing timer.
+- Public `save_now()`, `request_save()`, `load_now()`/`reload_from_disk()`, initialization, and debug test-path override APIs exist. Current-version reload replaces persistence-owned runtime state instead of appending duplicates.
+- Missing files are a valid fresh state. Corrupt/malformed or unsupported-version files fail without partial restore. Future versions disable writes so an older build cannot overwrite them. There is no modal error UI.
+
+#### Persisted Inventory and Equipment
+
+- Every saved `ItemInstance` stores textual `instance_id`, `definition_id`, Item Level, equipment rarity, lock state, and each affix's textual stat ID plus full float value.
+- Restore creates new runtime `ItemInstance` and `ItemAffixRoll` objects, resolves immutable definitions through `GameContent`, skips invalid/unknown entries with warnings, and retains the first valid duplicate instance ID.
+- Multiple instances of one definition retain independent identity, levels, rarity, affixes, and lock state.
+- Equipment stores the five mappings for Bark, Roots, Heartwood, Canopy, and Sap through `EquipmentSlotRules`. Missing, unknown, or wrong-slot references restore EMPTY and are never remapped.
+- Inventory continues to own every equipped item. Equipment references only concrete Inventory `instance_id` values. Restored EquipmentStats and Maximum Health modifiers are available before a new Tree initializes.
+- `EquipmentLoot` reconciles its monotonic `equipment_loot_######` counter against restored Inventory. Boss guarantee claims intentionally remain process-local because there is no persistent run identity.
+
+#### Branch Progress, Talent Builds, and Branch Loadout
+
+- Shared Branch Progress persists by `branch_id`: XP, level, total earned Talent Points, and definition-validated upgrade levels. Available Talent Points remain derived rather than saved.
+- Talent builds persist independently by `slot_id + branch_id`; unknown talent IDs are ignored without erasing other valid selections.
+- Branch Loadout persists all four Standard slots plus Apex. Valid partial Standard loadouts restore before current default initialization fills missing slots. A fresh save still produces Strength/Blossom/Strength/Blossom and Apex EMPTY.
+- Restored Apex definitions must be valid Legendary Apex content and already unlocked in `BranchSeeds`; player save data cannot bypass the Seed gate.
+- Branch Seed unlock IDs and tier pity remain exclusively in the unchanged `user://branch_seed_unlocks.cfg` version-2 save. Loading player progress never emits Branch Seed or Equipment Drop acquisition notifications.
+
+#### Inventory Grid and Tree Equipment Tiles
+
+- Global TREE Inventory is a scrollable five-column compact tile grid containing only unequipped concrete items. ALL/Bark/Roots/Heartwood/Canopy/Sap filters derive from `EquipmentSlotRules` after equipped items are excluded.
+- Tiles show an icon area, short name, centralized rarity color, Item Level, slot identity, and LOCKED marker. Affixes remain in the selected detail/comparison panel rather than filling each tile.
+- `ItemDefinition.icon` is used automatically when present. Null icons receive a slot-aware BARK/ROOT/HEART/CANOPY/SAP fallback; icon art and texture references are not persisted.
+- The five Tree equipment positions are compact item-slot tiles. Empty slots identify their type and EMPTY state; occupied slots show the same icon/fallback, rarity, and Item Level presentation without an EQUIPPED badge.
+- Clicking an occupied Tree tile selects its concrete item and exposes UNEQUIP. Clicking an empty tile opens that slot context. Equip hides the tile from Inventory and shows it on the Tree; replacement returns the prior item to sorted Inventory; unequip returns the current item. These are presentation changes only—Inventory ownership never changes.
+- `item_added`, `item_removed`, and `equipment_slot_changed` refresh open UI without polling. Restored available and equipped items are visible correctly on first TREE open.
+
+#### Equipment Drop Presentation
+
+- Equipment Drop Notification remains horizontally centered, queued, rarity-colored, animated, input-ignoring, and non-pausing.
+- Its top edge is Y 90, 22 px below the Tree HP bar's Y 68 bottom edge. Its bottom edge is Y 310, leaving 20 px before the independent Branch Seed notification begins at Y 330.
+
+#### Not Persisted or Implemented
+
+- Not persisted: active Wave/cohorts/enemies, enemy HP, Tree HP, Age, highest completed Wave, Forest Essence, Tree upgrades, Tree Soul selection/rank, Preparation, Stage/Substage, equipment guarantee claims, and offline progress.
+- Not implemented: Run Resume, save slots, Load Game/Delete Save UI, cloud/Steam Cloud, scrap, dismantle, materials, crafting, reroll, auto-dismantle, inventory cap, Defense, Soul Relic, Legendary equipment effects, or offline progress.
+
+#### Recommended Next Work
+
+After a manual save/load and Inventory visual playtest, choose either Run Save & Resume V1 or Material Loot & Scrap V1.
+
 ## 9. Known Gaps and Limitations
 
-- There is no general save/load system. Branch Seed unlock IDs are the only persistent meta-progression currently stored across processes.
-- Branch archetype progression is retained only in memory and is not included in the disk save.
+- There is no active-run resume system; Save Foundation V1 persists stable player progression only.
 - TREE supports live standard and unlocked Apex Branch replacement while the tree is alive; player-facing unequip and standard Branch unlock progression do not exist.
 - There is no talent respec, copy-build, or save-preset flow.
-- Tier data and the first miniboss/boss encounters are implemented. Bark/Roots inventory, equipment UI, activation, and the first four equipment stats exist, but item loot and generation do not.
+- Tier data and the first miniboss/boss encounters are implemented. Five-slot inventory, equipment UI, activation, the first four equipment stats, and Common-to-Epic item loot generation exist.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
 - All ten Guardian Grove Substages currently share one schedule; later Substages are not yet differentiated.
@@ -649,7 +701,7 @@ Checkpoint date: 2026-08-13.
 - No StatusEffect definitions are registered yet.
 - Strength, Blossom, and Thorn Crown have separated visual and talent-effect responsibilities. Their runtime dispatchers remain Branch-specific rather than a global universal effect system.
 - A shared Branch visual base does not yet exist and is not needed for the current three implementations.
-- Branch category data, Slot 5 rules, the Apex runtime/equip foundation, persistent Branch Seed unlock storage, the legendary drop-processing foundation, natural production Thorn Crown acquisition, and a non-blocking acquisition notification exist. There is still no physical loot object, player-facing Apex unequip, or disk Apex loadout save.
+- Branch category data, Slot 5 rules, disk-backed Apex loadout, persistent Branch Seed unlock storage, the legendary drop-processing foundation, natural production Thorn Crown acquisition, and a non-blocking acquisition notification exist. There is still no physical loot object or separate player-facing Apex unequip action.
 - There is no found-versus-equipped Apex Branch comparison.
 - Bark Warden and Ancient Bark Colossus now have their first unique abilities, but there is no dedicated boss health-bar or encounter-intro UI and no additional boss ability set.
 - Normal enemies can drop Bark/Roots equipment at the production 1% chance; no material, Garden, pet, or Soul Relic loot exists.
@@ -691,11 +743,11 @@ The first legendary concepts are:
 The next recommended work is:
 
 1. Perform a short manual loot and balance playtest, especially the 1% normal drop cadence and Wave 50/100 reward readability.
-2. Choose the next vertical-slice priority between Inventory Persistence / Save Foundation V1 and First Material Loot & Dismantle Foundation.
+2. Choose the next vertical-slice priority between Run Save & Resume V1 and First Material Loot & Dismantle Foundation.
 3. Add the first real Bark defensive stat in a later focused checkpoint.
 4. Add Legendary unique equipment only after the Common-to-Epic loot loop is stable.
 
-General save/load, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
+Active-run resume, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
 ## 12. Handoff Checklist
 
