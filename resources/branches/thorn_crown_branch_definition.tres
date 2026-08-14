@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="BranchDefinition" format=3]
+[gd_resource type="Resource" script_class="BranchDefinition" format=3 uid="uid://cq7llsue8joff"]
 
-[ext_resource type="Script" path="res://scripts/definitions/branch_definition.gd" id="1_branch"]
-[ext_resource type="Script" path="res://scripts/definitions/targeting_profile.gd" id="2_targeting"]
+[ext_resource type="Script" uid="uid://d2uetf6dd60fm" path="res://scripts/definitions/branch_definition.gd" id="1_branch"]
+[ext_resource type="Script" uid="uid://csufpxtwmk7t7" path="res://scripts/definitions/targeting_profile.gd" id="2_targeting"]
 [ext_resource type="PackedScene" path="res://scenes/branches/thorn_crown_branch.tscn" id="3_scene"]
-[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="4_upgrade"]
+[ext_resource type="Script" uid="uid://d16a5x6nbioqp" path="res://scripts/definitions/upgrade_definition.gd" id="4_upgrade"]
 [ext_resource type="Resource" path="res://resources/upgrades/thorn_crown/thorn_damage.tres" id="5_damage"]
 [ext_resource type="Resource" path="res://resources/upgrades/thorn_crown/attack_speed.tres" id="6_speed"]
 [ext_resource type="Resource" path="res://resources/upgrades/thorn_crown/burst_radius.tres" id="7_radius"]
@@ -11,8 +11,6 @@
 
 [sub_resource type="Resource" id="Resource_targeting"]
 script = ExtResource("2_targeting")
-target_group = &"enemies"
-target_priority = 0
 lane_mode = 0
 
 [resource]

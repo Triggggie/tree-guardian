@@ -6,8 +6,8 @@
 [ext_resource type="Resource" uid="uid://m0swravpgwga" path="res://resources/waves/bark_runner_intro_wave.tres" id="4_intro"]
 [ext_resource type="Resource" uid="uid://bhxf8hu7xy8fl" path="res://resources/waves/bark_beetle_runner_mixed_wave.tres" id="5_mixed"]
 [ext_resource type="Resource" uid="uid://d126m3yd457aa" path="res://resources/waves/bark_runner_rush_wave.tres" id="6_rush"]
-[ext_resource type="Resource" path="res://resources/waves/guardian_grove_miniboss_wave.tres" id="8_miniboss"]
-[ext_resource type="Resource" path="res://resources/waves/guardian_grove_boss_wave.tres" id="9_boss"]
+[ext_resource type="Resource" uid="uid://1sw1epm1bc7m" path="res://resources/waves/guardian_grove_miniboss_wave.tres" id="8_miniboss"]
+[ext_resource type="Resource" uid="uid://bajsjqn1vjk01" path="res://resources/waves/guardian_grove_boss_wave.tres" id="9_boss"]
 
 [sub_resource type="Resource" id="Resource_entry_01"]
 script = ExtResource("2_entry")
