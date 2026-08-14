@@ -43,11 +43,17 @@ func run_test(inventory: InventoryService) -> void:
 	expect(
 		is_equal_approx(panel.anchor_left, 0.5)
 		and is_equal_approx(panel.anchor_right, 0.5)
-		and is_equal_approx(panel.anchor_top, 0.5)
-		and is_equal_approx(panel.anchor_bottom, 0.5)
+		and is_equal_approx(panel.anchor_top, 0.0)
+		and is_equal_approx(panel.anchor_bottom, 0.0)
 		and panel.offset_left < 0.0
-		and panel.offset_right > 0.0,
-		"Equipment notification is not semantically centered."
+		and panel.offset_right > 0.0
+		and is_equal_approx(panel.offset_top, 90.0),
+		"Equipment notification is not horizontally centered below Tree HP."
+	)
+	var health_bar := world.get_node("UI/HealthBar") as ProgressBar
+	expect(
+		panel.get_global_rect().position.y - health_bar.get_global_rect().end.y >= 16.0,
+		"Equipment notification lacks positive spacing below Tree HP."
 	)
 
 	var items: Array[ItemInstance] = []

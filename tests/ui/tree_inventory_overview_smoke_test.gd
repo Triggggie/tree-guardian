@@ -61,7 +61,14 @@ func run_test(inventory: InventoryService, equipment: EquipmentService) -> void:
 		expect(inventory.add_item(item), "Inventory overview fixture add failed.")
 	await get_tree().process_frame
 	var cards: Dictionary = screen.get("equipment_candidate_buttons_by_instance_id") as Dictionary
-	expect(cards.size() == 6 and count_label.text == "Items: 6", "ALL inventory view did not show all concrete instances.")
+	var item_grid := screen.get_node(
+		"MainPanel/InventoryOverviewPanel/ScrollContainer/ItemGrid"
+	) as GridContainer
+	expect(
+		cards.size() == 6 and count_label.text == "Items: 6  Owned: 6"
+		and item_grid.columns == 5,
+		"ALL inventory grid did not show all concrete instances compactly."
+	)
 	expect(
 		cards.has(&"bark_epic") and cards.has(&"bark_common")
 		and (cards[&"bark_common"] as Button).text.contains("LOCKED"),
@@ -71,6 +78,21 @@ func run_test(inventory: InventoryService, equipment: EquipmentService) -> void:
 		"MainPanel/InventoryOverviewPanel/ScrollContainer/ItemGrid"
 	).get_child(0) as Button
 	expect(first_card == cards[&"bark_epic"], "Inventory sorting is not rarity-first and Item-Level descending.")
+	expect(
+		first_card.custom_minimum_size.x <= 240.0
+		and first_card.text.contains("BARK")
+		and first_card.text.contains("ILvl 14")
+		and not first_card.text.contains("Branch Damage")
+		and first_card.get_theme_color("font_color") == ItemRarityRules.get_rarity_color(ItemRarityRules.EPIC),
+		"Compact tile fallback, rarity, ILvl, or no-affix presentation is wrong."
+	)
+	var bark_definition: ItemDefinition = GameContent.get_item(&"living_bark")
+	var fixture_icon := GradientTexture1D.new()
+	bark_definition.icon = fixture_icon
+	screen.call("select_inventory_filter", &"bark")
+	cards = screen.get("equipment_candidate_buttons_by_instance_id") as Dictionary
+	expect((cards[&"bark_epic"] as Button).icon == fixture_icon, "Actual ItemDefinition icon was not used.")
+	bark_definition.icon = null
 
 	for slot_id in EquipmentSlotRules.get_supported_slot_ids():
 		expect(screen.call("select_inventory_filter", slot_id), "Inventory slot filter was rejected.")
@@ -93,17 +115,21 @@ func run_test(inventory: InventoryService, equipment: EquipmentService) -> void:
 	cards = screen.get("equipment_candidate_buttons_by_instance_id") as Dictionary
 	expect(
 		equipment.get_equipped_instance_id(&"bark") == &"bark_epic"
-		and (cards[&"bark_epic"] as Button).text.contains("EQUIPPED")
-		and not (cards[&"bark_common"] as Button).text.contains("EQUIPPED")
-		and current_label.text.contains("Living Bark"),
-		"Global Inventory equipped marker or factual comparison did not refresh."
+		and inventory.get_item_count() == 6
+		and not cards.has(&"bark_epic") and cards.has(&"bark_common")
+		and not (cards[&"bark_common"] as Button).text.contains("EQUIPPED"),
+		"Equipped item was not hidden from Grid while remaining Inventory-owned."
 	)
+	expect(screen.call("select_equipment_slot", &"bark"), "Equipped Bark Tree tile selection failed.")
+	expect(current_label.text.contains("Living Bark"), "Equipped Tree tile did not expose item detail.")
 	expect(screen.call("unequip_selected_equipment"), "Global Inventory unequip failed.")
 	expect(
 		inventory.has_item(&"bark_epic")
 		and equipment.get_equipped_instance_id(&"bark") == &"",
 		"Global Inventory unequip removed the item or retained equipment state."
 	)
+	screen.call("open_inventory_overview")
+	screen.call("select_inventory_filter", &"")
 
 	var selected_before_drop: StringName = screen.get("selected_equipment_instance_id")
 	var live_item := create_item(
