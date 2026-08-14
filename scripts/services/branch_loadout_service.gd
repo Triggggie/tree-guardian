@@ -62,6 +62,86 @@ func get_full_loadout_copy() -> Dictionary:
 	return equipped_branch_ids_by_slot_id.duplicate(true)
 
 
+func export_persistence_state() -> Dictionary:
+	var stored_loadout: Dictionary = {}
+	for slot_index in range(
+		BranchSlotRules.FIRST_STANDARD_SLOT,
+		BranchSlotRules.APEX_SLOT + 1
+	):
+		var slot_id: StringName = BranchSlotRules.get_slot_id(slot_index)
+		if equipped_branch_ids_by_slot_id.has(slot_id):
+			stored_loadout[String(slot_id)] = String(
+				equipped_branch_ids_by_slot_id[slot_id]
+			)
+	return stored_loadout
+
+
+func restore_persistence_state(
+	stored_loadout: Dictionary,
+	branch_seeds: BranchSeedService
+) -> bool:
+	var restored_loadout: Dictionary = {}
+	for slot_index in range(
+		BranchSlotRules.FIRST_STANDARD_SLOT,
+		BranchSlotRules.LAST_STANDARD_SLOT + 1
+	):
+		var slot_id: StringName = BranchSlotRules.get_slot_id(slot_index)
+		var stored_key: String = String(slot_id)
+		if not stored_loadout.has(stored_key) and not stored_loadout.has(slot_id):
+			continue
+		var branch_id := StringName(str(
+			stored_loadout.get(stored_key, stored_loadout.get(slot_id, ""))
+		))
+		if branch_id == &"" or _is_valid_standard_branch(slot_id, branch_id):
+			restored_loadout[slot_id] = branch_id
+		else:
+			push_warning(
+				"BranchLoadout skipped invalid Standard Branch '%s' for %s."
+				% [branch_id, slot_id]
+			)
+
+	var apex_slot_id: StringName = BranchSlotRules.APEX_SLOT_ID
+	var apex_key: String = String(apex_slot_id)
+	if stored_loadout.has(apex_key) or stored_loadout.has(apex_slot_id):
+		var apex_branch_id := StringName(str(
+			stored_loadout.get(
+				apex_key,
+				stored_loadout.get(apex_slot_id, "")
+			)
+		))
+		if apex_branch_id == &"":
+			restored_loadout[apex_slot_id] = &""
+		elif (
+			_is_valid_apex_branch(apex_branch_id)
+			and is_instance_valid(branch_seeds)
+			and branch_seeds.is_branch_seed_unlocked(apex_branch_id)
+		):
+			restored_loadout[apex_slot_id] = apex_branch_id
+		else:
+			push_warning(
+				"BranchLoadout rejected locked or invalid saved Apex '%s'."
+				% apex_branch_id
+			)
+			restored_loadout[apex_slot_id] = &""
+
+	var previous_loadout: Dictionary = equipped_branch_ids_by_slot_id
+	equipped_branch_ids_by_slot_id = restored_loadout
+	for slot_index in range(
+		BranchSlotRules.FIRST_STANDARD_SLOT,
+		BranchSlotRules.LAST_STANDARD_SLOT + 1
+	):
+		var slot_id: StringName = BranchSlotRules.get_slot_id(slot_index)
+		var previous_id := StringName(previous_loadout.get(slot_id, &""))
+		var restored_id := StringName(restored_loadout.get(slot_id, &""))
+		if previous_id != restored_id:
+			standard_slot_changed.emit(slot_id, previous_id, restored_id)
+	var previous_apex := StringName(previous_loadout.get(apex_slot_id, &""))
+	var restored_apex := StringName(restored_loadout.get(apex_slot_id, &""))
+	if previous_apex != restored_apex:
+		apex_slot_changed.emit(previous_apex, restored_apex)
+	return true
+
+
 func equip_standard_branch(
 	slot_id: StringName,
 	branch_id: StringName

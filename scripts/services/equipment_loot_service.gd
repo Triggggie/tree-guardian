@@ -117,6 +117,27 @@ func is_guarantee_claimed_for_testing(
 	)
 
 
+func reconcile_instance_counter_from_inventory() -> void:
+	if not is_instance_valid(inventory):
+		return
+	var highest_instance_number: int = 0
+	for item in inventory.get_items():
+		var stored_id: String = String(item.instance_id)
+		if not stored_id.begins_with(INSTANCE_ID_PREFIX):
+			continue
+		var numeric_suffix: String = stored_id.trim_prefix(INSTANCE_ID_PREFIX)
+		if not numeric_suffix.is_valid_int():
+			continue
+		highest_instance_number = max(
+			highest_instance_number,
+			int(numeric_suffix)
+		)
+	next_instance_number = max(
+		next_instance_number,
+		highest_instance_number + 1
+	)
+
+
 func _drop_succeeds(drop_chance: float) -> bool:
 	if drop_chance <= 0.0:
 		return false

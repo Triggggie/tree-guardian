@@ -87,6 +87,7 @@ var selected_equipment_instance_id: StringName = &""
 var equipment_candidate_buttons_by_instance_id: Dictionary = {}
 var inventory_filter_buttons_by_slot_id: Dictionary = {}
 var inventory_filter_slot_id: StringName = &""
+var visible_inventory_item_count: int = 0
 var inventory_service: InventoryService
 var equipment_service: EquipmentService
 
@@ -192,6 +193,12 @@ func select_equipment_slot(slot_id: StringName) -> bool:
 	selection_mode = SelectionMode.EQUIPMENT
 	selected_equipment_slot_id = slot_id
 	selected_equipment_instance_id = &""
+	if is_instance_valid(equipment_service):
+		selected_equipment_instance_id = equipment_service.get_equipped_instance_id(
+			slot_id
+		)
+	inventory_filter_slot_id = slot_id
+	_refresh_inventory_filter_buttons()
 	_refresh_slot_buttons()
 	_refresh_equipment_slot_buttons()
 	_refresh_equipment_ui()
@@ -292,26 +299,17 @@ func _refresh_equipment_slot_buttons() -> void:
 		var item: ItemInstance = null
 		if is_instance_valid(equipment_service):
 			item = equipment_service.get_equipped_item(slot_id)
-		var item_name: String = "EMPTY"
+		button.icon = null
 		if item != null:
 			var definition: ItemDefinition = GameContent.get_item(item.definition_id)
 			if is_instance_valid(definition):
-				item_name = definition.display_name
-		button.text = "%s\n%s" % [
-			EquipmentSlotRules.get_slot_display_name(slot_id).to_upper(),
-			item_name
-		]
+				_apply_item_tile_presentation(button, item, definition, false)
+		else:
+			_apply_empty_equipment_slot_presentation(button, slot_id)
 		button.button_pressed = (
 			selection_mode == SelectionMode.EQUIPMENT
 			and slot_id == selected_equipment_slot_id
 		)
-		if item == null:
-			button.remove_theme_color_override("font_color")
-		else:
-			button.add_theme_color_override(
-				"font_color",
-				ItemRarityRules.get_rarity_color(item.rarity_id)
-			)
 
 
 func _refresh_mode_visibility() -> void:
@@ -409,12 +407,15 @@ func _refresh_equipment_ui() -> void:
 
 func _refresh_inventory_overview() -> void:
 	_rebuild_inventory_overview_cards()
-	var item_count: int = (
+	var owned_item_count: int = (
 		inventory_service.get_item_count()
 		if is_instance_valid(inventory_service)
 		else 0
 	)
-	inventory_item_count_label.text = "Items: %d" % item_count
+	inventory_item_count_label.text = "Items: %d  Owned: %d" % [
+		visible_inventory_item_count,
+		owned_item_count
+	]
 	equipment_title_label.text = "INVENTORY ITEM"
 	var selected_item: ItemInstance = null
 	if is_instance_valid(inventory_service):
@@ -460,10 +461,15 @@ func _rebuild_inventory_overview_cards() -> void:
 	if is_instance_valid(inventory_service):
 		items = inventory_service.get_items()
 	items.sort_custom(_inventory_item_precedes)
-	var visible_item_count: int = 0
+	visible_inventory_item_count = 0
 	for item in items:
 		var definition: ItemDefinition = GameContent.get_item(item.definition_id)
 		if not is_instance_valid(definition):
+			continue
+		if (
+			is_instance_valid(equipment_service)
+			and equipment_service.is_item_equipped(item.instance_id)
+		):
 			continue
 		if (
 			inventory_filter_slot_id != &""
@@ -472,19 +478,14 @@ func _rebuild_inventory_overview_cards() -> void:
 			continue
 		var button := Button.new()
 		button.toggle_mode = true
-		button.custom_minimum_size = Vector2(390.0, 190.0)
-		button.text = _format_inventory_card(item, definition)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.custom_minimum_size = Vector2(230.0, 150.0)
+		_apply_item_tile_presentation(button, item, definition, true)
 		button.button_pressed = item.instance_id == selected_equipment_instance_id
-		button.add_theme_color_override(
-			"font_color",
-			ItemRarityRules.get_rarity_color(item.rarity_id)
-		)
 		button.pressed.connect(select_equipment_candidate.bind(item.instance_id))
 		inventory_item_grid.add_child(button)
 		equipment_candidate_buttons_by_instance_id[item.instance_id] = button
-		visible_item_count += 1
-	inventory_overview_empty_label.visible = visible_item_count == 0
+		visible_inventory_item_count += 1
+	inventory_overview_empty_label.visible = visible_inventory_item_count == 0
 	inventory_overview_empty_label.text = (
 		"No equipment in inventory.\nDrops from enemies will appear here."
 		if inventory_filter_slot_id == &""
@@ -497,26 +498,77 @@ func _format_inventory_card(
 	item: ItemInstance,
 	definition: ItemDefinition
 ) -> String:
-	var lines: Array[String] = [
-		definition.display_name,
-		ItemRarityRules.get_rarity_display_name(item.rarity_id).to_upper(),
-		"Item Level %d" % item.item_level,
+	var lines: Array[String] = []
+	if definition.icon == null:
+		lines.append(_get_slot_fallback_text(definition.equipment_slot_id))
+	lines.append(definition.display_name)
+	lines.append(ItemRarityRules.get_rarity_display_name(item.rarity_id).to_upper())
+	lines.append("ILvl %d â€˘ %s" % [
+		item.item_level,
 		EquipmentSlotRules.get_slot_display_name(definition.equipment_slot_id)
-	]
-	for affix in item.affix_rolls:
-		if affix != null and EquipmentStatRules.is_supported_stat_id(affix.stat_id):
-			lines.append("%s %s" % [
-				EquipmentStatRules.get_stat_display_name(affix.stat_id),
-				EquipmentStatRules.format_stat_value(affix.stat_id, affix.value)
-			])
+	])
 	if item.is_locked:
 		lines.append("LOCKED")
-	if (
-		is_instance_valid(equipment_service)
-		and equipment_service.is_item_equipped(item.instance_id)
-	):
-		lines.append("EQUIPPED")
 	return "\n".join(lines)
+
+
+func _apply_item_tile_presentation(
+	button: Button,
+	item: ItemInstance,
+	definition: ItemDefinition,
+	include_slot: bool
+) -> void:
+	button.text = _format_inventory_card(item, definition) if include_slot else (
+		"%s\n%s\nILvl %d" % [
+			_get_slot_fallback_text(definition.equipment_slot_id)
+			if definition.icon == null
+			else definition.display_name,
+			ItemRarityRules.get_rarity_display_name(item.rarity_id).to_upper(),
+			item.item_level
+		]
+	)
+	button.icon = definition.icon
+	button.expand_icon = true
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var rarity_color: Color = ItemRarityRules.get_rarity_color(item.rarity_id)
+	button.add_theme_color_override("font_color", rarity_color)
+	var tile_style := StyleBoxFlat.new()
+	tile_style.bg_color = Color(0.035, 0.065, 0.045, 0.96)
+	tile_style.border_color = rarity_color
+	tile_style.set_border_width_all(3)
+	tile_style.set_corner_radius_all(8)
+	button.add_theme_stylebox_override("normal", tile_style)
+	button.add_theme_stylebox_override("hover", tile_style.duplicate())
+	button.add_theme_stylebox_override("pressed", tile_style.duplicate())
+
+
+func _apply_empty_equipment_slot_presentation(
+	button: Button,
+	slot_id: StringName
+) -> void:
+	button.icon = null
+	button.text = "%s\nEMPTY" % EquipmentSlotRules.get_slot_display_name(
+		slot_id
+	).to_upper()
+	button.remove_theme_color_override("font_color")
+	for state_name in [&"normal", &"hover", &"pressed"]:
+		button.remove_theme_stylebox_override(state_name)
+
+
+func _get_slot_fallback_text(slot_id: StringName) -> String:
+	match slot_id:
+		EquipmentSlotRules.BARK_SLOT_ID:
+			return "BARK"
+		EquipmentSlotRules.ROOTS_SLOT_ID:
+			return "ROOT"
+		EquipmentSlotRules.HEARTWOOD_SLOT_ID:
+			return "HEART"
+		EquipmentSlotRules.CANOPY_SLOT_ID:
+			return "CANOPY"
+		EquipmentSlotRules.SAP_SLOT_ID:
+			return "SAP"
+	return "ITEM"
 
 
 func _rebuild_equipment_candidate_list() -> void:
@@ -527,10 +579,15 @@ func _rebuild_equipment_candidate_list() -> void:
 	if is_instance_valid(inventory_service):
 		items = inventory_service.get_items_for_slot(selected_equipment_slot_id)
 	items.sort_custom(_inventory_item_precedes)
-	equipment_empty_label.visible = items.is_empty()
+	var available_item_count: int = 0
 	for item in items:
 		var definition: ItemDefinition = GameContent.get_item(item.definition_id)
 		if not is_instance_valid(definition):
+			continue
+		if (
+			is_instance_valid(equipment_service)
+			and equipment_service.is_item_equipped(item.instance_id)
+		):
 			continue
 		var button := Button.new()
 		button.toggle_mode = true
@@ -554,6 +611,8 @@ func _rebuild_equipment_candidate_list() -> void:
 		)
 		equipment_candidate_list.add_child(button)
 		equipment_candidate_buttons_by_instance_id[item.instance_id] = button
+		available_item_count += 1
+	equipment_empty_label.visible = available_item_count == 0
 
 
 func _inventory_item_precedes(
@@ -1264,6 +1323,11 @@ func _on_equipment_slot_changed(
 ) -> void:
 	if not visible:
 		return
+	if (
+		selection_mode == SelectionMode.INVENTORY
+		and selected_equipment_instance_id == _new_instance_id
+	):
+		selected_equipment_instance_id = &""
 	_refresh_equipment_slot_buttons()
 	if selection_mode in [SelectionMode.EQUIPMENT, SelectionMode.INVENTORY]:
 		_refresh_equipment_ui()

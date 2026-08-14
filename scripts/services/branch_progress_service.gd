@@ -263,6 +263,195 @@ func synchronize_branch(branch: CombatBranch) -> bool:
 	return true
 
 
+func export_persistence_state() -> Dictionary:
+	var stored_progress_records: Array = []
+	var branch_ids: Array[StringName] = []
+	for branch_id in progress_by_branch_id:
+		branch_ids.append(StringName(branch_id))
+	branch_ids.sort()
+	for branch_id in branch_ids:
+		var progress: BranchProgressRecord = get_progress(branch_id)
+		if progress == null or not progress.is_valid_record():
+			continue
+		var stored_upgrade_levels: Dictionary = {}
+		var upgrade_ids: Array[StringName] = []
+		for upgrade_id in progress.upgrade_levels:
+			upgrade_ids.append(StringName(upgrade_id))
+		upgrade_ids.sort()
+		for upgrade_id in upgrade_ids:
+			stored_upgrade_levels[String(upgrade_id)] = progress.get_upgrade_level(
+				upgrade_id
+			)
+		stored_progress_records.append({
+			"branch_id": String(progress.branch_id),
+			"current_xp": progress.current_xp,
+			"branch_level": progress.branch_level,
+			"total_talent_points_earned": progress.total_talent_points_earned,
+			"upgrade_levels": stored_upgrade_levels
+		})
+
+	var stored_talent_loadouts: Array = []
+	var slot_ids: Array[StringName] = []
+	for slot_id in talent_loadouts_by_slot_id:
+		slot_ids.append(StringName(slot_id))
+	slot_ids.sort()
+	for slot_id in slot_ids:
+		var loadouts_by_branch: Dictionary = talent_loadouts_by_slot_id.get(
+			slot_id, {}
+		)
+		var loadout_branch_ids: Array[StringName] = []
+		for branch_id in loadouts_by_branch:
+			loadout_branch_ids.append(StringName(branch_id))
+		loadout_branch_ids.sort()
+		for branch_id in loadout_branch_ids:
+			var loadout := loadouts_by_branch.get(
+				branch_id
+			) as BranchTalentLoadoutRecord
+			if loadout == null or not loadout.is_valid_record():
+				continue
+			var talent_ids: Array[StringName] = loadout.get_purchased_talent_ids()
+			talent_ids.sort()
+			var stored_talent_ids: Array[String] = []
+			for talent_id in talent_ids:
+				stored_talent_ids.append(String(talent_id))
+			stored_talent_loadouts.append({
+				"slot_id": String(slot_id),
+				"branch_id": String(branch_id),
+				"purchased_talent_ids": stored_talent_ids
+			})
+	return {
+		"records": stored_progress_records,
+		"talent_loadouts": stored_talent_loadouts
+	}
+
+
+func restore_persistence_state(stored_state: Dictionary) -> bool:
+	var stored_records = stored_state.get("records", [])
+	var stored_loadouts = stored_state.get("talent_loadouts", [])
+	if stored_records is not Array or stored_loadouts is not Array:
+		return false
+
+	var restored_progress: Dictionary = {}
+	for stored_value in stored_records:
+		if stored_value is not Dictionary:
+			push_warning("BranchProgress skipped a malformed progress entry.")
+			continue
+		var stored_record := stored_value as Dictionary
+		var branch_id := StringName(str(stored_record.get("branch_id", "")))
+		var definition: BranchDefinition = GameContent.get_branch(branch_id)
+		var branch_level_value = stored_record.get("branch_level", 0)
+		var current_xp_value = stored_record.get("current_xp", -1)
+		var talent_points_value = stored_record.get(
+			"total_talent_points_earned", -1
+		)
+		var stored_upgrade_levels = stored_record.get("upgrade_levels", {})
+		if (
+			branch_id == &""
+			or restored_progress.has(branch_id)
+			or not is_instance_valid(definition)
+			or not definition.is_valid_definition()
+			or branch_level_value is not int
+			or int(branch_level_value) < 1
+			or current_xp_value is not int
+			or int(current_xp_value) < 0
+			or talent_points_value is not int
+			or int(talent_points_value) < 0
+			or stored_upgrade_levels is not Dictionary
+		):
+			push_warning("BranchProgress skipped an invalid saved progress entry.")
+			continue
+		var progress := BranchProgressRecord.new()
+		progress.branch_id = branch_id
+		progress.branch_level = int(branch_level_value)
+		progress.current_xp = int(current_xp_value)
+		progress.total_talent_points_earned = int(talent_points_value)
+		for stored_upgrade_id in stored_upgrade_levels:
+			var upgrade_id := StringName(str(stored_upgrade_id))
+			var level_value = stored_upgrade_levels[stored_upgrade_id]
+			if (
+				upgrade_id == &""
+				or level_value is not int
+				or int(level_value) < 0
+				or not is_instance_valid(definition.get_upgrade_by_id(upgrade_id))
+			):
+				push_warning(
+					"BranchProgress ignored unknown or invalid upgrade '%s' for '%s'."
+					% [upgrade_id, branch_id]
+				)
+				continue
+			progress.set_upgrade_level(upgrade_id, int(level_value))
+		for upgrade_id in definition.get_upgrade_ids():
+			if not progress.upgrade_levels.has(upgrade_id):
+				progress.set_upgrade_level(upgrade_id, 0)
+		restored_progress[branch_id] = progress
+
+	var restored_loadouts_by_slot: Dictionary = {}
+	var restored_loadout_keys: Dictionary = {}
+	for stored_value in stored_loadouts:
+		if stored_value is not Dictionary:
+			push_warning("BranchProgress skipped a malformed talent loadout entry.")
+			continue
+		var stored_loadout := stored_value as Dictionary
+		var slot_id := StringName(str(stored_loadout.get("slot_id", "")))
+		var branch_id := StringName(str(stored_loadout.get("branch_id", "")))
+		var purchased_talent_ids = stored_loadout.get("purchased_talent_ids", [])
+		var definition: BranchDefinition = GameContent.get_branch(branch_id)
+		var loadout_key: String = "%s|%s" % [slot_id, branch_id]
+		if (
+			BranchSlotRules.get_slot_index(slot_id) < 0
+			or branch_id == &""
+			or restored_loadout_keys.has(loadout_key)
+			or purchased_talent_ids is not Array
+			or not is_instance_valid(definition)
+			or not definition.is_valid_definition()
+			or not BranchSlotRules.can_place_definition(
+				definition,
+				BranchSlotRules.get_slot_index(slot_id)
+			)
+		):
+			push_warning("BranchProgress skipped an invalid saved talent loadout.")
+			continue
+		var loadout := BranchTalentLoadoutRecord.new()
+		loadout.slot_id = slot_id
+		loadout.branch_id = branch_id
+		var seen_talent_ids: Dictionary = {}
+		for stored_talent_id in purchased_talent_ids:
+			var talent_id := StringName(str(stored_talent_id))
+			if talent_id == &"" or seen_talent_ids.has(talent_id):
+				continue
+			seen_talent_ids[talent_id] = true
+			if (
+				definition.talent_tree == null
+				or not is_instance_valid(
+					definition.talent_tree.get_talent_by_id(talent_id)
+				)
+			):
+				push_warning(
+					"BranchProgress ignored unknown talent '%s' for '%s'."
+					% [talent_id, branch_id]
+				)
+				continue
+			loadout.set_talent_purchased(talent_id)
+		var loadouts_by_branch: Dictionary = restored_loadouts_by_slot.get(
+			slot_id, {}
+		)
+		loadouts_by_branch[branch_id] = loadout
+		restored_loadouts_by_slot[slot_id] = loadouts_by_branch
+		restored_loadout_keys[loadout_key] = true
+
+	progress_by_branch_id = restored_progress
+	talent_loadouts_by_slot_id = restored_loadouts_by_slot
+	for branch_id in registered_branches_by_id:
+		var registered_branches: Array = registered_branches_by_id[branch_id]
+		_prune_invalid_branches(registered_branches)
+		for branch_value in registered_branches:
+			var branch := branch_value as CombatBranch
+			_get_or_create_progress(branch)
+			_get_or_create_talent_loadout(branch.get_slot_id(), branch.branch_id)
+			synchronize_branch(branch)
+	return true
+
+
 func clear_runtime_progress_for_testing() -> void:
 	if not OS.is_debug_build():
 		push_warning("BranchProgressService test reset is debug-build only.")

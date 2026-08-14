@@ -66,14 +66,14 @@ func create_interface() -> void:
 	notification_panel.name = "NotificationPanel"
 	notification_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	notification_panel.anchor_left = 0.5
-	notification_panel.anchor_top = 0.5
+	notification_panel.anchor_top = 0.0
 	notification_panel.anchor_right = 0.5
-	notification_panel.anchor_bottom = 0.5
+	notification_panel.anchor_bottom = 0.0
 	notification_panel.offset_left = -260.0
-	notification_panel.offset_top = 40.0
+	notification_panel.offset_top = 90.0
 	notification_panel.offset_right = 260.0
 	notification_panel.offset_bottom = 310.0
-	notification_panel.pivot_offset = Vector2(260.0, 135.0)
+	notification_panel.pivot_offset = Vector2(260.0, 110.0)
 	notification_style = create_notification_panel_style()
 	notification_panel.add_theme_stylebox_override("panel", notification_style)
 	add_child(notification_panel)

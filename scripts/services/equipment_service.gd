@@ -75,6 +75,54 @@ func get_equipped_loadout_copy() -> Dictionary:
 	return equipped_instance_ids_by_slot_id.duplicate(true)
 
 
+func export_persistence_state() -> Dictionary:
+	var stored_loadout: Dictionary = {}
+	for slot_id in EquipmentSlotRules.get_supported_slot_ids():
+		stored_loadout[String(slot_id)] = String(
+			get_equipped_instance_id(slot_id)
+		)
+	return stored_loadout
+
+
+func restore_equipment_loadout(stored_loadout: Dictionary) -> bool:
+	_initialize_supported_slots()
+	for slot_id in EquipmentSlotRules.get_supported_slot_ids():
+		var stored_instance_id := StringName(str(
+			stored_loadout.get(
+				String(slot_id),
+				stored_loadout.get(slot_id, "")
+			)
+		))
+		var restored_instance_id: StringName = &""
+		if stored_instance_id != &"":
+			var item: ItemInstance = _get_valid_inventory_item(stored_instance_id)
+			if item == null:
+				push_warning(
+					"Equipment skipped missing saved item '%s' for %s."
+					% [stored_instance_id, slot_id]
+				)
+			else:
+				var definition: ItemDefinition = GameContent.get_item(
+					item.definition_id
+				)
+				if definition.equipment_slot_id != slot_id:
+					push_warning(
+						"Equipment skipped wrong-slot saved item '%s' for %s."
+						% [stored_instance_id, slot_id]
+					)
+				else:
+					restored_instance_id = stored_instance_id
+		var previous_instance_id: StringName = get_equipped_instance_id(slot_id)
+		equipped_instance_ids_by_slot_id[slot_id] = restored_instance_id
+		if previous_instance_id != restored_instance_id:
+			equipment_slot_changed.emit(
+				slot_id,
+				previous_instance_id,
+				restored_instance_id
+			)
+	return true
+
+
 func _initialize_supported_slots() -> void:
 	for slot_id in EquipmentSlotRules.get_supported_slot_ids():
 		if not equipped_instance_ids_by_slot_id.has(slot_id):

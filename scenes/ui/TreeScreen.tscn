@@ -201,42 +201,42 @@ offset_bottom = 680.0
 toggle_mode = true
 
 [node name="BarkButton" type="Button" parent="MainPanel/TreeCanvas"]
-offset_left = 455.0
-offset_top = 430.0
-offset_right = 570.0
-offset_bottom = 490.0
+offset_left = 450.0
+offset_top = 410.0
+offset_right = 610.0
+offset_bottom = 510.0
 toggle_mode = true
 text = "BARK\nEMPTY"
 
 [node name="RootsButton" type="Button" parent="MainPanel/TreeCanvas"]
-offset_left = 342.0
-offset_top = 800.0
-offset_right = 458.0
-offset_bottom = 860.0
+offset_left = 320.0
+offset_top = 770.0
+offset_right = 480.0
+offset_bottom = 870.0
 toggle_mode = true
 text = "ROOTS\nEMPTY"
 
 [node name="CanopyButton" type="Button" parent="MainPanel/TreeCanvas"]
-offset_left = 342.0
-offset_top = 130.0
-offset_right = 458.0
-offset_bottom = 190.0
+offset_left = 320.0
+offset_top = 100.0
+offset_right = 480.0
+offset_bottom = 200.0
 toggle_mode = true
 text = "CANOPY\nEMPTY"
 
 [node name="HeartwoodButton" type="Button" parent="MainPanel/TreeCanvas"]
-offset_left = 230.0
-offset_top = 340.0
-offset_right = 345.0
-offset_bottom = 400.0
+offset_left = 190.0
+offset_top = 310.0
+offset_right = 350.0
+offset_bottom = 410.0
 toggle_mode = true
 text = "HEARTWOOD\nEMPTY"
 
 [node name="SapButton" type="Button" parent="MainPanel/TreeCanvas"]
-offset_left = 230.0
-offset_top = 520.0
-offset_right = 345.0
-offset_bottom = 580.0
+offset_left = 190.0
+offset_top = 500.0
+offset_right = 350.0
+offset_bottom = 600.0
 toggle_mode = true
 text = "SAP\nEMPTY"
 
@@ -389,7 +389,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
-columns = 3
+columns = 5
 
 [node name="EmptyLabel" type="Label" parent="MainPanel/InventoryOverviewPanel"]
 offset_left = 24.0
