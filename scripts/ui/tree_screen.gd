@@ -18,16 +18,18 @@ enum TreeView {
 	INVENTORY
 }
 
+const ITEM_METADATA_SEPARATOR: String = " - "
+
 @onready var close_button: Button = $MainPanel/CloseButton
 @onready var tree_button: Button = $MainPanel/TreeButton
 @onready var inventory_button: Button = $MainPanel/InventoryButton
 @onready var tree_canvas: Panel = $MainPanel/TreeCanvas
-@onready var detail_title_label: Label = $MainPanel/DetailPanel/DetailTitleLabel
-@onready var category_label: Label = $MainPanel/DetailPanel/CategoryLabel
-@onready var shared_progress_label: Label = $MainPanel/DetailPanel/SharedProgressLabel
-@onready var talent_build_label: Label = $MainPanel/DetailPanel/TalentBuildLabel
-@onready var upgrades_label: Label = $MainPanel/DetailPanel/UpgradesLabel
-@onready var stats_label: Label = $MainPanel/DetailPanel/StatsLabel
+@onready var detail_title_label: Label = $MainPanel/DetailPanel/DetailScroll/DetailContent/DetailTitleLabel
+@onready var category_label: Label = $MainPanel/DetailPanel/DetailScroll/DetailContent/CategoryLabel
+@onready var shared_progress_label: Label = $MainPanel/DetailPanel/DetailScroll/DetailContent/SharedProgressLabel
+@onready var talent_build_label: Label = $MainPanel/DetailPanel/DetailScroll/DetailContent/TalentBuildLabel
+@onready var upgrades_label: Label = $MainPanel/DetailPanel/DetailScroll/DetailContent/UpgradesLabel
+@onready var stats_label: Label = $MainPanel/DetailPanel/DetailScroll/DetailContent/StatsLabel
 @onready var seed_list_label: Label = $MainPanel/SeedPanel/SeedListLabel
 @onready var preparation_banner: Label = $MainPanel/PreparationBanner
 @onready var continue_button: Button = $MainPanel/ContinueButton
@@ -61,6 +63,8 @@ enum TreeView {
 @onready var inventory_filter_container: HBoxContainer = $MainPanel/InventoryOverviewPanel/FilterContainer
 @onready var inventory_item_grid: GridContainer = $MainPanel/InventoryOverviewPanel/ScrollContainer/ItemGrid
 @onready var inventory_overview_empty_label: Label = $MainPanel/InventoryOverviewPanel/EmptyLabel
+@onready var debug_reset_button: Button = $MainPanel/DebugResetButton
+@onready var debug_reset_confirmation: ConfirmationDialog = $DebugResetConfirmation
 @onready var equipment_slot_buttons: Dictionary = {
 	EquipmentSlotRules.BARK_SLOT_ID: $MainPanel/TreeCanvas/BarkButton,
 	EquipmentSlotRules.ROOTS_SLOT_ID: $MainPanel/TreeCanvas/RootsButton,
@@ -109,6 +113,9 @@ func _ready() -> void:
 	cancel_picker_button.pressed.connect(close_branch_picker)
 	equip_button.pressed.connect(equip_selected_equipment)
 	unequip_button.pressed.connect(unequip_selected_equipment)
+	debug_reset_button.visible = OS.is_debug_build()
+	debug_reset_button.pressed.connect(_request_debug_progress_reset)
+	debug_reset_confirmation.confirmed.connect(_confirm_debug_progress_reset)
 	for slot_id in slot_buttons:
 		var button: Button = slot_buttons[slot_id]
 		button.pressed.connect(select_slot.bind(StringName(slot_id)))
@@ -521,7 +528,7 @@ func _rebuild_inventory_overview_cards() -> void:
 			continue
 		var button := Button.new()
 		button.toggle_mode = true
-		button.custom_minimum_size = Vector2(230.0, 150.0)
+		button.custom_minimum_size = Vector2(230.0, 170.0)
 		_apply_item_tile_presentation(button, item, definition, true)
 		button.button_pressed = item.instance_id == selected_equipment_instance_id
 		button.pressed.connect(select_equipment_candidate.bind(item.instance_id))
@@ -546,8 +553,9 @@ func _format_inventory_card(
 		lines.append(_get_slot_fallback_text(definition.equipment_slot_id))
 	lines.append(definition.display_name)
 	lines.append(ItemRarityRules.get_rarity_display_name(item.rarity_id).to_upper())
-	lines.append("ILvl %d â€˘ %s" % [
+	lines.append("ILvl %d%s%s" % [
 		item.item_level,
+		ITEM_METADATA_SEPARATOR,
 		EquipmentSlotRules.get_slot_display_name(definition.equipment_slot_id)
 	])
 	if item.is_locked:
@@ -562,18 +570,20 @@ func _apply_item_tile_presentation(
 	include_slot: bool
 ) -> void:
 	button.text = _format_inventory_card(item, definition) if include_slot else (
-		"%s\n%s\nILvl %d" % [
-			_get_slot_fallback_text(definition.equipment_slot_id)
-			if definition.icon == null
-			else definition.display_name,
+		"%s\n%s\nILvl %d%s%s" % [
+			definition.display_name,
 			ItemRarityRules.get_rarity_display_name(item.rarity_id).to_upper(),
-			item.item_level
+			item.item_level,
+			ITEM_METADATA_SEPARATOR,
+			EquipmentSlotRules.get_slot_display_name(definition.equipment_slot_id)
 		]
 	)
 	button.icon = definition.icon
 	button.expand_icon = true
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.clip_text = true
+	button.add_theme_font_size_override("font_size", 15 if include_slot else 12)
 	var rarity_color: Color = ItemRarityRules.get_rarity_color(item.rarity_id)
 	button.add_theme_color_override("font_color", rarity_color)
 	var tile_style := StyleBoxFlat.new()
@@ -581,6 +591,10 @@ func _apply_item_tile_presentation(
 	tile_style.border_color = rarity_color
 	tile_style.set_border_width_all(3)
 	tile_style.set_corner_radius_all(8)
+	tile_style.content_margin_left = 8.0
+	tile_style.content_margin_top = 8.0
+	tile_style.content_margin_right = 8.0
+	tile_style.content_margin_bottom = 8.0
 	button.add_theme_stylebox_override("normal", tile_style)
 	button.add_theme_stylebox_override("hover", tile_style.duplicate())
 	button.add_theme_stylebox_override("pressed", tile_style.duplicate())
@@ -634,11 +648,15 @@ func _rebuild_equipment_candidate_list() -> void:
 			continue
 		var button := Button.new()
 		button.toggle_mode = true
-		button.text = "%s\n%s • Item Level %d" % [
+		button.custom_minimum_size = Vector2(0.0, 76.0)
+		button.text = "%s\n%s%sItem Level %d" % [
 			definition.display_name,
 			ItemRarityRules.get_rarity_display_name(item.rarity_id),
+			ITEM_METADATA_SEPARATOR,
 			item.item_level
 		]
+		button.clip_text = true
+		button.add_theme_font_size_override("font_size", 16)
 		if (
 			is_instance_valid(equipment_service)
 			and equipment_service.is_item_equipped(item.instance_id)
@@ -745,8 +763,11 @@ func _format_item_detail(
 		return "\n".join(lines)
 	lines.append(definition.display_name)
 	lines.append(ItemRarityRules.get_rarity_display_name(item.rarity_id))
-	lines.append("Item Level %d" % item.item_level)
-	lines.append(EquipmentSlotRules.get_slot_display_name(definition.equipment_slot_id))
+	lines.append("ILvl %d%s%s" % [
+		item.item_level,
+		ITEM_METADATA_SEPARATOR,
+		EquipmentSlotRules.get_slot_display_name(definition.equipment_slot_id)
+	])
 	if item.is_locked:
 		lines.append("LOCKED")
 	if (
@@ -822,7 +843,7 @@ func _refresh_selected_detail() -> void:
 
 	var upgrade_lines: Array[String] = ["ESSENCE UPGRADES"]
 	for upgrade_id in branch.get_upgrade_ids():
-		upgrade_lines.append("%s — Lv.%d" % [branch.get_upgrade_display_name(upgrade_id), branch.get_upgrade_level(upgrade_id)])
+		upgrade_lines.append("%s - Lv.%d" % [branch.get_upgrade_display_name(upgrade_id), branch.get_upgrade_level(upgrade_id)])
 	upgrades_label.text = "\n".join(upgrade_lines)
 
 	var stat_lines: Array[String] = ["EFFECTIVE STATS"]
@@ -858,7 +879,7 @@ func _refresh_seed_panel() -> void:
 		if not is_instance_valid(definition) or not definition.is_legendary_branch():
 			lines.append("Unknown Branch Seed\n%s" % branch_id)
 			continue
-		lines.append("%s — %s" % [definition.display_name, definition.get_legendary_tier_display_name()])
+		lines.append("%s - %s" % [definition.display_name, definition.get_legendary_tier_display_name()])
 	seed_list_label.text = "\n\n".join(lines)
 
 
@@ -1194,8 +1215,25 @@ func _get_category_text(definition: BranchDefinition) -> String:
 	if not is_instance_valid(definition):
 		return "UNKNOWN"
 	if definition.is_legendary_branch():
-		return "LEGENDARY • %s" % definition.get_legendary_tier_display_name()
+		return "LEGENDARY - %s" % definition.get_legendary_tier_display_name()
 	return "STANDARD"
+
+
+func _request_debug_progress_reset() -> void:
+	if not OS.is_debug_build():
+		return
+	debug_reset_confirmation.popup_centered()
+
+
+func _confirm_debug_progress_reset() -> void:
+	if not OS.is_debug_build():
+		return
+	var save_game := get_node_or_null("/root/SaveGame") as SaveGameService
+	if not is_instance_valid(save_game):
+		push_warning("SaveGame is unavailable; progress reset was not performed.")
+		return
+	if not save_game.reset_all_player_progress_for_debug():
+		push_warning("Debug player progress reset failed.")
 
 
 func _connect_branch_signals() -> void:

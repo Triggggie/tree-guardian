@@ -25,6 +25,12 @@ var registered_branches_by_id: Dictionary = {}
 var talent_loadouts_by_slot_id: Dictionary = {}
 
 
+const REFUND_REASON_NOT_PURCHASED: String = "Talent is not purchased"
+const REFUND_REASON_PURCHASED_DESCENDANTS: String = (
+	"Locked by purchased descendants"
+)
+
+
 func register_branch(branch: CombatBranch) -> bool:
 	if not _is_usable_branch(branch):
 		return false
@@ -211,6 +217,80 @@ func purchase_talent(branch: CombatBranch, talent_id: StringName) -> bool:
 	progress_changed.emit(branch.branch_id)
 	talent_loadout_changed.emit(branch.get_slot_id(), branch.branch_id)
 	talent_changed.emit(branch.get_slot_id(), branch.branch_id, talent_id, true)
+	return true
+
+
+func can_refund_talent(branch: CombatBranch, talent_id: StringName) -> bool:
+	return get_talent_refund_reason(branch, talent_id).is_empty()
+
+
+func get_talent_refund_reason(
+	branch: CombatBranch,
+	talent_id: StringName
+) -> String:
+	if talent_id == &"" or not _is_registered_branch(branch):
+		return REFUND_REASON_NOT_PURCHASED
+	var loadout: BranchTalentLoadoutRecord = get_talent_loadout_for_branch(branch)
+	if (
+		loadout == null
+		or not is_instance_valid(branch.get_talent_definition(talent_id))
+		or not loadout.is_talent_purchased(talent_id)
+	):
+		return REFUND_REASON_NOT_PURCHASED
+
+	for purchased_id in loadout.get_purchased_talent_ids():
+		if purchased_id == talent_id:
+			continue
+		if _talent_depends_on(branch, purchased_id, talent_id, {}):
+			return REFUND_REASON_PURCHASED_DESCENDANTS
+	return ""
+
+
+func refund_talent(branch: CombatBranch, talent_id: StringName) -> bool:
+	if not can_refund_talent(branch, talent_id):
+		return false
+	var loadout: BranchTalentLoadoutRecord = get_talent_loadout_for_branch(branch)
+	if loadout == null or not loadout.set_talent_purchased(talent_id, false):
+		return false
+
+	_synchronize_registered_loadout(branch.get_slot_id(), branch.branch_id)
+	_emit_instance_progress_signals(
+		branch.branch_id,
+		false,
+		false,
+		true,
+		branch.get_slot_id(),
+		talent_id,
+		&"",
+		[],
+		false
+	)
+	progress_changed.emit(branch.branch_id)
+	talent_loadout_changed.emit(branch.get_slot_id(), branch.branch_id)
+	talent_changed.emit(branch.get_slot_id(), branch.branch_id, talent_id, false)
+	return true
+
+
+func reset_talent_build(branch: CombatBranch) -> bool:
+	if not _is_registered_branch(branch):
+		return false
+	var loadout: BranchTalentLoadoutRecord = get_talent_loadout_for_branch(branch)
+	if loadout == null:
+		return false
+	var purchased_ids: Array[StringName] = loadout.get_purchased_talent_ids()
+	if purchased_ids.is_empty():
+		return false
+	for talent_id in purchased_ids:
+		loadout.set_talent_purchased(talent_id, false)
+
+	_synchronize_registered_loadout(branch.get_slot_id(), branch.branch_id)
+	_emit_reset_instance_signals(branch, purchased_ids)
+	progress_changed.emit(branch.branch_id)
+	talent_loadout_changed.emit(branch.get_slot_id(), branch.branch_id)
+	for talent_id in purchased_ids:
+		talent_changed.emit(
+			branch.get_slot_id(), branch.branch_id, talent_id, false
+		)
 	return true
 
 
@@ -510,6 +590,50 @@ func _validate_talent_loadout(
 	return true
 
 
+func _talent_depends_on(
+	branch: CombatBranch,
+	checked_talent_id: StringName,
+	target_talent_id: StringName,
+	visited_ids: Dictionary
+) -> bool:
+	if visited_ids.has(checked_talent_id):
+		return false
+	visited_ids[checked_talent_id] = true
+	var checked_talent: TalentDefinition = branch.get_talent_definition(
+		checked_talent_id
+	)
+	if not is_instance_valid(checked_talent):
+		return false
+	for prerequisite_id in checked_talent.prerequisite_ids:
+		if prerequisite_id == target_talent_id:
+			return true
+		if _talent_depends_on(
+			branch, prerequisite_id, target_talent_id, visited_ids
+		):
+			return true
+	return false
+
+
+func _emit_reset_instance_signals(
+	branch: CombatBranch,
+	purchased_ids: Array[StringName]
+) -> void:
+	var registered_branches: Array = registered_branches_by_id.get(
+		branch.branch_id, []
+	)
+	_prune_invalid_branches(registered_branches)
+	for branch_value in registered_branches:
+		var registered_branch := branch_value as CombatBranch
+		if registered_branch.get_slot_id() != branch.get_slot_id():
+			continue
+		registered_branch.talent_points_changed.emit(
+			get_available_talent_points(registered_branch),
+			registered_branch.get_total_talent_points_earned()
+		)
+		for talent_id in purchased_ids:
+			registered_branch.talent_changed.emit(talent_id, false)
+
+
 func _is_usable_branch(branch: CombatBranch) -> bool:
 	return (
 		is_instance_valid(branch)
@@ -557,7 +681,8 @@ func _emit_instance_progress_signals(
 	slot_id: StringName = &"",
 	talent_id: StringName = &"",
 	upgrade_id: StringName = &"",
-	gained_talent_levels: Array[int] = []
+	gained_talent_levels: Array[int] = [],
+	talent_is_purchased: bool = true
 ) -> void:
 	var progress: BranchProgressRecord = get_progress(branch_id)
 	if progress == null:
@@ -575,7 +700,7 @@ func _emit_instance_progress_signals(
 		for talent_level in gained_talent_levels:
 			branch.talent_point_gained.emit(talent_level, branch_available)
 		if talent_id != &"" and branch.get_slot_id() == slot_id:
-			branch.talent_changed.emit(talent_id, true)
+			branch.talent_changed.emit(talent_id, talent_is_purchased)
 		if upgrade_id != &"":
 			branch.upgrade_changed.emit(upgrade_id, progress.get_upgrade_level(upgrade_id))
 		if emit_xp:

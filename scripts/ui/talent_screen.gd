@@ -87,6 +87,16 @@ const GRAPH_MARGIN := Vector2(40.0, 35.0)
 	/PurchaseTalentButton
 )
 
+@onready var reset_talents_button: Button = (
+	$MarginContainer/MainPanel/MainVBox/ContentHBox
+	/TalentDetailPanel/TalentDetailVBox
+	/ResetTalentsButton
+)
+
+@onready var reset_talents_confirmation: ConfirmationDialog = (
+	$ResetTalentsConfirmation
+)
+
 
 var available_branches: Array[Node] = []
 var branch_buttons_by_instance_id: Dictionary = {}
@@ -103,6 +113,12 @@ func _ready() -> void:
 
 	purchase_talent_button.pressed.connect(
 		purchase_selected_talent
+	)
+	reset_talents_button.pressed.connect(
+		request_reset_talents
+	)
+	reset_talents_confirmation.confirmed.connect(
+		confirm_reset_talents
 	)
 
 	old_strength_branch_button.visible = false
@@ -218,7 +234,7 @@ func create_branch_button(
 	)
 
 	branch_button.text = (
-		"%s — %s"
+		"%s - %s"
 		% [
 			_get_branch_slot_label(branch),
 			get_branch_short_name(branch)
@@ -294,6 +310,7 @@ func select_branch(
 
 	update_selected_branch_buttons()
 	update_talent_points_label()
+	update_reset_talents_button()
 	reset_talent_details()
 	rebuild_talent_tree()
 
@@ -334,7 +351,7 @@ func update_talent_points_label() -> void:
 		return
 
 	talent_points_label.text = (
-		"%s — %s  |  Talent Points: %d"
+		"%s - %s  |  Talent Points: %d"
 		% [
 			_get_branch_slot_label(selected_branch),
 			get_branch_short_name(
@@ -366,7 +383,7 @@ func rebuild_talent_tree() -> void:
 		return
 
 	talent_tree_label.text = (
-		"%s — %s TALENT TREE"
+		"%s - %s TALENT TREE"
 		% [
 			_get_branch_slot_label(selected_branch),
 			get_branch_short_name(
@@ -608,8 +625,17 @@ func update_purchase_button() -> void:
 	if selected_branch.has_talent(
 		selected_talent_id
 	):
-		purchase_talent_button.text = "PURCHASED"
-		purchase_talent_button.disabled = true
+		var refund_reason: String = selected_branch.get_talent_refund_reason(
+			selected_talent_id
+		)
+		if refund_reason.is_empty():
+			purchase_talent_button.text = "REFUND TALENT"
+			purchase_talent_button.disabled = false
+			talent_requirements_label.text = "PURCHASED\nRefund available"
+		else:
+			purchase_talent_button.text = "REFUND LOCKED"
+			purchase_talent_button.disabled = true
+			talent_requirements_label.text = "PURCHASED\n%s" % refund_reason
 		return
 
 	if selected_branch.can_purchase_talent(
@@ -622,7 +648,7 @@ func update_purchase_button() -> void:
 		)
 
 		purchase_talent_button.text = (
-			"PURCHASE TALENT — %d TP"
+			"PURCHASE TALENT - %d TP"
 			% talent_cost
 		)
 
@@ -644,10 +670,48 @@ func purchase_selected_talent() -> void:
 
 	if selected_talent_id == &"":
 		return
+	if selected_branch.has_talent(selected_talent_id):
+		selected_branch.refund_talent(selected_talent_id)
+		return
 
 	selected_branch.purchase_talent(
 		selected_talent_id
 	)
+
+
+func update_reset_talents_button() -> void:
+	if not is_instance_valid(selected_branch):
+		reset_talents_button.text = "RESET CURRENT SLOT TALENTS"
+		reset_talents_button.disabled = true
+		return
+	var has_purchased_talents: bool = false
+	for talent_id in selected_branch.get_talent_ids():
+		if selected_branch.has_talent(talent_id):
+			has_purchased_talents = true
+			break
+	reset_talents_button.text = "RESET TALENTS - %s BUILD" % (
+		_get_branch_slot_label(selected_branch)
+	)
+	reset_talents_button.disabled = not has_purchased_talents
+
+
+func request_reset_talents() -> void:
+	if not is_instance_valid(selected_branch) or reset_talents_button.disabled:
+		return
+	reset_talents_confirmation.dialog_text = (
+		"Reset every purchased talent in the %s %s build?\n"
+		+ "Shared Branch Level, XP, and other slots will not change."
+	) % [
+		_get_branch_slot_label(selected_branch),
+		get_branch_short_name(selected_branch)
+	]
+	reset_talents_confirmation.popup_centered()
+
+
+func confirm_reset_talents() -> void:
+	if not is_instance_valid(selected_branch):
+		return
+	selected_branch.reset_talent_build()
 
 
 func reset_talent_details() -> void:
@@ -670,6 +734,7 @@ func reset_talent_details() -> void:
 	)
 
 	purchase_talent_button.disabled = true
+	update_reset_talents_button()
 
 
 func update_empty_state() -> void:
@@ -695,6 +760,7 @@ func _on_branch_talent_points_changed(
 	update_talent_points_label()
 	rebuild_talent_tree()
 	update_purchase_button()
+	update_reset_talents_button()
 
 
 func _on_branch_talent_changed(
@@ -703,6 +769,7 @@ func _on_branch_talent_changed(
 ) -> void:
 	update_talent_points_label()
 	rebuild_talent_tree()
+	update_reset_talents_button()
 
 	if selected_talent_id == talent_id:
 		select_talent(talent_id)
@@ -733,6 +800,7 @@ func open_screen() -> void:
 	else:
 		update_selected_branch_buttons()
 		update_talent_points_label()
+		update_reset_talents_button()
 		reset_talent_details()
 		rebuild_talent_tree()
 

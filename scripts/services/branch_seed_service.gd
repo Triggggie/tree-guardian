@@ -296,6 +296,24 @@ func save_unlocks() -> bool:
 	return false
 
 
+func reset_all_progress_for_debug() -> bool:
+	if not OS.is_debug_build():
+		push_warning("Branch Seed progress reset is debug-build only.")
+		return false
+	var absolute_path: String = ProjectSettings.globalize_path(storage_path)
+	if FileAccess.file_exists(storage_path):
+		var remove_error: Error = DirAccess.remove_absolute(absolute_path)
+		if remove_error != OK:
+			push_warning(
+				"BranchSeeds could not remove '%s' (error %d)."
+				% [storage_path, remove_error]
+			)
+			return false
+	unlocked_branch_seed_ids.clear()
+	_reset_pity_points()
+	return true
+
+
 func _load_unlock_ids(config: ConfigFile) -> void:
 	var stored_ids = config.get_value(
 		SAVE_SECTION,

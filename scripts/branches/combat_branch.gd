@@ -456,6 +456,33 @@ func purchase_talent(
 	)
 
 
+func can_refund_talent(talent_id: StringName) -> bool:
+	return (
+		is_instance_valid(branch_progress_service)
+		and branch_progress_service.can_refund_talent(self, talent_id)
+	)
+
+
+func get_talent_refund_reason(talent_id: StringName) -> String:
+	if not is_instance_valid(branch_progress_service):
+		return "Talent progress is unavailable"
+	return branch_progress_service.get_talent_refund_reason(self, talent_id)
+
+
+func refund_talent(talent_id: StringName) -> bool:
+	return (
+		is_instance_valid(branch_progress_service)
+		and branch_progress_service.refund_talent(self, talent_id)
+	)
+
+
+func reset_talent_build() -> bool:
+	return (
+		is_instance_valid(branch_progress_service)
+		and branch_progress_service.reset_talent_build(self)
+	)
+
+
 func on_talent_purchased(
 	_talent_id: StringName
 ) -> void:

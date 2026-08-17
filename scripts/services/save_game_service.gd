@@ -210,6 +210,51 @@ func get_progress_save_timer_for_testing() -> Timer:
 	return progress_save_timer
 
 
+func reset_all_player_progress_for_debug(
+	reload_current_scene: bool = true
+) -> bool:
+	if not OS.is_debug_build():
+		push_warning("Player progress reset is debug-build only.")
+		return false
+	if not _services_are_valid():
+		_resolve_services()
+	if not _services_are_valid():
+		push_warning("SaveGame could not reset because required services are missing.")
+		return false
+
+	is_restoring = true
+	save_request_pending = false
+	if is_instance_valid(progress_save_timer):
+		progress_save_timer.stop()
+	var player_save_removed: bool = _remove_storage_file(storage_path)
+	var branch_seeds_reset: bool = branch_seeds.reset_all_progress_for_debug()
+	if not player_save_removed or not branch_seeds_reset:
+		is_restoring = false
+		return false
+
+	equipment.restore_equipment_loadout({})
+	var reset_succeeded: bool = inventory.restore_persistence_state([])
+	reset_succeeded = branch_progress.restore_persistence_state({
+		"records": [],
+		"talent_loadouts": []
+	}) and reset_succeeded
+	reset_succeeded = branch_loadout.restore_persistence_state(
+		{}, branch_seeds
+	) and reset_succeeded
+	equipment_stats.rebuild_from_equipment()
+	equipment_loot.clear_runtime_state_for_testing()
+	var tree_souls := get_node_or_null("/root/TreeSouls") as TreeSoulService
+	if is_instance_valid(tree_souls):
+		tree_souls.clear_for_prestige()
+	writes_disabled_due_to_unsupported_version = false
+	is_restoring = false
+	if not reset_succeeded:
+		return false
+	if reload_current_scene:
+		call_deferred("_reload_current_scene_after_debug_reset")
+	return true
+
+
 func _restore_parsed_state(
 	stored_items: Array,
 	stored_equipment: Dictionary,
@@ -240,6 +285,24 @@ func _restore_parsed_state(
 
 func _migrate_legacy_save(_config: ConfigFile, _stored_version: int) -> bool:
 	return false
+
+
+func _remove_storage_file(path: String) -> bool:
+	if not FileAccess.file_exists(path):
+		return true
+	var remove_error: Error = DirAccess.remove_absolute(
+		ProjectSettings.globalize_path(path)
+	)
+	if remove_error == OK:
+		return true
+	push_warning("SaveGame could not remove '%s' (error %d)." % [path, remove_error])
+	return false
+
+
+func _reload_current_scene_after_debug_reset() -> void:
+	var reload_error: Error = get_tree().reload_current_scene()
+	if reload_error != OK:
+		push_warning("SaveGame could not reload the current scene after reset.")
 
 
 func _resolve_services() -> void:

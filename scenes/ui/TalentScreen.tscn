@@ -149,12 +149,25 @@ autowrap_mode = 3
 
 [node name="TalentRequirementsLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=860392315]
 layout_mode = 2
+autowrap_mode = 3
+
+[node name="ResetTalentsButton" type="Button" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+disabled = true
+text = "RESET TALENTS"
 
 [node name="DetailSpacer" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=430230521]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="PurchaseTalentButton" type="Button" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentDetailPanel/TalentDetailVBox" unique_id=955988451]
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 disabled = true
 text = "SELECT A TALENT"
+
+[node name="ResetTalentsConfirmation" type="ConfirmationDialog" parent="."]
+title = "Reset Current Slot Talents"
+dialog_text = "Reset every purchased talent in the current slot build?"
+ok_button_text = "RESET TALENTS"
