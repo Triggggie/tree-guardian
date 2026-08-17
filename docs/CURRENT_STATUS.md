@@ -733,11 +733,27 @@ Procedural feedback distinguishes Earthbreaker, Worldroot Slam, Whirling Bough, 
 3. Enemy Variety V1: Armored Beetle, Spitter, and Swarm.
 4. Status Effects Foundation plus Poison Branch.
 
+### UI Cleanup, Talent Respec & Debug Progress Reset V1
+
+Checkpoint date: 2026-08-17.
+
+- Inventory grid cards, per-slot equipment candidates, equipped Tree tiles, and item detail/comparison text now use the ASCII-safe `ILvl N - Slot` format. Compact tile height, font sizing, content margins, and candidate spacing were adjusted while preserving definition icons, slot-aware text fallback, rarity colors, sorting, filtering, and concrete `instance_id` identity.
+- The left TREE Branch detail is now a scrollable `VBoxContainer` flow. Shared progress, the current slot talent build, Essence upgrades, and effective stats size vertically instead of occupying overlapping fixed rectangles; loadout status and the Branch action remain fixed below the scroll area.
+- `BranchProgress` owns individual talent refund validation and mutation. A purchased talent is refundable for free only when no purchased direct or transitive descendant depends on it; blocked selection reports `Locked by purchased descendants`. Successful refund restores its derived Talent Point budget immediately and refreshes runtime effects and UI.
+- Talent Screen also exposes a confirmed `RESET TALENTS - SLOT N BUILD` action. It clears only the selected `slot_id + branch_id` loadout, preserves shared XP/Level/earned-point budget/Essence upgrades, and does not affect another physical slot using the same archetype.
+- Refund and reset reuse the existing persisted `purchased_talent_ids` representation and autosave signal path. Reload preserves refunded/reset builds and other slot builds, so `SaveGame.SAVE_VERSION` remains `1`.
+- Debug builds expose `RESET PROGRESS (DEBUG)` on TREE behind a confirmation dialog. The central `SaveGame` reset removes `player_progress.cfg` and the independent `branch_seed_unlocks.cfg`, clears Inventory, Equipment, EquipmentStats projection, Branch Progress/talent builds, Branch Loadout/Apex, Branch Seed unlocks/pity, process-local Equipment loot state, and Tree Soul runtime state, then reloads the current scene for the normal fresh Strength/Blossom/Strength/Blossom plus EMPTY Apex initialization.
+- The long `BranchInfoLabel` debug/stat column was removed from normal gameplay HUD. Tree HP, Essence, Age/Wave information, upgrade tabs/panels, TALENTS, and TREE remain intact.
+
+Not implemented in this checkpoint: scrap/materials, Run Resume, Blossom full talent tree, or new enemies.
+
+Recommended next checkpoint: **Blossom Full Talent Tree V1**.
+
 ## 9. Known Gaps and Limitations
 
 - There is no active-run resume system; Save Foundation V1 persists stable player progression only.
 - TREE supports live standard and unlocked Apex Branch replacement while the tree is alive; player-facing unequip and standard Branch unlock progression do not exist.
-- There is no talent respec, copy-build, or save-preset flow.
+- There is no talent copy-build or save-preset flow.
 - Tier data and the first miniboss/boss encounters are implemented. Five-slot inventory, equipment UI, activation, the first four equipment stats, and Common-to-Epic item loot generation exist.
 - There is no `CampaignDefinition`.
 - Stage 2 is currently only the repeated Guardian Grove Resource, not a second authored Stage Resource.
@@ -791,10 +807,10 @@ The first legendary concepts are:
 
 The next recommended work is:
 
-1. Perform a short manual loot and balance playtest, especially the 1% normal drop cadence and Wave 50/100 reward readability.
-2. Choose the next vertical-slice priority between Run Save & Resume V1 and First Material Loot & Dismantle Foundation.
-3. Add the first real Bark defensive stat in a later focused checkpoint.
-4. Add Legendary unique equipment only after the Common-to-Epic loot loop is stable.
+1. Implement **Blossom Full Talent Tree V1**.
+2. Perform a short manual UI playtest of inventory readability, long TREE builds, talent confirmations, and the debug fresh-start flow.
+3. Revisit Run Save & Resume V1 or First Material Loot & Dismantle Foundation after the Blossom checkpoint.
+4. Add the first real Bark defensive stat in a later focused checkpoint.
 
 Active-run resume, prestige integration, later talent tiers, Status Effects, and the persistent Tree Soul orb remain later known gaps.
 
