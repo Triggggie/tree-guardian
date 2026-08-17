@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://csufpxtwmk7t7" path="res://scripts/definitions/targeting_profile.gd" id="2_targeting"]
 [ext_resource type="PackedScene" uid="uid://i3e2ifeg4itl" path="res://scenes/branches/strength_branch.tscn" id="3_scene"]
 [ext_resource type="Script" uid="uid://d16a5x6nbioqp" path="res://scripts/definitions/upgrade_definition.gd" id="4_upgrade"]
-[ext_resource type="Resource" uid="uid://dgsqbxbhldmq1" path="res://resources/talents/strength/strength_talent_tree.tres" id="5_talent_tree"]
+[ext_resource type="Resource" path="res://resources/talents/strength/strength_talent_tree.tres" id="5_talent_tree"]
 [ext_resource type="Resource" path="res://resources/upgrades/strength/damage.tres" id="6_damage"]
 [ext_resource type="Resource" path="res://resources/upgrades/strength/attack_speed.tres" id="7_attack_speed"]
 [ext_resource type="Resource" path="res://resources/upgrades/strength/range.tres" id="8_range"]

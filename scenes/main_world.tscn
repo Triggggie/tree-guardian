@@ -14,6 +14,7 @@
 [ext_resource type="Script" uid="uid://b54clhb610ogx" path="res://scripts/branch_upgrade_panel.gd" id="11_avgj4"]
 [ext_resource type="Script" uid="uid://28ykddq1rea" path="res://scripts/tree_upgrade_panel.gd" id="12_sr1c3"]
 [ext_resource type="PackedScene" uid="uid://c7t6jb4idtkrd" path="res://scenes/ui/TalentScreen.tscn" id="14_liqfm"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TreeScreen.tscn" id="22_tree_screen"]
 [ext_resource type="Script" uid="uid://c1a77oh0r7f3g" path="res://scripts/tree_soul_selection_screen.gd" id="15_liqfm"]
 [ext_resource type="Script" uid="uid://sehhqrxk388v" path="res://scripts/tree_soul_status_panel.gd" id="16_8v7ug"]
 [ext_resource type="Script" uid="uid://bluwty0404baq" path="res://scripts/tree_soul_rank_up_notification.gd" id="17_rank_up"]
@@ -21,8 +22,7 @@
 [ext_resource type="Script" uid="uid://b5x7ryg570lno" path="res://scripts/lane_registry.gd" id="19_lane_registry"]
 [ext_resource type="Script" uid="uid://deokn77e7i2u5" path="res://scripts/waves/spawn_director.gd" id="20_spawn_director"]
 [ext_resource type="Script" uid="uid://crsyw0dxswihm" path="res://scripts/waves/wave_director.gd" id="21_wave_director"]
-[ext_resource type="PackedScene" path="res://scenes/ui/TreeScreen.tscn" id="22_tree_screen"]
-[ext_resource type="Script" uid="uid://bmakiptcyd4lg" path="res://scripts/branch_seed_drop_notification.gd" id="23_seed_notification"]
+[ext_resource type="Script" path="res://scripts/branch_seed_drop_notification.gd" id="23_seed_notification"]
 [ext_resource type="Script" uid="uid://bqwkwr8mivp1p" path="res://scripts/equipment_drop_notification.gd" id="24_equipment_notification"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
@@ -252,7 +252,7 @@ text = "SOUL"
 
 [node name="TalentScreen" parent="UI" unique_id=1619679837 instance=ExtResource("14_liqfm")]
 
-[node name="TreeScreen" parent="UI" unique_id=1589360623 instance=ExtResource("22_tree_screen")]
+[node name="TreeScreen" parent="UI" instance=ExtResource("22_tree_screen")]
 
 [node name="TalentsButton" type="Button" parent="UI" unique_id=1766834317]
 offset_left = 14.0
@@ -261,7 +261,7 @@ offset_right = 90.0
 offset_bottom = 1071.0
 text = "TALENTS"
 
-[node name="TreeScreenButton" type="Button" parent="UI" unique_id=130692975]
+[node name="TreeScreenButton" type="Button" parent="UI"]
 offset_left = 100.0
 offset_top = 1040.0
 offset_right = 165.0
@@ -290,7 +290,7 @@ offset_bottom = 40.0
 mouse_filter = 2
 script = ExtResource("17_rank_up")
 
-[node name="BranchSeedDropNotification" type="Control" parent="UI" unique_id=1323029626]
+[node name="BranchSeedDropNotification" type="Control" parent="UI"]
 z_index = 100
 layout_mode = 3
 anchors_preset = 0
@@ -299,7 +299,7 @@ offset_bottom = 40.0
 mouse_filter = 2
 script = ExtResource("23_seed_notification")
 
-[node name="EquipmentDropNotification" type="Control" parent="UI" unique_id=1065406769]
+[node name="EquipmentDropNotification" type="Control" parent="UI"]
 z_index = 101
 layout_mode = 3
 anchors_preset = 0
@@ -328,7 +328,7 @@ lane_scale_step = 0.02
 
 [node name="WaveDirector" type="Node" parent="." unique_id=1562890971]
 script = ExtResource("21_wave_director")
-debug_start_global_wave = 201
+debug_start_global_wave = 0
 
 [node name="WaveManager" type="Node" parent="." unique_id=300043025]
 script = ExtResource("5_wy0bs")

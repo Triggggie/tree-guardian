@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TalentDefinition" format=3 uid="uid://c8f6hvsw7okgs"]
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
 
-[ext_resource type="Script" uid="uid://lwkhgp0iia3c" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
 
 [resource]
 script = ExtResource("1_talent")
@@ -11,4 +11,7 @@ path_name = "Warden"
 tree_column = 4
 tree_row = 0
 required_branch_level = 2
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([])
+conflicting_ids = Array[StringName]([])
 effect_ids = Array[StringName]([&"rebuff"])
