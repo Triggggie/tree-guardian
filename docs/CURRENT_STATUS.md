@@ -684,6 +684,55 @@ Checkpoint date: 2026-08-14.
 
 After a manual save/load and Inventory visual playtest, choose either Run Save & Resume V1 or Material Loot & Scrap V1.
 
+### Strength Full Talent Tree V1
+
+Checkpoint date: 2026-08-17.
+
+- Strength is the first production five-layer talent graph: 27 one-point talents across required levels 2, 4, 7, 10, and 14. Each slot retains its independent `slot_id + branch_id` build while XP, level, earned-point budget, and Essence upgrades remain shared by archetype.
+- The mutually exclusive fork pairs are Cleaver/Earthbreaker, Disruptor/Protector, and Executioner/Relentless. Roots do not conflict, so the five-point level-14 budget may complete one root-to-capstone specialization or form any valid prerequisite-respecting split build.
+- All runtime counters, target snapshots, combo state, interrupt counts, and pending sequences belong to the physical Strength instance. Talent damage uses the current Strength damage pipeline and `AttackResolver`; delayed Aftershock/Combo/Flurry work revalidates targets and is invalidated by combat stop or replacement.
+- Persistence remains `SAVE_VERSION = 1`: the stored schema is still a list of stable `purchased_talent_ids` under `slot_id + branch_id`. Old root-only saves load unchanged, new IDs default unpurchased, unknown IDs are skipped without losing other valid state, and repeated load remains idempotent.
+
+The six complete paths are:
+
+- Crusher / Cleaver: Sweeping Strike → Cleaver → Serrated Arc → Reaping Sweep → Whirling Bough.
+- Crusher / Earthbreaker: Sweeping Strike → Earthbreaker → Fault Line → Aftershock → Worldroot Slam.
+- Warden / Disruptor: Rebuff → Disruptor → Staggering Blow → Disruptive Arc → Uproot.
+- Warden / Protector: Rebuff → Protector → Hold the Line → Sentinel Reflex → Last Bastion.
+- Duelist / Executioner: Marked Prey → Executioner → Cull the Weak → Finishing Rhythm → Final Cut.
+- Duelist / Relentless: Marked Prey → Relentless → Pursuit → Unbroken Combo → Relentless Flurry.
+
+Crusher preserves the original 60% Sweeping Strike. Cleaver permits two secondary targets, Serrated Arc adds one fresh 45% continuation, Reaping Sweep adds at most one 60% fresh hit after a sweep kill, and every fourth resolved primary becomes Whirling Bough's six-target Grand Sweep. Earthbreaker triggers every third resolved primary at 40%; Fault Line changes its selection to outward line geometry, Aftershock repeats half the shockwave damage after 0.25 seconds, and every third Earthbreaker trigger becomes the larger 70% Worldroot Slam with normal-enemy knockback.
+
+Warden preserves the original 35px Rebuff. Disruptor cancels active attack cycles on normal enemies through a reusable `can_be_interrupted()` / `interrupt_attack()` seam; minibosses and bosses are immune by default. Staggering Blow doubles every third same-primary Rebuff, Disruptive Arc propagates successful interrupts to at most two normal enemies, and every fifth primary activates the non-damaging Uproot displacement. Protector prioritizes same-side enemies within the 250px tree danger radius. Hold the Line doubles danger Rebuff, Sentinel Reflex grants one half-cooldown follow-up after pushing a target out of danger, and Last Bastion dynamically expands the radius to 350px and uses 2.5× Rebuff at 35% Tree HP or lower.
+
+Duelist preserves Marked Prey's five 10% stacks on primary attacks only. Executioner adds 50% damage at maximum stacks below 35% HP, Cull the Weak carries two stacks after a qualifying kill, every third maximum-stack hit becomes a Finishing Rhythm finisher, and Final Cut uses lethal resolved damage for normal enemies below 15% HP while bosses receive damage rather than an instant kill. Relentless carries half the previous stacks, Pursuit safely retains at most three weak recent-target snapshots for four seconds, and Unbroken Combo/Relentless Flurry schedule one/two non-recursive 35% follow-ups.
+
+Procedural feedback distinguishes Earthbreaker, Worldroot Slam, Whirling Bough, Uproot, Finishers, and Final Cut without changing timing or hit logic.
+
+### Talent Screen Graph
+
+- Talent Screen now renders a definition-driven branching graph inside horizontal and vertical scrolling space. `TalentDefinition.tree_column/tree_row` is presentation-only shared content; trees without explicit coordinates use a generic required-level fallback, preserving the current Blossom and Thorn Crown prototype trees.
+- Strength displays five rows and six fork columns. Prerequisite lines are generated from `prerequisite_ids`, not concrete talent names, and the general tree validator rejects prerequisite cycles.
+- Nodes remain selectable for factual detail while visually distinguishing purchased, available, level/prerequisite locked, conflict locked, and no-point states. Conflicted alternatives stay visible and name the selected opposing specialization.
+
+### TREE Navigation Polish
+
+- The fullscreen header now keeps `TREE | INVENTORY` visible in both views, with the active tab disabled. Inventory can return immediately to the main Tree view without closing fullscreen or changing Branch loadout, Equipment, Inventory filters/data, Wave state, or pause state.
+- Esc from Inventory returns to TREE. Esc from the main TREE view closes the fullscreen according to the existing Preparation restriction. The standalone TALENTS screen is unchanged as a separate fullscreen.
+
+### Not Implemented Yet
+
+- Talent Respec remains near-term work.
+- Blossom full tree, Thorn Crown full tree, Thornshot, Status Effects Foundation, new enemies, Materials, Scrap, and Run Resume are not part of this checkpoint.
+
+### Recommended Next Work
+
+1. Blossom Full Talent Tree V1.
+2. Thornshot Branch plus its full talent tree.
+3. Enemy Variety V1: Armored Beetle, Spitter, and Swarm.
+4. Status Effects Foundation plus Poison Branch.
+
 ## 9. Known Gaps and Limitations
 
 - There is no active-run resume system; Save Foundation V1 persists stable player progression only.

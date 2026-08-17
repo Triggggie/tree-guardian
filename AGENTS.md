@@ -77,6 +77,10 @@ Inventory and equipment are in-memory only until the general save system is impl
 
 Use reusable modifiers/effects for mechanics that may apply to more than one branch, enemy, talent, or Soul. Do not hardcode a reusable mechanic into one branch script merely because that branch is the first user.
 
+Production talent trees are branching data-driven graphs, not flat lists. Talent topology comes from `TalentDefinition` prerequisites, conflicts, and generic presentation metadata; `TalentScreen` must never hardcode concrete Strength talent IDs for layout. Talent Point milestones remain levels 2, 4, 7, 10, and 14, so a complete five-node specialization consumes five points from root through capstone. Runtime talent mechanics default to per-instance even when Branch level and progress are shared. All talent-generated damage must use `AttackResolver`; delayed talent attacks must revalidate targets and clean up safely on stop, replacement, defeat, and node removal. Existing saved talent IDs remain stable, and adding content IDs without changing saved structure does not require a save-version bump.
+
+Strength production specializations are Crusher with Cleaver/Earthbreaker, Warden with Disruptor/Protector, and Duelist with Executioner/Relentless.
+
 Branch Seed unlocks are persistent meta-progression stored as stable legendary Branch IDs. Normal death and prestige runs do not clear them. Run modifiers and shared Resources must never mutate Branch Seed unlock state.
 
 Standard Branches always use Legendary Tier 0 and do not display a Tier label. Legendary Branches use the player-facing labels `Tier I`, `Tier II`, or `Tier III`. Tier expresses the general rarity, complexity, and potential of an Apex Branch, but a higher Tier is not automatically best for every build. Legendary Tier is separate from the colored rarity of ordinary equipment. Future UI must use the Tier display text supplied by `BranchDefinition` consistently.
@@ -240,6 +244,7 @@ Normal Wave overlap is disabled for onboarding Waves 1–10. After onboarding, o
 - TREE reads shared archetype progress from `BranchProgress`, the per-slot talent build from `slot_id + branch_id`, effective stats from the actual runtime Branch, and unlocked Legendary Branch Seeds from `BranchSeeds`.
 - TREE exposes a global Inventory overview in addition to per-slot equipment selection. Inventory cards always identify concrete items by `instance_id`, so multiple instances of one `ItemDefinition` remain independent.
 - TREE Inventory tiles show only unequipped items; equipped concrete items appear on the five Tree equipment-slot tiles and remain owned by `InventoryService`.
+- TREE fullscreen has persistent `TREE | INVENTORY` navigation. Inventory is never a terminal view, and returning to TREE must not mutate gameplay state. Esc from TREE Inventory returns to the TREE main view; Esc from the TREE main view follows the existing fullscreen close behavior. TalentScreen remains separate from this navigation.
 - Player-facing Legendary Tier text in TREE comes from `BranchDefinition`.
 - Only one of `BranchUpgradePanel`, `TreeUpgradePanel`, and `TreeSoulStatusPanel` may be visible at a time.
 - The active tab button is disabled; the other tab buttons remain enabled.
