@@ -124,7 +124,7 @@ func run_test(
 		"Standard and Legendary picker filters leaked across categories."
 	)
 	expect(
-		category_preview.text == "LEGENDARY • Tier I"
+		category_preview.text == "LEGENDARY - Tier I"
 		and progress_preview.text.contains("No progression recorded yet.")
 		and saved_preview.text.contains("SAVED APEX BUILD")
 		and saved_preview.text.contains("No saved Apex talents."),
@@ -150,7 +150,7 @@ func run_test(
 	)
 	expect(
 		detail_text(screen).contains("Test Legendary A")
-		and detail_text(screen).contains("LEGENDARY • Tier I"),
+		and detail_text(screen).contains("LEGENDARY - Tier I"),
 		"Equipped Apex detail or Tier is wrong."
 	)
 	apex_a.add_xp(2)
@@ -189,7 +189,7 @@ func run_test(
 	var talent_buttons: Dictionary = talents.get("branch_buttons_by_instance_id") as Dictionary
 	for button_value in talent_buttons.values():
 		var button := button_value as Button
-		if button.text == "APEX — TEST LEGENDARY A":
+		if button.text == "APEX - TEST LEGENDARY A":
 			apex_button_text_found = true
 	expect(apex_button_text_found, "TALENTS did not label Slot 5 as APEX.")
 	var panel_branches: Array = panel.get("branches_by_slot") as Array
@@ -229,7 +229,7 @@ func run_test(
 		and is_instance_valid(apex_b)
 		and apex_b.branch_id == definition_b.branch_id
 		and screen.get("selected_slot_id") == &"apex_slot"
-		and detail_text(screen).contains("LEGENDARY • Tier II"),
+		and detail_text(screen).contains("LEGENDARY - Tier II"),
 		"Apex B runtime, selection, or Tier refresh is wrong."
 	)
 	expect(
@@ -303,7 +303,7 @@ func run_test(
 		"BranchPicker/PreviewPanel/DescriptionLabel"
 	) as Label
 	expect(
-		category_preview.text == "LEGENDARY • Tier I"
+		category_preview.text == "LEGENDARY - Tier I"
 		and description_preview.text.contains("living thorns")
 		and progress_preview.text.contains("No progression recorded yet.")
 		and saved_preview.text.contains("No saved Apex talents."),
@@ -319,7 +319,7 @@ func run_test(
 		and thorn_runtime.get_slot_id() == &"apex_slot"
 		and not thorn_runtime.combat_enabled
 		and screen.get("selected_slot_id") == &"apex_slot"
-		and detail_text(screen).contains("LEGENDARY • Tier I"),
+		and detail_text(screen).contains("LEGENDARY - Tier I"),
 		"Thorn Crown TREE equip, Tier, slot, or Preparation stop state is wrong."
 	)
 	expect(
@@ -338,7 +338,7 @@ func run_test(
 	var thorn_button_found: bool = false
 	for button_value in (talents.get("branch_buttons_by_instance_id") as Dictionary).values():
 		var button := button_value as Button
-		if button.text == "APEX — THORN CROWN":
+		if button.text == "APEX - THORN CROWN":
 			thorn_button_found = true
 	talents.call("select_branch", thorn_runtime)
 	expect(
@@ -409,7 +409,7 @@ func detail_text(screen: Control) -> String:
 		"TalentBuildLabel", "UpgradesLabel", "StatsLabel"
 	]:
 		lines.append(String(
-			(screen.get_node("MainPanel/DetailPanel/%s" % label_name) as Label).text
+			(screen.get_node("MainPanel/DetailPanel/DetailScroll/DetailContent/%s" % label_name) as Label).text
 		))
 	return "\n".join(lines)
 

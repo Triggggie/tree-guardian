@@ -115,8 +115,10 @@ func run_test(inventory: InventoryService, equipment: EquipmentService) -> void:
 	expect(first_card == cards[&"bark_epic"], "Inventory sorting is not rarity-first and Item-Level descending.")
 	expect(
 		first_card.custom_minimum_size.x <= 240.0
-		and first_card.text.contains("BARK")
-		and first_card.text.contains("ILvl 14")
+		and first_card.custom_minimum_size.y >= 170.0
+		and first_card.text.contains("Living Bark")
+		and first_card.text.contains("ILvl 14 - Bark")
+		and not first_card.text.contains("â")
 		and not first_card.text.contains("Branch Damage")
 		and first_card.get_theme_color("font_color") == ItemRarityRules.get_rarity_color(ItemRarityRules.EPIC),
 		"Compact tile fallback, rarity, ILvl, or no-affix presentation is wrong."
@@ -141,8 +143,8 @@ func run_test(inventory: InventoryService, equipment: EquipmentService) -> void:
 	expect(
 		selected_label.text.contains("Living Bark")
 		and selected_label.text.contains("Epic")
-		and selected_label.text.contains("Item Level 14")
-		and selected_label.text.contains("Bark")
+		and selected_label.text.contains("ILvl 14 - Bark")
+		and not selected_label.text.contains("â")
 		and selected_label.text.contains("Branch Damage: +13%"),
 		"Global Inventory selected detail is incomplete."
 	)
@@ -156,7 +158,14 @@ func run_test(inventory: InventoryService, equipment: EquipmentService) -> void:
 		"Equipped item was not hidden from Grid while remaining Inventory-owned."
 	)
 	expect(screen.call("select_equipment_slot", &"bark"), "Equipped Bark Tree tile selection failed.")
-	expect(current_label.text.contains("Living Bark"), "Equipped Tree tile did not expose item detail.")
+	var bark_tile := screen.get_node("MainPanel/TreeCanvas/BarkButton") as Button
+	expect(
+		current_label.text.contains("Living Bark")
+		and current_label.text.contains("ILvl 14 - Bark")
+		and bark_tile.text.contains("ILvl 14 - Bark")
+		and not bark_tile.text.contains("â"),
+		"Equipped Tree tile did not expose safe item text."
+	)
 	expect(screen.call("unequip_selected_equipment"), "Global Inventory unequip failed.")
 	expect(
 		inventory.has_item(&"bark_epic")

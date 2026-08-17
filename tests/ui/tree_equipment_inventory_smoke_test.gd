@@ -131,15 +131,17 @@ func run_test(
 	expect(candidate_ids == [bark_a.instance_id, bark_b.instance_id], "Inventory UI sorting is not rarity/Item Level deterministic.")
 
 	expect(screen.call("select_equipment_candidate", bark_a.instance_id), "Bark A candidate selection failed.")
-	expect(selected_label.text.contains("Living Bark") and selected_label.text.contains("Epic") and selected_label.text.contains("Item Level 12") and selected_label.text.contains("Maximum Health: +15") and selected_label.text.contains("Branch Damage: +10%") and selected_label.text.contains("Attack Speed: +15%") and selected_label.text.contains("Future Stat: +2"), "Selected Bark A factual detail or affix formatting is incomplete.")
+	expect(selected_label.text.contains("Living Bark") and selected_label.text.contains("Epic") and selected_label.text.contains("ILvl 12 - Bark") and selected_label.text.contains("Maximum Health: +15") and selected_label.text.contains("Branch Damage: +10%") and selected_label.text.contains("Attack Speed: +15%") and selected_label.text.contains("Future Stat: +2"), "Selected Bark A factual detail or affix formatting is incomplete.")
 	expect(not selected_label.text.contains("Power") and not selected_label.text.contains("Tier"), "Equipment comparison invented Power or Branch Tier.")
 	expect(not equip_button.disabled and (candidate_buttons[bark_a.instance_id] as Button).get_theme_color("font_color") == ItemRarityRules.get_rarity_color(ItemRarityRules.EPIC), "Bark A Equip or rarity color is wrong.")
 	expect(screen.call("equip_selected_equipment"), "Bark A UI equip failed.")
 	expect(
 		equipment.get_equipped_item(&"bark") == bark_a
-		and bark_button.text.contains("BARK") and bark_button.text.contains("EPIC")
+		and bark_button.text.contains("Living Bark") and bark_button.text.contains("EPIC")
 		and bark_button.text.contains("ILvl 12")
-		and current_label.text.contains("Item Level 12")
+		and bark_button.text.contains("ILvl 12 - Bark")
+		and current_label.text.contains("ILvl 12 - Bark")
+		and not bark_button.text.contains("â")
 		and equip_button.disabled and equip_button.text == "EQUIPPED"
 		and not unequip_button.disabled
 		and not (screen.get("equipment_candidate_buttons_by_instance_id") as Dictionary).has(bark_a.instance_id),
@@ -147,7 +149,7 @@ func run_test(
 	)
 
 	expect(screen.call("select_equipment_candidate", bark_b.instance_id), "Bark B candidate selection failed.")
-	expect(current_label.text.contains("Epic") and selected_label.text.contains("Common") and selected_label.text.contains("Item Level 4") and selected_label.text.contains("Health Regeneration: +0.5/s"), "Side-by-side factual replacement comparison is wrong.")
+	expect(current_label.text.contains("Epic") and selected_label.text.contains("Common") and selected_label.text.contains("ILvl 4 - Bark") and selected_label.text.contains("Health Regeneration: +0.5/s"), "Side-by-side factual replacement comparison is wrong.")
 	expect(screen.call("equip_selected_equipment"), "Bark replacement UI equip failed.")
 	expect(equipment.get_equipped_item(&"bark") == bark_b and inventory.get_item(bark_a.instance_id) == bark_a and inventory.get_item(bark_b.instance_id) == bark_b, "Replacement removed or copied an inventory item.")
 	candidate_buttons = screen.get("equipment_candidate_buttons_by_instance_id") as Dictionary
@@ -166,9 +168,9 @@ func run_test(
 	expect(screen.call("select_equipment_candidate", roots_a.instance_id) and screen.call("equip_selected_equipment"), "Roots UI equip failed.")
 	expect(
 		equipment.get_equipped_item(&"roots") == roots_a
-		and roots_button.text.contains("ROOT")
+		and roots_button.text.contains("Deep Roots")
 		and roots_button.text.contains("UNCOMMON")
-		and roots_button.text.contains("ILvl 8")
+		and roots_button.text.contains("ILvl 8 - Roots")
 		and equipment.get_equipped_instance_id(&"bark") == &"",
 		"Roots equipped tile changed Bark or failed to refresh."
 	)

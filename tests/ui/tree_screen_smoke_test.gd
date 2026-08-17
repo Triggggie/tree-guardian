@@ -80,7 +80,7 @@ func run_test() -> void:
 	expect(strength_1.purchase_upgrade(upgrade_id), "Shared Strength upgrade failed.")
 	for slot_id in [&"standard_slot_1", &"standard_slot_3"]:
 		screen.call("select_slot", slot_id)
-		expect(detail_text(screen).contains("%s — Lv.1" % strength_1.get_upgrade_display_name(upgrade_id)), "Shared upgrade is missing from %s." % slot_id)
+		expect(detail_text(screen).contains("%s - Lv.1" % strength_1.get_upgrade_display_name(upgrade_id)), "Shared upgrade is missing from %s." % slot_id)
 
 	screen.call("select_slot", &"apex_slot")
 	expect(detail_text(screen).contains("APEX SLOT\nEMPTY"), "Empty Apex detail is wrong.")
@@ -140,11 +140,23 @@ func test_layout(screen: Control) -> void:
 	var detail := screen.get_node("MainPanel/DetailPanel") as Control
 	var seed_panel := screen.get_node("MainPanel/SeedPanel") as Control
 	expect(not detail.get_global_rect().intersects(seed_panel.get_global_rect()), "Detail overlaps Seed panel.")
+	var detail_scroll := detail.get_node("DetailScroll") as ScrollContainer
+	var detail_content := detail_scroll.get_node("DetailContent") as VBoxContainer
+	expect(
+		detail_scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED
+		and detail_content.get_child_count() == 6,
+		"TREE detail is not a scrollable container-based section flow."
+	)
+	var previous_bottom: float = -INF
+	for child in detail_content.get_children():
+		var section := child as Control
+		expect(section.position.y >= previous_bottom, "%s overlaps the previous TREE detail section." % section.name)
+		previous_bottom = section.position.y + section.size.y
 
 func detail_text(screen: Control) -> String:
 	var result: Array[String] = []
 	for name in ["DetailTitleLabel", "CategoryLabel", "SharedProgressLabel", "TalentBuildLabel", "UpgradesLabel", "StatsLabel"]:
-		result.append((screen.get_node("MainPanel/DetailPanel/%s" % name) as Label).text)
+		result.append((screen.get_node("MainPanel/DetailPanel/DetailScroll/DetailContent/%s" % name) as Label).text)
 	return "\n".join(result)
 
 func expect(condition: bool, message: String) -> void:
