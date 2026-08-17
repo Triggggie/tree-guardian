@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"whirling_bough"
+display_name = "Whirling Bough"
+description = "Every fourth resolved primary attack becomes a Grand Sweep that replaces the normal sweep chain and hits up to five fresh enemies for 70% damage."
+path_name = "Crusher — Cleaver"
+tree_column = 0
+tree_row = 4
+required_branch_level = 14
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"reaping_sweep"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"whirling_bough"])

@@ -89,4 +89,53 @@ func is_valid_definition() -> bool:
 			):
 				return false
 
+	if _has_prerequisite_cycle(talents_by_id):
+		return false
+
 	return true
+
+
+func _has_prerequisite_cycle(
+	talents_by_id: Dictionary
+) -> bool:
+	var visit_state_by_id: Dictionary = {}
+
+	for talent_id in talents_by_id:
+		if _visit_prerequisites(
+			StringName(talent_id),
+			talents_by_id,
+			visit_state_by_id
+		):
+			return true
+
+	return false
+
+
+func _visit_prerequisites(
+	talent_id: StringName,
+	talents_by_id: Dictionary,
+	visit_state_by_id: Dictionary
+) -> bool:
+	var visit_state: int = int(
+		visit_state_by_id.get(talent_id, 0)
+	)
+
+	if visit_state == 1:
+		return true
+
+	if visit_state == 2:
+		return false
+
+	visit_state_by_id[talent_id] = 1
+	var talent := talents_by_id[talent_id] as TalentDefinition
+
+	for prerequisite_id in talent.prerequisite_ids:
+		if _visit_prerequisites(
+			prerequisite_id,
+			talents_by_id,
+			visit_state_by_id
+		):
+			return true
+
+	visit_state_by_id[talent_id] = 2
+	return false

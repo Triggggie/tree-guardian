@@ -611,7 +611,10 @@ func get_talent_status_text(
 
 	for conflicting_talent_id in conflicting_talents:
 		if has_talent(conflicting_talent_id):
-			return "LOCKED BY YOUR CHOICE"
+			return (
+				"CONFLICT — %s SELECTED"
+				% get_talent_display_name(conflicting_talent_id).to_upper()
+			)
 
 	var cost: int = get_talent_cost(
 		talent_id

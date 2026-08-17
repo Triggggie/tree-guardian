@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"relentless_flurry"
+display_name = "Relentless Flurry"
+description = "Unbroken Combo schedules two independently revalidated 35% follow-up strikes at 0.08 and 0.16 seconds instead of one."
+path_name = "Duelist — Relentless"
+tree_column = 8
+tree_row = 4
+required_branch_level = 14
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"unbroken_combo"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"relentless_flurry"])

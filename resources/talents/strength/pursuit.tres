@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"pursuit"
+display_name = "Pursuit"
+description = "Remember up to 3 recent targets for 4 seconds and restore their Marked Prey stacks when higher than Relentless carryover."
+path_name = "Duelist — Relentless"
+tree_column = 8
+tree_row = 2
+required_branch_level = 7
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"relentless"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"pursuit"])

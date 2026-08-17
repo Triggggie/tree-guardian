@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"worldroot_slam"
+display_name = "Worldroot Slam"
+description = "Every third Earthbreaker trigger becomes a larger Worldroot Slam that hits up to eight enemies for 70% damage and knocks valid non-boss targets back 25 pixels."
+path_name = "Crusher — Earthbreaker"
+tree_column = 2
+tree_row = 4
+required_branch_level = 14
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"aftershock"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"worldroot_slam"])

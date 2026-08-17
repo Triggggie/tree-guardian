@@ -5,6 +5,11 @@ const TALENT_NODE_BUTTON_SCENE: PackedScene = preload(
 	"res://scenes/ui/TalentNodeButton.tscn"
 )
 
+const NODE_SIZE := Vector2(170.0, 90.0)
+const COLUMN_SPACING: float = 190.0
+const ROW_SPACING: float = 135.0
+const GRAPH_MARGIN := Vector2(40.0, 35.0)
+
 
 @onready var talent_points_label: Label = (
 	$MarginContainer/MainPanel/MainVBox/TopBar
@@ -36,14 +41,20 @@ const TALENT_NODE_BUTTON_SCENE: PackedScene = preload(
 
 @onready var talent_tree_label: Label = (
 	$MarginContainer/MainPanel/MainVBox/ContentHBox
-	/TalentTreePanel/TalentTreeArea
+	/TalentTreePanel/TalentTreeVBox
 	/TalentTreeLabel
+)
+
+@onready var talent_graph: TalentGraphCanvas = (
+	$MarginContainer/MainPanel/MainVBox/ContentHBox
+	/TalentTreePanel/TalentTreeVBox/TalentTreeScroll
+	/TalentGraph
 )
 
 @onready var talent_nodes: Control = (
 	$MarginContainer/MainPanel/MainVBox/ContentHBox
-	/TalentTreePanel/TalentTreeArea
-	/TalentNodes
+	/TalentTreePanel/TalentTreeVBox/TalentTreeScroll
+	/TalentGraph/TalentNodes
 )
 
 @onready var selected_talent_name_label: Label = (
@@ -82,6 +93,7 @@ var branch_buttons_by_instance_id: Dictionary = {}
 
 var selected_branch
 var selected_talent_id: StringName = &""
+var talent_positions_by_id: Dictionary = {}
 
 
 func _ready() -> void:
@@ -363,29 +375,31 @@ func rebuild_talent_tree() -> void:
 		]
 	)
 
-	for talent_index in range(
-		talent_ids.size()
-	):
-		var talent_id: StringName = (
-			talent_ids[talent_index]
-		)
-
+	var graph_layout: Dictionary = _build_graph_layout(talent_ids)
+	talent_positions_by_id = graph_layout.get("positions", {})
+	talent_graph.custom_minimum_size = graph_layout.get(
+		"size",
+		Vector2(1000.0, 700.0)
+	)
+	for talent_id in talent_ids:
 		create_talent_node(
 			talent_id,
-			talent_index,
-			talent_ids.size()
+			talent_positions_by_id.get(talent_id, GRAPH_MARGIN)
 		)
+	_rebuild_prerequisite_connections(talent_ids)
 
 
 func clear_talent_nodes() -> void:
+	talent_positions_by_id.clear()
+	if is_instance_valid(talent_graph):
+		talent_graph.clear_prerequisite_connections()
 	for child in talent_nodes.get_children():
 		child.queue_free()
 
 
 func create_talent_node(
 	talent_id: StringName,
-	talent_index: int,
-	talent_count: int
+	node_position: Vector2
 ) -> void:
 	var talent_button: Button = (
 		TALENT_NODE_BUTTON_SCENE.instantiate()
@@ -421,35 +435,8 @@ func create_talent_node(
 			)
 		)
 
-	var available_width: float = (
-		talent_nodes.size.x
-	)
-
-	if available_width <= 0.0:
-		available_width = 900.0
-
-	var horizontal_spacing: float = (
-		available_width
-		/ float(talent_count + 1)
-	)
-
-	var button_size: Vector2 = Vector2(
-		170.0,
-		80.0
-	)
-
-	var button_center_x: float = (
-		horizontal_spacing
-		* float(talent_index + 1)
-	)
-
-	talent_button.position = Vector2(
-		button_center_x
-		- button_size.x * 0.5,
-		140.0
-	)
-
-	talent_button.size = button_size
+	talent_button.position = node_position
+	talent_button.size = NODE_SIZE
 
 	update_talent_node_state(
 		talent_button,
@@ -493,6 +480,72 @@ func update_talent_node_state(
 	)
 
 	talent_button.disabled = false
+	if status_text == "PURCHASED":
+		talent_button.modulate = Color(0.62, 1.0, 0.68, 1.0)
+	elif selected_branch.can_purchase_talent(talent_id):
+		talent_button.modulate = Color(1.0, 0.88, 0.48, 1.0)
+	elif status_text.begins_with("CONFLICT"):
+		talent_button.modulate = Color(0.72, 0.48, 0.48, 1.0)
+	else:
+		talent_button.modulate = Color(0.62, 0.64, 0.62, 1.0)
+
+
+func _build_graph_layout(talent_ids: Array[StringName]) -> Dictionary:
+	var positions: Dictionary = {}
+	var fallback_index_by_row: Dictionary = {}
+	var maximum_column: int = 0
+	var maximum_row: int = 0
+	for talent_id in talent_ids:
+		var definition: TalentDefinition = selected_branch.get_talent_definition(talent_id)
+		if not is_instance_valid(definition):
+			continue
+		var row: int = definition.tree_row
+		if row < 0:
+			row = _get_fallback_row(definition.required_branch_level)
+		var column: int = definition.tree_column
+		if column < 0:
+			column = int(fallback_index_by_row.get(row, 0))
+			fallback_index_by_row[row] = column + 1
+		maximum_column = max(maximum_column, column)
+		maximum_row = max(maximum_row, row)
+		positions[talent_id] = GRAPH_MARGIN + Vector2(
+			float(column) * COLUMN_SPACING,
+			float(row) * ROW_SPACING
+		)
+	return {
+		"positions": positions,
+		"size": Vector2(
+			max(1000.0, GRAPH_MARGIN.x * 2.0 + float(maximum_column) * COLUMN_SPACING + NODE_SIZE.x),
+			max(700.0, GRAPH_MARGIN.y * 2.0 + float(maximum_row) * ROW_SPACING + NODE_SIZE.y)
+		)
+	}
+
+
+func _get_fallback_row(required_level: int) -> int:
+	var milestone_levels: Array[int] = [2, 4, 7, 10, 14]
+	for index in range(milestone_levels.size()):
+		if required_level <= milestone_levels[index]:
+			return index
+	return milestone_levels.size()
+
+
+func _rebuild_prerequisite_connections(talent_ids: Array[StringName]) -> void:
+	var connections: Array[Dictionary] = []
+	for talent_id in talent_ids:
+		var definition: TalentDefinition = selected_branch.get_talent_definition(talent_id)
+		if not is_instance_valid(definition):
+			continue
+		var child_position: Vector2 = talent_positions_by_id.get(talent_id, Vector2.ZERO)
+		for prerequisite_id in definition.prerequisite_ids:
+			if not talent_positions_by_id.has(prerequisite_id):
+				continue
+			var parent_position: Vector2 = talent_positions_by_id[prerequisite_id]
+			connections.append({
+				"start": parent_position + Vector2(NODE_SIZE.x * 0.5, NODE_SIZE.y),
+				"finish": child_position + Vector2(NODE_SIZE.x * 0.5, 0.0),
+				"active": selected_branch.has_talent(prerequisite_id)
+			})
+	talent_graph.set_prerequisite_connections(connections)
 
 
 func select_talent(

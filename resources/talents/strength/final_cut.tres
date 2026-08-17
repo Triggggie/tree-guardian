@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"final_cut"
+display_name = "Final Cut"
+description = "At maximum stacks and 15% health or lower, a primary hit executes normal enemies through damage resolution; bosses and minibosses instead take 100% more primary damage."
+path_name = "Duelist — Executioner"
+tree_column = 6
+tree_row = 4
+required_branch_level = 14
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"finishing_rhythm"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"final_cut"])

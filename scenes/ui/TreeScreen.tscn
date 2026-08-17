@@ -31,16 +31,24 @@ offset_bottom = 1040.0
 [node name="TitleLabel" type="Label" parent="MainPanel"]
 offset_left = 28.0
 offset_top = 18.0
-offset_right = 220.0
+offset_right = 150.0
 offset_bottom = 60.0
 theme_override_colors/font_color = Color(0.65, 0.95, 0.68, 1)
 theme_override_font_sizes/font_size = 30
 text = "TREE"
 
-[node name="InventoryButton" type="Button" parent="MainPanel"]
-offset_left = 240.0
+[node name="TreeButton" type="Button" parent="MainPanel"]
+offset_left = 160.0
 offset_top = 18.0
-offset_right = 400.0
+offset_right = 300.0
+offset_bottom = 60.0
+disabled = true
+text = "TREE"
+
+[node name="InventoryButton" type="Button" parent="MainPanel"]
+offset_left = 310.0
+offset_top = 18.0
+offset_right = 470.0
 offset_bottom = 60.0
 text = "INVENTORY"
 

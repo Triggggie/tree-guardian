@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"aftershock"
+display_name = "Aftershock"
+description = "Earthbreaker and Fault Line repeat after 0.25 seconds for 50% of the original shockwave damage, revalidating every target."
+path_name = "Crusher — Earthbreaker"
+tree_column = 2
+tree_row = 3
+required_branch_level = 10
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"fault_line"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"aftershock"])

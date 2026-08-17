@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"serrated_arc"
+display_name = "Serrated Arc"
+description = "The first successful Sweeping Strike secondary hit chains once to a fresh nearby enemy for 45% damage."
+path_name = "Crusher — Cleaver"
+tree_column = 0
+tree_row = 2
+required_branch_level = 7
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"cleaver"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"serrated_arc"])

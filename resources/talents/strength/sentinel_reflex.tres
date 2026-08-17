@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"sentinel_reflex"
+display_name = "Sentinel Reflex"
+description = "When a primary Rebuff pushes a danger target outside the danger radius, the next attack cooldown is halved without going below the minimum cooldown."
+path_name = "Warden — Protector"
+tree_column = 5
+tree_row = 3
+required_branch_level = 10
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"hold_the_line"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"sentinel_reflex"])

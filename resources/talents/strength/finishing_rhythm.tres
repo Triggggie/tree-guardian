@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"finishing_rhythm"
+display_name = "Finishing Rhythm"
+description = "At maximum Marked Prey stacks, every third resolved primary hit against the same target deals 100% more damage."
+path_name = "Duelist — Executioner"
+tree_column = 6
+tree_row = 3
+required_branch_level = 10
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"cull_the_weak"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"finishing_rhythm"])

@@ -325,6 +325,46 @@ func is_targetable() -> bool:
 func get_lane_index() -> int:
 	return lane_index
 
+
+func get_current_health() -> float:
+	if not is_instance_valid(health_component):
+		return 0.0
+	return health_component.get_current_health()
+
+
+func get_maximum_health() -> float:
+	if not is_instance_valid(health_component):
+		return max(max_health, 1.0)
+	return health_component.get_maximum_health()
+
+
+func get_health_ratio() -> float:
+	if not is_instance_valid(health_component):
+		return 0.0
+	return health_component.get_health_ratio()
+
+
+func is_normal_enemy() -> bool:
+	return (
+		not is_instance_valid(enemy_definition)
+		or enemy_definition.is_normal_enemy()
+	)
+
+
+func can_be_interrupted() -> bool:
+	return is_targetable() and is_normal_enemy()
+
+
+func interrupt_attack() -> bool:
+	if not can_be_interrupted():
+		return false
+	if not is_instance_valid(attack_component) or not attack_component.is_attacking():
+		return false
+	attack_component.stop_attacking()
+	if is_instance_valid(movement_component):
+		movement_component.stop()
+	return true
+
 func _physics_process(delta: float) -> void:
 	if is_dying:
 		movement_component.stop()

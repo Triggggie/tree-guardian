@@ -5,10 +5,34 @@
 [ext_resource type="Resource" path="res://resources/talents/strength/sweeping_strike.tres" id="3_sweeping"]
 [ext_resource type="Resource" path="res://resources/talents/strength/rebuff.tres" id="4_rebuff"]
 [ext_resource type="Resource" path="res://resources/talents/strength/marked_prey.tres" id="5_marked"]
+[ext_resource type="Resource" path="res://resources/talents/strength/cleaver.tres" id="6_cleaver"]
+[ext_resource type="Resource" path="res://resources/talents/strength/serrated_arc.tres" id="7_serrated"]
+[ext_resource type="Resource" path="res://resources/talents/strength/reaping_sweep.tres" id="8_reaping"]
+[ext_resource type="Resource" path="res://resources/talents/strength/whirling_bough.tres" id="9_whirling"]
+[ext_resource type="Resource" path="res://resources/talents/strength/earthbreaker.tres" id="10_earthbreaker"]
+[ext_resource type="Resource" path="res://resources/talents/strength/fault_line.tres" id="11_fault"]
+[ext_resource type="Resource" path="res://resources/talents/strength/aftershock.tres" id="12_aftershock"]
+[ext_resource type="Resource" path="res://resources/talents/strength/worldroot_slam.tres" id="13_worldroot"]
+[ext_resource type="Resource" path="res://resources/talents/strength/disruptor.tres" id="14_disruptor"]
+[ext_resource type="Resource" path="res://resources/talents/strength/staggering_blow.tres" id="15_staggering"]
+[ext_resource type="Resource" path="res://resources/talents/strength/disruptive_arc.tres" id="16_disruptive"]
+[ext_resource type="Resource" path="res://resources/talents/strength/uproot.tres" id="17_uproot"]
+[ext_resource type="Resource" path="res://resources/talents/strength/protector.tres" id="18_protector"]
+[ext_resource type="Resource" path="res://resources/talents/strength/hold_the_line.tres" id="19_hold"]
+[ext_resource type="Resource" path="res://resources/talents/strength/sentinel_reflex.tres" id="20_sentinel"]
+[ext_resource type="Resource" path="res://resources/talents/strength/last_bastion.tres" id="21_bastion"]
+[ext_resource type="Resource" path="res://resources/talents/strength/executioner.tres" id="22_executioner"]
+[ext_resource type="Resource" path="res://resources/talents/strength/cull_the_weak.tres" id="23_cull"]
+[ext_resource type="Resource" path="res://resources/talents/strength/finishing_rhythm.tres" id="24_finishing"]
+[ext_resource type="Resource" path="res://resources/talents/strength/final_cut.tres" id="25_final"]
+[ext_resource type="Resource" path="res://resources/talents/strength/relentless.tres" id="26_relentless"]
+[ext_resource type="Resource" path="res://resources/talents/strength/pursuit.tres" id="27_pursuit"]
+[ext_resource type="Resource" path="res://resources/talents/strength/unbroken_combo.tres" id="28_combo"]
+[ext_resource type="Resource" path="res://resources/talents/strength/relentless_flurry.tres" id="29_flurry"]
 
 [resource]
 script = ExtResource("2_tree")
 talent_tree_id = &"strength_talent_tree"
 display_name = "Strength Talent Tree"
 description = "Talent tree for the Strength Branch."
-talents = Array[ExtResource("1_talent")]([ExtResource("3_sweeping"), ExtResource("4_rebuff"), ExtResource("5_marked")])
+talents = Array[ExtResource("1_talent")]([ExtResource("3_sweeping"), ExtResource("6_cleaver"), ExtResource("7_serrated"), ExtResource("8_reaping"), ExtResource("9_whirling"), ExtResource("10_earthbreaker"), ExtResource("11_fault"), ExtResource("12_aftershock"), ExtResource("13_worldroot"), ExtResource("4_rebuff"), ExtResource("14_disruptor"), ExtResource("15_staggering"), ExtResource("16_disruptive"), ExtResource("17_uproot"), ExtResource("18_protector"), ExtResource("19_hold"), ExtResource("20_sentinel"), ExtResource("21_bastion"), ExtResource("5_marked"), ExtResource("22_executioner"), ExtResource("23_cull"), ExtResource("24_finishing"), ExtResource("25_final"), ExtResource("26_relentless"), ExtResource("27_pursuit"), ExtResource("28_combo"), ExtResource("29_flurry")])

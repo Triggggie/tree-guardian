@@ -6,6 +6,10 @@ var owner_branch: Node2D
 var sweeping_strike_effect: StrengthSweepingStrikeEffect
 var rebuff_effect: StrengthRebuffEffect
 var marked_prey_effect: StrengthMarkedPreyEffect
+var crusher_effect: StrengthCrusherEffect
+var earthbreaker_effect: StrengthEarthbreakerEffect
+var warden_effect: StrengthWardenEffect
+var duelist_effect: StrengthDuelistEffect
 
 var active_effect_ids: Dictionary = {}
 var warned_unsupported_effect_ids: Dictionary = {}
@@ -15,6 +19,10 @@ func _init() -> void:
 	sweeping_strike_effect = StrengthSweepingStrikeEffect.new()
 	rebuff_effect = StrengthRebuffEffect.new()
 	marked_prey_effect = StrengthMarkedPreyEffect.new()
+	crusher_effect = StrengthCrusherEffect.new()
+	earthbreaker_effect = StrengthEarthbreakerEffect.new()
+	warden_effect = StrengthWardenEffect.new()
+	duelist_effect = StrengthDuelistEffect.new()
 
 
 func configure(
@@ -42,6 +50,14 @@ func configure(
 		marked_damage_per_stack,
 		marked_maximum_stacks
 	)
+
+	crusher_effect.configure(
+		owner_branch,
+		sweeping_strike_effect
+	)
+	earthbreaker_effect.configure(owner_branch)
+	warden_effect.configure(owner_branch, rebuff_effect)
+	duelist_effect.configure(owner_branch, marked_prey_effect)
 
 
 func set_active_effect_ids(
@@ -72,17 +88,41 @@ func set_active_effect_ids(
 			% effect_id
 		)
 
-	if not has_active_effect(
-		marked_prey_effect.get_effect_id()
-	):
-		marked_prey_effect.reset_runtime_state()
+	crusher_effect.set_active_effect_ids(active_effect_ids)
+	earthbreaker_effect.set_active_effect_ids(active_effect_ids)
+	warden_effect.set_active_effect_ids(active_effect_ids)
+	duelist_effect.set_active_effect_ids(active_effect_ids)
 
 
 func get_supported_effect_ids() -> Array[StringName]:
 	return [
 		sweeping_strike_effect.get_effect_id(),
 		rebuff_effect.get_effect_id(),
-		marked_prey_effect.get_effect_id()
+		marked_prey_effect.get_effect_id(),
+		&"cleaver",
+		&"serrated_arc",
+		&"reaping_sweep",
+		&"whirling_bough",
+		&"earthbreaker",
+		&"fault_line",
+		&"aftershock",
+		&"worldroot_slam",
+		&"disruptor",
+		&"staggering_blow",
+		&"disruptive_arc",
+		&"uproot",
+		&"protector",
+		&"hold_the_line",
+		&"sentinel_reflex",
+		&"last_bastion",
+		&"executioner",
+		&"cull_the_weak",
+		&"finishing_rhythm",
+		&"final_cut",
+		&"relentless",
+		&"pursuit",
+		&"unbroken_combo",
+		&"relentless_flurry"
 	]
 
 
@@ -96,13 +136,7 @@ func get_primary_damage(
 	target: Node2D,
 	base_damage: float
 ) -> float:
-	if not has_active_effect(
-		marked_prey_effect.get_effect_id()
-	):
-		marked_prey_effect.reset_runtime_state()
-		return base_damage
-
-	return marked_prey_effect.get_damage(
+	return duelist_effect.get_primary_damage(
 		target,
 		base_damage
 	)
@@ -137,15 +171,37 @@ func configure_secondary_context(
 func apply_after_resolved_hit(
 	target: Node2D
 ) -> void:
-	if not has_active_effect(
-		rebuff_effect.get_effect_id()
-	):
-		return
+	warden_effect.apply_after_primary_resolved(target)
 
-	rebuff_effect.apply_after_resolved_hit(
-		target
-	)
+
+func apply_after_primary_resolved(
+	target: Node2D,
+	current_damage: float
+) -> void:
+	duelist_effect.on_primary_resolved(target, current_damage)
+	warden_effect.apply_after_primary_resolved(target)
+	crusher_effect.on_primary_resolved(target, current_damage, self)
+	earthbreaker_effect.on_primary_resolved(target, current_damage, self)
+
+
+func apply_after_resolved_secondary(target: Node2D) -> void:
+	warden_effect.apply_after_secondary_resolved(target)
+
+
+func cancel_pending_primary() -> void:
+	duelist_effect.cancel_pending_primary()
+
+
+func find_danger_target() -> Node2D:
+	return warden_effect.find_danger_target()
+
+
+func consume_next_cooldown_multiplier() -> float:
+	return warden_effect.consume_next_cooldown_multiplier()
 
 
 func reset_runtime_state() -> void:
-	marked_prey_effect.reset_runtime_state()
+	crusher_effect.reset_runtime_state()
+	earthbreaker_effect.reset_runtime_state()
+	warden_effect.reset_runtime_state()
+	duelist_effect.reset_runtime_state()

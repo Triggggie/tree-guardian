@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"last_bastion"
+display_name = "Last Bastion"
+description = "At 35% tree health or lower, danger radius gains 100 pixels and danger-target Rebuff reaches 2.5 times its base distance."
+path_name = "Warden — Protector"
+tree_column = 5
+tree_row = 4
+required_branch_level = 14
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"sentinel_reflex"])
+conflicting_ids = Array[StringName]([])
+effect_ids = Array[StringName]([&"last_bastion"])

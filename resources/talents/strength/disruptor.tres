@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"disruptor"
+display_name = "Disruptor"
+description = "Primary Rebuff hits interrupt normal enemies, cancelling their current attack cycle without stunning them."
+path_name = "Warden — Disruptor"
+tree_column = 3
+tree_row = 1
+required_branch_level = 4
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"rebuff"])
+conflicting_ids = Array[StringName]([&"protector"])
+effect_ids = Array[StringName]([&"disruptor"])

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TalentDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/talent_definition.gd" id="1_talent"]
+
+[resource]
+script = ExtResource("1_talent")
+talent_id = &"relentless"
+display_name = "Relentless"
+description = "Changing primary targets carries over half of the previous target's Marked Prey stacks instead of resetting all stacks."
+path_name = "Duelist — Relentless"
+tree_column = 8
+tree_row = 1
+required_branch_level = 4
+talent_point_cost = 1
+prerequisite_ids = Array[StringName]([&"marked_prey"])
+conflicting_ids = Array[StringName]([&"executioner"])
+effect_ids = Array[StringName]([&"relentless"])

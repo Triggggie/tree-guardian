@@ -24,6 +24,8 @@ var mature_branch_level: int = 10
 var branch_level: int = 1
 var tree_growth_factor: float = 1.0
 var facing_direction: float = 1.0
+var feedback_tween: Tween
+var active_feedback_id: StringName = &""
 
 
 func set_branch_level(new_level: int) -> void:
@@ -113,6 +115,48 @@ func get_unlocked_shoot_count() -> int:
 	)
 
 
+func play_talent_feedback(feedback_id: StringName) -> void:
+	if is_instance_valid(feedback_tween):
+		feedback_tween.kill()
+	modulate = Color.WHITE
+	scale = Vector2.ONE
+	active_feedback_id = feedback_id
+	queue_redraw()
+	var feedback_color := Color(1.0, 0.82, 0.32, 1.0)
+	var scale_multiplier: float = 1.08
+	match feedback_id:
+		&"worldroot_slam":
+			feedback_color = Color(1.0, 0.48, 0.18, 1.0)
+			scale_multiplier = 1.18
+		&"grand_sweep":
+			feedback_color = Color(0.95, 0.95, 0.55, 1.0)
+			scale_multiplier = 1.14
+		&"uproot":
+			feedback_color = Color(0.48, 0.9, 0.62, 1.0)
+			scale_multiplier = 1.12
+		&"finisher", &"final_cut":
+			feedback_color = Color(1.0, 0.3, 0.24, 1.0)
+			scale_multiplier = 1.12
+	feedback_tween = create_tween()
+	feedback_tween.set_parallel(true)
+	feedback_tween.tween_property(self, "modulate", feedback_color, 0.06)
+	feedback_tween.tween_property(self, "scale", Vector2.ONE * scale_multiplier, 0.06)
+	feedback_tween.set_parallel(false)
+	feedback_tween.tween_property(self, "modulate", Color.WHITE, 0.12)
+	feedback_tween.tween_property(self, "scale", Vector2.ONE, 0.12)
+	feedback_tween.tween_callback(reset_talent_feedback)
+
+
+func reset_talent_feedback() -> void:
+	if is_instance_valid(feedback_tween):
+		feedback_tween.kill()
+	feedback_tween = null
+	active_feedback_id = &""
+	modulate = Color.WHITE
+	scale = Vector2.ONE
+	queue_redraw()
+
+
 func _draw() -> void:
 	var current_length: float = get_current_length()
 	var current_thickness: float = get_current_thickness()
@@ -134,6 +178,26 @@ func _draw() -> void:
 		young_shoot_color,
 		bud_color
 	)
+	draw_talent_feedback(current_length)
+
+
+func draw_talent_feedback(current_length: float) -> void:
+	if active_feedback_id == &"":
+		return
+	var branch_end := Vector2(facing_direction * current_length, 0.0)
+	match active_feedback_id:
+		&"earthbreaker":
+			draw_arc(branch_end, 42.0, 0.0, TAU, 28, Color(1.0, 0.68, 0.25, 0.9), 5.0, true)
+			draw_line(branch_end, branch_end + Vector2(facing_direction * 120.0, 0.0), Color(1.0, 0.58, 0.18, 0.8), 5.0, true)
+		&"worldroot_slam":
+			draw_arc(branch_end, 72.0, 0.0, TAU, 36, Color(1.0, 0.38, 0.12, 0.95), 8.0, true)
+			draw_line(branch_end, branch_end + Vector2(facing_direction * 210.0, 0.0), Color(1.0, 0.32, 0.08, 0.9), 10.0, true)
+		&"uproot":
+			draw_arc(branch_end, 58.0, 0.0, TAU, 32, Color(0.38, 0.95, 0.58, 0.9), 7.0, true)
+		&"grand_sweep":
+			draw_arc(Vector2.ZERO, current_length * 0.75, -1.0, 1.0, 32, Color(0.95, 0.95, 0.48, 0.9), 7.0, true)
+		&"finisher", &"final_cut":
+			draw_circle(branch_end, 24.0, Color(1.0, 0.2, 0.16, 0.75))
 
 
 func draw_main_branch(

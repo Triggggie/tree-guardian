@@ -56,6 +56,34 @@ func get_damage(
 	return base_damage * damage_multiplier
 
 
+func begin_target(
+	target: Node2D,
+	starting_stacks: int = 0
+) -> void:
+	if not is_instance_valid(target):
+		reset_runtime_state()
+		return
+
+	target_instance_id = target.get_instance_id()
+	stacks = clamp(
+		starting_stacks,
+		0,
+		maximum_stacks
+	) - 1
+
+
+func set_stack_count(new_stacks: int) -> void:
+	stacks = clamp(
+		new_stacks,
+		0,
+		maximum_stacks
+	)
+
+
+func get_maximum_stacks() -> int:
+	return maximum_stacks
+
+
 func reset_runtime_state() -> void:
 	target_instance_id = 0
 	stacks = 0

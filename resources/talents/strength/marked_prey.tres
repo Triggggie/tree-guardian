@@ -6,8 +6,10 @@
 script = ExtResource("1_talent")
 talent_id = &"marked_prey"
 display_name = "Marked Prey"
-description = "Repeated attacks against the same enemy build Marked Prey stacks."
+description = "Repeated primary attacks against the same enemy build up to 5 Marked Prey stacks, each granting 10% damage."
 path_name = "Duelist"
+tree_column = 7
+tree_row = 0
 required_branch_level = 2
 talent_point_cost = 1
 prerequisite_ids = Array[StringName]([])

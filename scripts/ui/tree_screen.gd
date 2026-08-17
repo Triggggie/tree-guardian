@@ -13,7 +13,13 @@ enum SelectionMode {
 	INVENTORY
 }
 
+enum TreeView {
+	TREE,
+	INVENTORY
+}
+
 @onready var close_button: Button = $MainPanel/CloseButton
+@onready var tree_button: Button = $MainPanel/TreeButton
 @onready var inventory_button: Button = $MainPanel/InventoryButton
 @onready var tree_canvas: Panel = $MainPanel/TreeCanvas
 @onready var detail_title_label: Label = $MainPanel/DetailPanel/DetailTitleLabel
@@ -82,6 +88,7 @@ var selected_candidate_branch_id: StringName = &""
 var wave_manager: Node
 var picker_mode: PickerMode = PickerMode.NONE
 var selection_mode: SelectionMode = SelectionMode.BRANCH
+var active_view: TreeView = TreeView.TREE
 var selected_equipment_slot_id: StringName = &""
 var selected_equipment_instance_id: StringName = &""
 var equipment_candidate_buttons_by_instance_id: Dictionary = {}
@@ -94,6 +101,7 @@ var equipment_service: EquipmentService
 
 func _ready() -> void:
 	close_button.pressed.connect(close_screen)
+	tree_button.pressed.connect(open_tree_view)
 	inventory_button.pressed.connect(open_inventory_overview)
 	continue_button.pressed.connect(_on_continue_pressed)
 	change_branch_button.pressed.connect(open_branch_picker)
@@ -115,6 +123,9 @@ func _ready() -> void:
 
 
 func open_screen() -> void:
+	active_view = TreeView.TREE
+	if selection_mode == SelectionMode.INVENTORY:
+		selection_mode = SelectionMode.BRANCH
 	refresh_screen()
 	show()
 
@@ -176,6 +187,7 @@ func select_slot(slot_id: StringName) -> void:
 	if BranchSlotRules.get_slot_index(slot_id) < 0:
 		return
 	close_branch_picker()
+	active_view = TreeView.TREE
 	selection_mode = SelectionMode.BRANCH
 	selected_slot_id = slot_id
 	selected_equipment_slot_id = &""
@@ -190,6 +202,7 @@ func select_equipment_slot(slot_id: StringName) -> bool:
 	if not EquipmentSlotRules.is_valid_slot_id(slot_id):
 		return false
 	close_branch_picker()
+	active_view = TreeView.TREE
 	selection_mode = SelectionMode.EQUIPMENT
 	selected_equipment_slot_id = slot_id
 	selected_equipment_instance_id = &""
@@ -208,6 +221,7 @@ func select_equipment_slot(slot_id: StringName) -> bool:
 
 func open_inventory_overview() -> void:
 	close_branch_picker()
+	active_view = TreeView.INVENTORY
 	selection_mode = SelectionMode.INVENTORY
 	selected_equipment_slot_id = &""
 	_validate_equipment_selection()
@@ -215,6 +229,31 @@ func open_inventory_overview() -> void:
 	_refresh_equipment_slot_buttons()
 	_refresh_equipment_ui()
 	_refresh_mode_visibility()
+
+
+func open_tree_view() -> void:
+	close_branch_picker()
+	active_view = TreeView.TREE
+	selection_mode = SelectionMode.BRANCH
+	selected_equipment_slot_id = &""
+	_validate_selection()
+	_refresh_slot_buttons()
+	_refresh_equipment_slot_buttons()
+	_refresh_selected_detail()
+	_refresh_loadout_controls()
+	_refresh_mode_visibility()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or not event.is_action_pressed("ui_cancel"):
+		return
+	if branch_picker.visible:
+		close_branch_picker()
+	elif active_view == TreeView.INVENTORY:
+		open_tree_view()
+	else:
+		close_screen()
+	get_viewport().set_input_as_handled()
 
 
 func select_inventory_filter(slot_id: StringName) -> bool:
@@ -313,14 +352,18 @@ func _refresh_equipment_slot_buttons() -> void:
 
 
 func _refresh_mode_visibility() -> void:
-	var equipment_slot_mode: bool = selection_mode == SelectionMode.EQUIPMENT
-	var inventory_mode: bool = selection_mode == SelectionMode.INVENTORY
+	var equipment_slot_mode: bool = (
+		active_view == TreeView.TREE
+		and selection_mode == SelectionMode.EQUIPMENT
+	)
+	var inventory_mode: bool = active_view == TreeView.INVENTORY
 	detail_panel.visible = not equipment_slot_mode and not inventory_mode
 	seed_panel.visible = not equipment_slot_mode and not inventory_mode
 	tree_canvas.visible = not inventory_mode
 	equipment_detail_panel.visible = equipment_slot_mode or inventory_mode
 	equipment_inventory_panel.visible = equipment_slot_mode
 	inventory_overview_panel.visible = inventory_mode
+	tree_button.disabled = not inventory_mode
 	inventory_button.disabled = inventory_mode
 
 

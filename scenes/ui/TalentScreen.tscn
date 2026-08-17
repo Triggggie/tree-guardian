@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://c7t6jb4idtkrd"]
+[gd_scene load_steps=3 format=3 uid="uid://c7t6jb4idtkrd"]
 
 [ext_resource type="Script" uid="uid://dcwncn8cpihsb" path="res://scripts/ui/talent_screen.gd" id="1_onlaj"]
+[ext_resource type="Script" path="res://scripts/ui/talent_graph_canvas.gd" id="2_graph"]
 
 [node name="TalentScreen" type="Control" unique_id=1619679837]
 visible = false
@@ -94,18 +95,26 @@ text = "BLOSSOM"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TalentTreeArea" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel" unique_id=1190735391]
+[node name="TalentTreeVBox" type="VBoxContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel"]
 layout_mode = 2
 
-[node name="TalentTreeLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeArea" unique_id=455983290]
-layout_mode = 0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 121.0
-offset_bottom = 43.0
+[node name="TalentTreeLabel" type="Label" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeVBox" unique_id=455983290]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
 text = "TALENT TREE"
 
-[node name="TalentNodes" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeArea" unique_id=81686820]
+[node name="TalentTreeScroll" type="ScrollContainer" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 1
+
+[node name="TalentGraph" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeVBox/TalentTreeScroll"]
+custom_minimum_size = Vector2(1000, 700)
+layout_mode = 2
+script = ExtResource("2_graph")
+
+[node name="TalentNodes" type="Control" parent="MarginContainer/MainPanel/MainVBox/ContentHBox/TalentTreePanel/TalentTreeVBox/TalentTreeScroll/TalentGraph" unique_id=81686820]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

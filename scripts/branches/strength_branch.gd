@@ -47,6 +47,7 @@ var resting_rotation: float
 var current_target: Node2D
 var talent_effect_set: StrengthTalentEffectSet
 var has_warned_missing_branch_visual: bool = false
+var attack_tween: Tween
 
 var targeting_profile: TargetingProfile = (
 	TargetingProfile.new()
@@ -330,6 +331,11 @@ func _on_cooldown_timer_timeout() -> void:
 
 
 func find_nearest_enemy() -> Node2D:
+	if is_instance_valid(talent_effect_set):
+		var danger_target: Node2D = talent_effect_set.find_danger_target()
+		if is_instance_valid(danger_target):
+			return danger_target
+
 	targeting_profile.preferred_lane_span = (
 		target_lane_span
 	)
@@ -364,24 +370,26 @@ func perform_attack_animation() -> void:
 		+ deg_to_rad(signed_attack_angle)
 	)
 
-	var tween: Tween = create_tween()
+	if is_instance_valid(attack_tween):
+		attack_tween.kill()
+	attack_tween = create_tween()
 
-	tween.set_trans(
+	attack_tween.set_trans(
 		Tween.TRANS_QUAD
 	)
 
-	tween.set_ease(
+	attack_tween.set_ease(
 		Tween.EASE_OUT
 	)
 
-	tween.tween_property(
+	attack_tween.tween_property(
 		self,
 		"rotation",
 		attack_rotation,
 		attack_duration
 	)
 
-	tween.tween_callback(
+	attack_tween.tween_callback(
 		func() -> void:
 			if not combat_enabled:
 				return
@@ -418,7 +426,7 @@ func perform_attack_animation() -> void:
 			)
 	)
 
-	tween.tween_property(
+	attack_tween.tween_property(
 		self,
 		"rotation",
 		resting_rotation,
@@ -433,16 +441,9 @@ func perform_strength_hit(
 	):
 		return
 
-	var secondary_target: Node2D = null
 	var primary_damage: float = get_current_damage()
 
 	if is_instance_valid(talent_effect_set):
-		secondary_target = (
-			talent_effect_set.find_secondary_target(
-				primary_target
-			)
-		)
-
 		primary_damage = (
 			talent_effect_set.get_primary_damage(
 				primary_target,
@@ -478,46 +479,26 @@ func perform_strength_hit(
 		primary_hit_resolved
 		and is_instance_valid(talent_effect_set)
 	):
-		talent_effect_set.apply_after_resolved_hit(
-			primary_target
+		talent_effect_set.apply_after_primary_resolved(
+			primary_target,
+			get_current_damage()
 		)
-
-	if not is_valid_attack_target(
-		secondary_target
-	):
-		return
-
-	var secondary_context := AttackContext.new(
-		self,
-		secondary_target,
-		get_current_damage()
-	)
-
-	secondary_context.add_tag(
-		&"strength"
-	)
-
-	secondary_context.add_tag(
-		&"secondary_attack"
-	)
-
-	talent_effect_set.configure_secondary_context(
-		secondary_context
-	)
-
-	var secondary_hit_resolved: bool = (
-		AttackResolver.resolve_damage(
-			secondary_context
+		var cooldown_multiplier: float = (
+			talent_effect_set.consume_next_cooldown_multiplier()
 		)
-	)
-
-	if (
-		secondary_hit_resolved
-		and is_instance_valid(talent_effect_set)
-	):
-		talent_effect_set.apply_after_resolved_hit(
-			secondary_target
+		cooldown_timer.start(
+			max(
+				get_current_attack_cooldown() * cooldown_multiplier,
+				minimum_attack_cooldown
+			)
 		)
+	elif is_instance_valid(talent_effect_set):
+		talent_effect_set.cancel_pending_primary()
+
+
+func play_strength_talent_feedback(feedback_id: StringName) -> void:
+	if is_instance_valid(branch_visual) and branch_visual.has_method("play_talent_feedback"):
+		branch_visual.call("play_talent_feedback", feedback_id)
 
 func on_branch_level_changed() -> void:
 	sync_visual_state()
@@ -534,8 +515,13 @@ func on_branch_level_changed() -> void:
 func stop_combat() -> void:
 	super.stop_combat()
 	current_target = null
+	if is_instance_valid(attack_tween):
+		attack_tween.kill()
+		attack_tween = null
 	if is_instance_valid(talent_effect_set):
 		talent_effect_set.reset_runtime_state()
+	if is_instance_valid(branch_visual) and branch_visual.has_method("reset_talent_feedback"):
+		branch_visual.call("reset_talent_feedback")
 	cooldown_timer.stop()
 	var active_tween: Tween = create_tween()
 	active_tween.tween_property(self, "rotation", resting_rotation, 0.1)

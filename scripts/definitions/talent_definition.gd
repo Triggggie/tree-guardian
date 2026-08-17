@@ -18,6 +18,10 @@ var description: String = ""
 
 @export var icon: Texture2D
 
+@export var tree_column: int = -1
+
+@export var tree_row: int = -1
+
 
 @export_category("Requirements")
 
@@ -54,6 +58,9 @@ func is_valid_definition() -> bool:
 		return false
 
 	if talent_point_cost < 1:
+		return false
+
+	if tree_column < -1 or tree_row < -1:
 		return false
 
 	if talent_id in prerequisite_ids:
