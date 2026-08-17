@@ -33,20 +33,55 @@ func run_test(inventory: InventoryService, equipment: EquipmentService) -> void:
 	var overview_panel := screen.get_node("MainPanel/InventoryOverviewPanel") as Panel
 	var tree_canvas := screen.get_node("MainPanel/TreeCanvas") as Panel
 	var inventory_button := screen.get_node("MainPanel/InventoryButton") as Button
+	var tree_button := screen.get_node("MainPanel/TreeButton") as Button
 	var empty_label := screen.get_node("MainPanel/InventoryOverviewPanel/EmptyLabel") as Label
 	var count_label := screen.get_node("MainPanel/InventoryOverviewPanel/ItemCountLabel") as Label
 	var selected_label := screen.get_node("MainPanel/EquipmentDetailPanel/SelectedItemLabel") as Label
 	var current_label := screen.get_node("MainPanel/EquipmentDetailPanel/CurrentlyEquippedLabel") as Label
 
+	screen.call("set_preparation_mode", false, &"")
+	screen.call("open_screen")
 	screen.call("open_inventory_overview")
 	expect(
 		inventory_button.disabled
+		and not tree_button.disabled
 		and overview_panel.visible
 		and not tree_canvas.visible
 		and empty_label.visible
 		and empty_label.text == "No equipment in inventory.\nDrops from enemies will appear here.",
 		"Inventory entry point or empty state is wrong."
 	)
+	var branch_loadout_before: Dictionary = (
+		get_node("/root/BranchLoadout") as BranchLoadoutService
+	).export_persistence_state()
+	var equipment_before: Dictionary = equipment.export_persistence_state()
+	tree_button.pressed.emit()
+	expect(
+		tree_button.disabled
+		and not inventory_button.disabled
+		and tree_canvas.visible
+		and not overview_panel.visible
+		and screen.visible,
+		"TREE tab did not return from Inventory without closing fullscreen."
+	)
+	expect(
+		(get_node("/root/BranchLoadout") as BranchLoadoutService).export_persistence_state() == branch_loadout_before
+		and equipment.export_persistence_state() == equipment_before,
+		"TREE/Inventory navigation mutated loadout or equipment state."
+	)
+	screen.call("open_inventory_overview")
+	var cancel_event := InputEventAction.new()
+	cancel_event.action = &"ui_cancel"
+	cancel_event.pressed = true
+	screen.call("_unhandled_input", cancel_event)
+	expect(
+		screen.visible and tree_canvas.visible and not overview_panel.visible,
+		"Esc from Inventory did not return to TREE."
+	)
+	screen.call("_unhandled_input", cancel_event)
+	expect(not screen.visible, "Esc from TREE did not close the fullscreen.")
+	screen.call("open_screen")
+	screen.call("open_inventory_overview")
 
 	var items: Array[ItemInstance] = [
 		create_item(&"bark_epic", &"living_bark", 14, ItemRarityRules.EPIC, &"branch_damage", 0.13),

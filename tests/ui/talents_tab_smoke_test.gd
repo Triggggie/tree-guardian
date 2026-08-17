@@ -395,8 +395,8 @@ func test_branch_detection(
 		)
 
 		expect(
-			talent_ids.size() == 3,
-			"Strength talent tree does not contain three talents."
+			talent_ids.size() == 27,
+			"Strength talent tree does not contain 27 talents."
 		)
 
 		talent_screen.call(
@@ -408,6 +408,20 @@ func test_branch_detection(
 			talent_screen.get("selected_branch")
 			== strength_branch,
 			"TalentScreen rejected an equipped Strength root."
+		)
+		var strength_nodes := talent_screen.get("talent_nodes") as Control
+		var strength_graph := talent_screen.get("talent_graph") as TalentGraphCanvas
+		var active_strength_node_count: int = 0
+		for strength_node in strength_nodes.get_children():
+			if not strength_node.is_queued_for_deletion():
+				active_strength_node_count += 1
+		expect(
+			active_strength_node_count == 27,
+			"TalentScreen did not render all 27 Strength nodes."
+		)
+		expect(
+			strength_graph.prerequisite_connections.size() == 24,
+			"TalentScreen did not generate all prerequisite connections."
 		)
 
 	for blossom_branch in [
