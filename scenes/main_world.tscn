@@ -24,7 +24,7 @@
 [ext_resource type="Script" uid="uid://crsyw0dxswihm" path="res://scripts/waves/wave_director.gd" id="21_wave_director"]
 [ext_resource type="Script" path="res://scripts/branch_seed_drop_notification.gd" id="23_seed_notification"]
 [ext_resource type="Script" uid="uid://bqwkwr8mivp1p" path="res://scripts/equipment_drop_notification.gd" id="24_equipment_notification"]
-[ext_resource type="Texture2D" path="res://resources/backgrounds/stage_1/guardian_grove_bg_v1.png" id="25_guardian_grove_background"]
+[ext_resource type="Texture2D" path="res://resources/backgrounds/stage_1/guardian_grove_bg_v2.png" id="25_guardian_grove_background"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdq54"]
 bg_color = Color(0.12156863, 0.16470589, 0.13333334, 1)
