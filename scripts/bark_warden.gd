@@ -2,6 +2,7 @@ extends "res://scripts/bark_beetle.gd"
 
 
 const WARDEN_WALK_VELOCITY_EPSILON: float = 0.1
+const WARDEN_WALK_REFERENCE_SPEED: float = 85.0
 const MIN_WARDEN_WALK_SPEED_SCALE: float = 0.25
 const MAX_WARDEN_WALK_SPEED_SCALE: float = 2.0
 const ATTACK_IMPACT_DISTANCE: Vector2 = Vector2(5.0, 3.0)
@@ -22,9 +23,8 @@ func update_walk_animation() -> void:
 
 	var horizontal_speed: float = abs(velocity.x)
 	if horizontal_speed > WARDEN_WALK_VELOCITY_EPSILON:
-		var reference_speed: float = max(move_speed, WARDEN_WALK_VELOCITY_EPSILON)
 		warden_sprite.speed_scale = clamp(
-			horizontal_speed / reference_speed,
+			horizontal_speed / WARDEN_WALK_REFERENCE_SPEED,
 			MIN_WARDEN_WALK_SPEED_SCALE,
 			MAX_WARDEN_WALK_SPEED_SCALE
 		)
