@@ -4,6 +4,7 @@ extends CharacterBody2D
 const FOREST_ESSENCE_SCENE: PackedScene = preload(
 	"res://scenes/drops/forest_essence.tscn"
 )
+const WALK_VELOCITY_EPSILON: float = 0.1
 
 
 @export_category("Movement")
@@ -47,8 +48,8 @@ var knockback_resistance: float = 0.0
 @onready var movement_component: EnemyMovementComponent = (
 	$MovementComponent
 )
-@onready var visual_sprite: Sprite2D = (
-	get_node_or_null("Visual/BarkBeetleSprite") as Sprite2D
+@onready var visual_sprite: AnimatedSprite2D = (
+	get_node_or_null("Visual/BarkBeetleSprite") as AnimatedSprite2D
 )
 @onready var health_bar: ProgressBar = $HealthBar
 
@@ -373,21 +374,25 @@ func interrupt_attack() -> bool:
 func _physics_process(delta: float) -> void:
 	if is_dying:
 		movement_component.stop()
+		update_walk_animation()
 		return
 
 	if not combat_enabled:
 		movement_component.stop()
 		stop_attacking()
+		update_walk_animation()
 		return
 
 	if not movement_component.is_formation_configured():
 		movement_component.stop()
 		stop_attacking()
+		update_walk_animation()
 		return
 
 	if not is_instance_valid(target_tree):
 		movement_component.stop()
 		stop_attacking()
+		update_walk_animation()
 		return
 
 	var current_column: int = get_current_queue_column()
@@ -397,6 +402,7 @@ func _physics_process(delta: float) -> void:
 			current_column
 		)
 	)
+	update_walk_animation()
 
 	if not reached_queue_position:
 		stop_attacking()
@@ -406,6 +412,19 @@ func _physics_process(delta: float) -> void:
 		start_attacking()
 	else:
 		stop_attacking()
+
+
+func update_walk_animation() -> void:
+	if not is_instance_valid(visual_sprite):
+		return
+
+	if abs(velocity.x) > WALK_VELOCITY_EPSILON:
+		if not visual_sprite.is_playing():
+			visual_sprite.play(&"walk")
+		return
+
+	visual_sprite.pause()
+	visual_sprite.set_frame_and_progress(0, 0.0)
 
 
 func get_current_queue_column() -> int:
