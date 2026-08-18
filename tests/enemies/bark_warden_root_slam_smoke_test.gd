@@ -24,6 +24,7 @@ var failures: Array[String] = []
 
 
 func _ready() -> void:
+	await test_walk_presentation()
 	await test_root_slam_timing_and_cooldown()
 	await test_death_during_telegraph()
 	await test_independent_instances()
@@ -34,6 +35,56 @@ func _ready() -> void:
 		return
 	print("BARK WARDEN ROOT SLAM SMOKE TEST FAIL: %d failure(s)" % failures.size())
 	get_tree().quit(1)
+
+
+func test_walk_presentation() -> void:
+	var fixture: Dictionary = await create_fixture(
+		"WalkPresentation",
+		create_test_definition(10.0, 10.0, 0.08),
+		0
+	)
+	var enemy: CharacterBody2D = fixture.enemy
+	enemy.set_physics_process(false)
+	var sprite := enemy.get_node("Visual/BarkWardenSprite") as AnimatedSprite2D
+	expect(
+		is_equal_approx(BARK_WARDEN.movement_speed, 85.0),
+		"Bark Warden gameplay movement speed changed."
+	)
+	expect(is_instance_valid(sprite), "Bark Warden walk visual is missing.")
+	if not is_instance_valid(sprite):
+		await cleanup_fixture(fixture.root)
+		return
+	expect(sprite.sprite_frames.has_animation(&"walk"), "Warden walk is missing.")
+	expect(
+		is_equal_approx(sprite.sprite_frames.get_animation_speed(&"walk"), 12.0),
+		"Warden walk baseline is not 12 FPS."
+	)
+	expect(sprite.sprite_frames.get_animation_loop(&"walk"), "Warden walk does not loop.")
+	expect(
+		sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
+		"Warden walk is not pixel-sharp."
+	)
+
+	enemy.call("setup_crowd_formation", -1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(not sprite.flip_h, "Left-spawned Warden does not face right.")
+	enemy.velocity.x = BARK_WARDEN.movement_speed
+	enemy.call("update_walk_animation")
+	expect(
+		sprite.is_playing() and is_equal_approx(sprite.speed_scale, 1.0),
+		"Normal movement did not use the Warden walk baseline."
+	)
+	enemy.velocity.x = BARK_WARDEN.movement_speed * 0.5
+	enemy.call("update_walk_animation")
+	expect(
+		is_equal_approx(sprite.speed_scale, 0.5),
+		"Warden walk cadence did not scale with actual velocity."
+	)
+	enemy.velocity.x = 0.0
+	enemy.call("update_walk_animation")
+	expect(not sprite.is_playing(), "Stationary Warden walked in place.")
+	enemy.call("setup_crowd_formation", 1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(sprite.flip_h, "Right-spawned Warden does not face left.")
+	await cleanup_fixture(fixture.root)
 
 
 func test_root_slam_timing_and_cooldown() -> void:
