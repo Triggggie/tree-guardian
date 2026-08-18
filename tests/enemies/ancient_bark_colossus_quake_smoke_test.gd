@@ -22,6 +22,7 @@ var failures: Array[String] = []
 
 
 func _ready() -> void:
+	await test_heavy_walk_presentation()
 	await test_phase_one_quake()
 	await test_phase_two_double_pulse()
 	await test_death_between_pulses()
@@ -36,6 +37,80 @@ func _ready() -> void:
 		% failures.size()
 	)
 	get_tree().quit(1)
+
+
+func test_heavy_walk_presentation() -> void:
+	var root := Node2D.new()
+	root.name = "HeavyWalkPresentation"
+	add_child(root)
+	var tracker := EnemyTracker.new()
+	root.add_child(tracker)
+	var lane_registry := LaneRegistry.new()
+	root.add_child(lane_registry)
+	var tree_node := MockTree.new()
+	root.add_child(tree_node)
+	var enemy := COLOSSUS.enemy_scene.instantiate() as CharacterBody2D
+	expect(
+		bool(enemy.call("configure_from_definition", COLOSSUS)),
+		"Walk fixture rejected definition."
+	)
+	root.add_child(enemy)
+	var sprite := enemy.get_node("Visual/AncientBarkColossusSprite") as AnimatedSprite2D
+	expect(is_instance_valid(sprite), "Colossus walk visual is not AnimatedSprite2D.")
+	if not is_instance_valid(sprite):
+		await cleanup_fixture(root)
+		return
+	expect(sprite.sprite_frames.has_animation(&"walk"), "Walk animation is missing.")
+	expect(
+		sprite.sprite_frames.get_frame_count(&"walk") == 9,
+		"Walk does not use nine populated frames."
+	)
+	expect(sprite.sprite_frames.get_animation_loop(&"walk"), "Walk animation does not loop.")
+	expect(
+		is_equal_approx(sprite.sprite_frames.get_animation_speed(&"walk"), 8.0),
+		"Walk baseline is not 8 FPS."
+	)
+	expect(
+		sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
+		"Walk texture is not pixel-sharp."
+	)
+	expect(sprite.position == Vector2(0.0, -110.0), "Walk changed ground alignment.")
+	expect(sprite.scale == Vector2(1.05, 1.05), "Walk changed visual scale.")
+
+	enemy.call("setup_crowd_formation", -1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(not sprite.flip_h, "Left-spawned Colossus does not face right.")
+	enemy.velocity.x = COLOSSUS.movement_speed
+	enemy.call("update_walk_animation")
+	expect(sprite.is_playing(), "Walk did not play while moving.")
+	expect(
+		is_equal_approx(sprite.speed_scale, 1.0),
+		"Configured speed did not use baseline cadence."
+	)
+	enemy.velocity.x = COLOSSUS.movement_speed * 0.5
+	enemy.call("update_walk_animation")
+	expect(is_equal_approx(sprite.speed_scale, 0.5), "Walk cadence did not follow velocity.")
+
+	var grounded_frame: int = sprite.frame
+	enemy.velocity.x = 0.0
+	enemy.call("update_walk_animation")
+	expect(not sprite.is_playing(), "Walk continued while stationary.")
+	expect(sprite.frame == grounded_frame, "Stationary walk snapped to another frame.")
+	enemy.call("setup_crowd_formation", 1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(sprite.flip_h, "Right-spawned Colossus does not face left.")
+
+	for frame_index in range(sprite.sprite_frames.get_frame_count(&"walk")):
+		var frame_texture := sprite.sprite_frames.get_frame_texture(
+			&"walk", frame_index
+		) as AtlasTexture
+		expect(is_instance_valid(frame_texture), "Walk frame %d has no atlas texture." % frame_index)
+		if is_instance_valid(frame_texture):
+			expect(
+				frame_texture.region == Rect2(
+					256.0 * float(frame_index + 1), 0.0, 256.0, 256.0
+				),
+				"Walk frame %d does not preserve populated authored order." % frame_index
+			)
+	await cleanup_fixture(root)
 
 
 func test_phase_one_quake() -> void:
