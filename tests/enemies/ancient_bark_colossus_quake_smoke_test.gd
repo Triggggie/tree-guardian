@@ -24,6 +24,7 @@ var failures: Array[String] = []
 func _ready() -> void:
 	await test_heavy_walk_presentation()
 	await test_basic_melee_presentation()
+	await test_quake_presentation()
 	await test_phase_one_quake()
 	await test_phase_two_double_pulse()
 	await test_death_between_pulses()
@@ -210,14 +211,117 @@ func test_basic_melee_presentation() -> void:
 	await cleanup_fixture(fixture.root)
 
 
+func test_quake_presentation() -> void:
+	var fixture: Dictionary = await create_fixture(
+		"QuakePresentation", COLOSSUS
+	)
+	var enemy: CharacterBody2D = fixture.enemy
+	enemy.set_physics_process(false)
+	var sprite := enemy.get_node(
+		"Visual/AncientBarkColossusSprite"
+	) as AnimatedSprite2D
+	var visual := enemy.get_node("Visual") as Node2D
+	expect(sprite.sprite_frames.has_animation(&"quake"), "Quake animation is missing.")
+	expect(
+		sprite.sprite_frames.get_frame_count(&"quake") == 9,
+		"Quake does not use nine populated frames."
+	)
+	expect(
+		not sprite.sprite_frames.get_animation_loop(&"quake"),
+		"Quake animation loops."
+	)
+	expect(
+		is_equal_approx(
+			sprite.sprite_frames.get_animation_speed(&"quake"), 5.0
+		),
+		"Quake baseline is not 5 FPS."
+	)
+
+	enemy.velocity.x = COLOSSUS.movement_speed
+	enemy.call("update_walk_animation")
+	enemy.call("play_attack_visual")
+	visual.position = Vector2(40.0, 40.0)
+	enemy.call("_on_quake_telegraph_started", &"colossal_quake", 1)
+	expect(
+		bool(enemy.get("quake_visual_active"))
+		and bool(enemy.get("attack_visual_active"))
+		and sprite.animation == &"quake"
+		and sprite.frame == 0
+		and sprite.is_playing(),
+		"Telegraph did not interrupt melee and restart Quake at frame 0."
+	)
+	expect(visual.position == Vector2.ZERO, "Quake moved the resting Visual.")
+	expect(
+		is_equal_approx(sprite.speed_scale, 5.0 / 1.2 / 5.0),
+		"Phase 1 Quake did not align its slam to the first pulse."
+	)
+	enemy.call("play_attack_visual")
+	expect(
+		sprite.animation == &"quake",
+		"Basic melee visually interrupted an active Quake."
+	)
+
+	enemy.call("_on_quake_telegraph_started", &"colossal_quake", 2)
+	expect(
+		sprite.animation == &"quake"
+		and sprite.frame == 0
+		and is_equal_approx(sprite.speed_scale, 1.0),
+		"Phase 2 Quake did not restart with pulse-aligned playback."
+	)
+	enemy.call("cancel_attack_visual")
+	enemy.call("update_walk_animation")
+	expect(
+		sprite.animation == &"walk" and sprite.is_playing(),
+		"Moving Colossus did not resume walking after Quake cancellation."
+	)
+	enemy.velocity.x = 0.0
+	enemy.call("_on_quake_telegraph_started", &"colossal_quake", 1)
+	enemy.call("cancel_attack_visual")
+	enemy.call("update_walk_animation")
+	expect(
+		sprite.animation == &"walk" and not sprite.is_playing(),
+		"Stationary Colossus walked in place after Quake cancellation."
+	)
+
+	enemy.call("setup_crowd_formation", -1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(not sprite.flip_h, "Left-spawned Quake does not face right.")
+	enemy.call("setup_crowd_formation", 1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(sprite.flip_h, "Right-spawned Quake does not face left.")
+	for frame_index in range(sprite.sprite_frames.get_frame_count(&"quake")):
+		var frame_texture := sprite.sprite_frames.get_frame_texture(
+			&"quake", frame_index
+		) as AtlasTexture
+		expect(
+			is_instance_valid(frame_texture),
+			"Quake frame %d has no atlas texture." % frame_index
+		)
+		if is_instance_valid(frame_texture):
+			expect(
+				frame_texture.region == Rect2(
+					256.0 * float(frame_index + 1), 0.0, 256.0, 256.0
+				),
+				"Quake frame %d does not preserve populated authored order."
+				% frame_index
+			)
+	await cleanup_fixture(fixture.root)
+
+
 func test_phase_one_quake() -> void:
 	var definition: EnemyDefinition = create_test_definition(0.30, 0.12, 0.09, 0.08)
 	var fixture: Dictionary = await create_fixture("PhaseOneQuake", definition)
 	var tree_node: MockTree = fixture.tree
+	var enemy: CharacterBody2D = fixture.enemy
 	var runtime: BossAbilityRuntime = fixture.runtime
+	var sprite := enemy.get_node(
+		"Visual/AncientBarkColossusSprite"
+	) as AnimatedSprite2D
 	expect(runtime.get_current_phase() == 1, "Colossus did not start in Phase 1.")
 	await runtime.telegraph_started
 	expect(runtime.is_ability_running(), "Phase 1 Quake did not telegraph.")
+	expect(
+		sprite.animation == &"quake" and sprite.is_playing(),
+		"Phase 1 telegraph did not start the character animation."
+	)
 	expect(runtime.has_active_telegraph(), "Phase 1 telegraph visual is missing.")
 	expect(count_damage(tree_node.damage_events, 12.0) == 0, "Phase 1 Quake dealt premature damage.")
 	await runtime.pulse_executed
@@ -234,6 +338,9 @@ func test_phase_two_double_pulse() -> void:
 	var tree_node: MockTree = fixture.tree
 	var enemy: CharacterBody2D = fixture.enemy
 	var runtime: BossAbilityRuntime = fixture.runtime
+	var sprite := enemy.get_node(
+		"Visual/AncientBarkColossusSprite"
+	) as AnimatedSprite2D
 	var phase_events: Array[int] = []
 	runtime.phase_changed.connect(
 		func(new_phase: int) -> void: phase_events.append(new_phase)
@@ -247,6 +354,10 @@ func test_phase_two_double_pulse() -> void:
 
 	await runtime.telegraph_started
 	expect(runtime.is_ability_running(), "Phase 2 Quake did not start.")
+	expect(
+		sprite.animation == &"quake" and sprite.is_playing(),
+		"Phase 2 telegraph did not start the character animation."
+	)
 	expect(count_damage(tree_node.damage_events, 10.0) == 0, "Phase 2 Quake dealt premature damage.")
 	await runtime.pulse_executed
 	expect(count_damage(tree_node.damage_events, 10.0) == 1, "Phase 2 Pulse 1 is wrong.")
