@@ -5,6 +5,9 @@ const FOREST_ESSENCE_SCENE: PackedScene = preload(
 	"res://scenes/drops/forest_essence.tscn"
 )
 const WALK_VELOCITY_EPSILON: float = 0.1
+const WALK_REFERENCE_SPEED: float = 120.0
+const MIN_WALK_SPEED_SCALE: float = 0.25
+const MAX_WALK_SPEED_SCALE: float = 2.0
 
 
 @export_category("Movement")
@@ -418,11 +421,18 @@ func update_walk_animation() -> void:
 	if not is_instance_valid(visual_sprite):
 		return
 
-	if abs(velocity.x) > WALK_VELOCITY_EPSILON:
+	var horizontal_speed: float = abs(velocity.x)
+	if horizontal_speed > WALK_VELOCITY_EPSILON:
+		visual_sprite.speed_scale = clamp(
+			horizontal_speed / WALK_REFERENCE_SPEED,
+			MIN_WALK_SPEED_SCALE,
+			MAX_WALK_SPEED_SCALE
+		)
 		if not visual_sprite.is_playing():
 			visual_sprite.play(&"walk")
 		return
 
+	visual_sprite.speed_scale = 1.0
 	visual_sprite.pause()
 	visual_sprite.set_frame_and_progress(0, 0.0)
 
