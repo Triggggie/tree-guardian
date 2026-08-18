@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_health_component.gd" id="2_health"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_attack_component.gd" id="3_attack"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_movement_component.gd" id="4_movement"]
+[ext_resource type="Texture2D" path="res://resources/enemies/bark_runner/bark_runner_v1.png" id="5_runner_visual"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_runner"]
 radius = 22.0
@@ -37,6 +38,13 @@ wait_time = 1.0
 script = ExtResource("4_movement")
 
 [node name="Visual" type="Node2D" parent="."]
+
+[node name="BarkRunnerSprite" type="Sprite2D" parent="Visual"]
+texture_filter = 1
+position = Vector2(0, -21)
+scale = Vector2(0.43, 0.43)
+texture = ExtResource("5_runner_visual")
+flip_h = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_runner")
