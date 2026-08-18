@@ -8,6 +8,11 @@ const WALK_VELOCITY_EPSILON: float = 0.1
 const WALK_REFERENCE_SPEED: float = 120.0
 const MIN_WALK_SPEED_SCALE: float = 0.25
 const MAX_WALK_SPEED_SCALE: float = 2.0
+const ATTACK_HOP_HEIGHT: float = 10.0
+const ATTACK_LUNGE_DISTANCE: float = 8.0
+const ATTACK_TAKEOFF_DURATION: float = 0.11
+const ATTACK_PEAK_DURATION: float = 0.02
+const ATTACK_LANDING_DURATION: float = 0.14
 
 
 @export_category("Movement")
@@ -51,6 +56,7 @@ var knockback_resistance: float = 0.0
 @onready var movement_component: EnemyMovementComponent = (
 	$MovementComponent
 )
+@onready var visual: Node2D = get_node_or_null("Visual") as Node2D
 @onready var visual_sprite: AnimatedSprite2D = (
 	get_node_or_null("Visual/BarkBeetleSprite") as AnimatedSprite2D
 )
@@ -76,9 +82,12 @@ var has_warned_missing_equipment_loot_service: bool = false
 
 var resting_rotation: float
 var resting_scale: Vector2
+var resting_visual_position: Vector2
 
 var hit_tween: Tween
 var death_tween: Tween
+var attack_visual_tween: Tween
+var attack_visual_active: bool = false
 var boss_ability_runtime: BossAbilityRuntime
 
 
@@ -218,6 +227,8 @@ func _ready() -> void:
 
 	resting_rotation = rotation
 	resting_scale = scale
+	if is_instance_valid(visual):
+		resting_visual_position = visual.position
 
 	attack_component.attack_requested.connect(
 		_on_attack_requested
@@ -251,6 +262,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	cancel_attack_visual()
 	cancel_boss_ability_runtime()
 	unregister_from_enemy_tracker()
 	unregister_from_lane_registry()
@@ -420,6 +432,8 @@ func _physics_process(delta: float) -> void:
 func update_walk_animation() -> void:
 	if not is_instance_valid(visual_sprite):
 		return
+	if attack_visual_active:
+		return
 
 	var horizontal_speed: float = abs(velocity.x)
 	if horizontal_speed > WALK_VELOCITY_EPSILON:
@@ -428,11 +442,15 @@ func update_walk_animation() -> void:
 			MIN_WALK_SPEED_SCALE,
 			MAX_WALK_SPEED_SCALE
 		)
-		if not visual_sprite.is_playing():
+		if (
+			visual_sprite.animation != &"walk"
+			or not visual_sprite.is_playing()
+		):
 			visual_sprite.play(&"walk")
 		return
 
 	visual_sprite.speed_scale = 1.0
+	visual_sprite.animation = &"walk"
 	visual_sprite.pause()
 	visual_sprite.set_frame_and_progress(0, 0.0)
 
@@ -522,10 +540,65 @@ func _on_attack_requested() -> void:
 		stop_attacking()
 		return
 
+	play_attack_visual()
 	if target_tree.has_method("take_damage"):
 		target_tree.take_damage(
 			attack_component.get_attack_damage()
 		)
+
+
+func play_attack_visual() -> void:
+	if (
+		not is_instance_valid(visual)
+		or not is_instance_valid(visual_sprite)
+		or not visual_sprite.sprite_frames.has_animation(&"attack")
+	):
+		return
+
+	cancel_attack_visual()
+	attack_visual_active = true
+	visual.position = resting_visual_position
+	visual_sprite.speed_scale = 1.0
+	visual_sprite.animation = &"attack"
+	visual_sprite.set_frame_and_progress(0, 0.0)
+	visual_sprite.play()
+
+	var hop_offset: Vector2 = Vector2(
+		-formation_side * ATTACK_LUNGE_DISTANCE,
+		-ATTACK_HOP_HEIGHT
+	)
+	attack_visual_tween = create_tween()
+	attack_visual_tween.tween_property(
+		visual,
+		"position",
+		resting_visual_position + hop_offset,
+		ATTACK_TAKEOFF_DURATION
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	attack_visual_tween.tween_interval(ATTACK_PEAK_DURATION)
+	attack_visual_tween.tween_property(
+		visual,
+		"position",
+		resting_visual_position,
+		ATTACK_LANDING_DURATION
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	attack_visual_tween.tween_callback(finish_attack_visual)
+
+
+func finish_attack_visual() -> void:
+	attack_visual_tween = null
+	attack_visual_active = false
+	if is_instance_valid(visual):
+		visual.position = resting_visual_position
+	update_walk_animation()
+
+
+func cancel_attack_visual() -> void:
+	if is_instance_valid(attack_visual_tween):
+		attack_visual_tween.kill()
+	attack_visual_tween = null
+	attack_visual_active = false
+	if is_instance_valid(visual):
+		visual.position = resting_visual_position
 
 
 func take_damage(
@@ -678,6 +751,7 @@ func die(killer: Node = null) -> void:
 
 	is_dying = true
 	combat_enabled = false
+	cancel_attack_visual()
 	cancel_boss_ability_runtime()
 
 	attack_component.set_enabled(false)
@@ -852,6 +926,7 @@ func stop_combat() -> void:
 		return
 
 	combat_enabled = false
+	cancel_attack_visual()
 	cancel_boss_ability_runtime()
 	attack_component.set_enabled(false)
 	stop_attacking()
