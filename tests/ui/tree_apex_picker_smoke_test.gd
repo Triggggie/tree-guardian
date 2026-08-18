@@ -211,7 +211,7 @@ func run_test(
 		"Locked Seed B bypassed the player-facing unlock gate."
 	)
 	expect(screen.call("open_branch_picker"), "Apex picker did not reopen for live unlock.")
-	expect(seeds.unlock_branch_seed(definition_b), "Synthetic Seed B did not unlock.")
+	expect(seeds.acquire_branch_seed(definition_b, 2), "Synthetic Seed B Tier II did not unlock.")
 	expect(
 		candidate_ids(screen) == [&"test_legendary_a", &"test_legendary_b"]
 		and seed_label.text.find("Test Legendary A")

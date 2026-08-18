@@ -51,6 +51,7 @@ func _ready() -> void:
 	world.queue_free()
 	await get_tree().process_frame
 	BranchSeeds.unlocked_branch_seed_ids.clear()
+	BranchSeeds.acquired_tiers_by_branch_id.clear()
 	BranchLoadout.restore_persistence_state({"apex_slot": "thorn_crown"}, BranchSeeds)
 	expect(BranchLoadout.get_equipped_apex_branch_id() == &"", "Saved Apex bypassed locked Branch Seed gate.")
 	cleanup_file(TEST_PATH)

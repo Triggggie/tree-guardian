@@ -71,8 +71,7 @@ func test_definition_and_runtime() -> void:
 		and definition.is_valid_definition()
 		and definition.display_name == "Thorn Crown"
 		and definition.is_legendary_branch()
-		and definition.get_legendary_tier() == BranchDefinition.LEGENDARY_TIER_1
-		and definition.get_legendary_tier_display_name() == "Tier I"
+		and definition.get_legendary_tier() == BranchDefinition.LEGENDARY_TIER_NONE
 		and definition.branch_scene == THORN_SCENE
 		and is_instance_valid(definition.targeting_profile)
 		and definition.targeting_profile.target_group == &"enemies"

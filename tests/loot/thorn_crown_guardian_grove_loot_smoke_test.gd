@@ -60,10 +60,7 @@ func test_production_content() -> void:
 	)
 	expect(THORN_CROWN.is_valid_definition(), "Thorn Crown is invalid.")
 	expect(THORN_CROWN.is_legendary_branch(), "Thorn Crown is not Legendary.")
-	expect(
-		THORN_CROWN.get_legendary_tier() == BranchDefinition.LEGENDARY_TIER_1,
-		"Thorn Crown is not Tier I."
-	)
+	expect(THORN_CROWN.get_legendary_tier() == 0, "Thorn Crown definition owns Tier state.")
 	expect(
 		GUARDIAN_GROVE_STAGE.get_branch_seed_loot_pool() == GUARDIAN_GROVE_POOL,
 		"Guardian Grove does not reference its production Branch Seed pool."
@@ -80,11 +77,7 @@ func test_production_content() -> void:
 			entry.get_legendary_tier() == BranchDefinition.LEGENDARY_TIER_1,
 			"Loot entry has the wrong Legendary Tier."
 		)
-		expect(
-			entry.get_legendary_tier_display_name()
-			== THORN_CROWN.get_legendary_tier_display_name(),
-			"Loot entry does not use the BranchDefinition Tier display."
-		)
+		expect(entry.get_legendary_tier_display_name() == "Tier I", "Loot Tier text differs.")
 		expect(is_equal_approx(entry.weight, 1.0), "Thorn Crown loot weight differs.")
 
 	expect(
@@ -182,9 +175,9 @@ func test_production_pity_timeline_and_persistence() -> void:
 			signal_order.append(&"pity")
 	)
 	service.branch_seed_dropped.connect(
-		func(branch_id: StringName, enemy_id: StringName, position: Vector2) -> void:
+		func(branch_id: StringName, tier: int, enemy_id: StringName, position: Vector2) -> void:
 			signal_order.append(&"dropped")
-			dropped_signal_data.assign([branch_id, enemy_id, position])
+			dropped_signal_data.assign([branch_id, tier, enemy_id, position])
 	)
 	var drop_position := Vector2(321.0, 654.0)
 	var guaranteed_id: StringName = service.process_enemy_defeat(
@@ -200,7 +193,7 @@ func test_production_pity_timeline_and_persistence() -> void:
 		"Guaranteed drop signal order differs."
 	)
 	expect(
-		dropped_signal_data == [&"thorn_crown", &"bark_warden", drop_position],
+		dropped_signal_data == [&"thorn_crown", 1, &"bark_warden", drop_position],
 		"Drop signal data differs."
 	)
 
@@ -234,7 +227,7 @@ func test_production_pity_timeline_and_persistence() -> void:
 			reload_signals.append(&"pity")
 	)
 	reloaded.branch_seed_dropped.connect(
-		func(_branch_id: StringName, _enemy_id: StringName, _position: Vector2) -> void:
+		func(_branch_id: StringName, _tier: int, _enemy_id: StringName, _position: Vector2) -> void:
 			reload_signals.append(&"dropped")
 	)
 	expect(
@@ -297,7 +290,7 @@ func test_normal_enemy_guard() -> void:
 			signals.append(&"pity")
 	)
 	service.branch_seed_dropped.connect(
-		func(_branch_id: StringName, _enemy_id: StringName, _position: Vector2) -> void:
+		func(_branch_id: StringName, _tier: int, _enemy_id: StringName, _position: Vector2) -> void:
 			signals.append(&"dropped")
 	)
 	for normal_enemy in [BARK_BEETLE, BARK_RUNNER]:

@@ -86,19 +86,21 @@ func is_valid_definition() -> bool:
 	):
 		return false
 
-	var used_branch_ids: Dictionary = {}
+	var used_branch_tiers: Dictionary = {}
 
 	for entry in entries:
 		if not is_instance_valid(entry) or not entry.is_valid_definition():
 			return false
 
-		var branch_id: StringName = entry.get_branch_id()
-		if used_branch_ids.has(branch_id):
+		var branch_tier_key: String = "%s:%d" % [
+			entry.get_branch_id(), entry.get_legendary_tier()
+		]
+		if used_branch_tiers.has(branch_tier_key):
 			return false
 
 		if entry.get_legendary_tier() > boss_maximum_tier:
 			return false
 
-		used_branch_ids[branch_id] = true
+		used_branch_tiers[branch_tier_key] = true
 
 	return true

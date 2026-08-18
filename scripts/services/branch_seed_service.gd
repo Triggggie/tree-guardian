@@ -3,8 +3,10 @@ extends Node
 
 
 signal branch_seed_unlocked(branch_id: StringName)
+signal branch_seed_tier_changed(branch_id: StringName, acquired_tier: int)
 signal branch_seed_dropped(
 	branch_id: StringName,
+	legendary_tier: int,
 	enemy_id: StringName,
 	world_position: Vector2
 )
@@ -16,11 +18,12 @@ signal branch_seed_pity_changed(
 
 
 const DEFAULT_STORAGE_PATH: String = "user://branch_seed_unlocks.cfg"
-const SAVE_VERSION: int = 2
-const LEGACY_SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 3
+const LEGACY_SAVE_VERSIONS: Array[int] = [1, 2]
 const SAVE_SECTION: String = "branch_seed_unlocks"
 const SAVE_VERSION_KEY: String = "version"
 const SAVE_IDS_KEY: String = "branch_ids"
+const SAVE_TIERS_KEY: String = "acquired_tiers"
 const PITY_SECTION: String = "branch_seed_pity"
 const PITY_TIER_1_KEY: String = "tier_1_points"
 const PITY_TIER_2_KEY: String = "tier_2_points"
@@ -29,6 +32,7 @@ const PITY_TIER_3_KEY: String = "tier_3_points"
 
 var storage_path: String = DEFAULT_STORAGE_PATH
 var unlocked_branch_seed_ids: Array[StringName] = []
+var acquired_tiers_by_branch_id: Dictionary = {}
 var pity_points_by_tier: Dictionary = {
 	BranchDefinition.LEGENDARY_TIER_1: 0,
 	BranchDefinition.LEGENDARY_TIER_2: 0,
@@ -56,6 +60,7 @@ func initialize(storage_path_override: String = "") -> bool:
 
 func reload_from_disk() -> bool:
 	unlocked_branch_seed_ids.clear()
+	acquired_tiers_by_branch_id.clear()
 	_reset_pity_points()
 
 	var config := ConfigFile.new()
@@ -77,36 +82,44 @@ func reload_from_disk() -> bool:
 		0
 	))
 
-	if save_version not in [LEGACY_SAVE_VERSION, SAVE_VERSION]:
+	if save_version not in LEGACY_SAVE_VERSIONS and save_version != SAVE_VERSION:
 		push_warning(
 			"BranchSeeds found unsupported save version %d in '%s'."
 			% [save_version, storage_path]
 		)
 		return false
 
-	_load_unlock_ids(config)
+	if save_version in LEGACY_SAVE_VERSIONS:
+		_load_legacy_unlock_ids(config)
+	else:
+		_load_acquired_tiers(config)
 
-	if save_version == LEGACY_SAVE_VERSION:
+	if save_version >= 2:
+		pity_points_by_tier[BranchDefinition.LEGENDARY_TIER_1] = max(
+			int(config.get_value(PITY_SECTION, PITY_TIER_1_KEY, 0)), 0
+		)
+		pity_points_by_tier[BranchDefinition.LEGENDARY_TIER_2] = max(
+			int(config.get_value(PITY_SECTION, PITY_TIER_2_KEY, 0)), 0
+		)
+		pity_points_by_tier[BranchDefinition.LEGENDARY_TIER_3] = max(
+			int(config.get_value(PITY_SECTION, PITY_TIER_3_KEY, 0)), 0
+		)
+
+	if save_version in LEGACY_SAVE_VERSIONS:
 		return save_unlocks()
-
-	pity_points_by_tier[BranchDefinition.LEGENDARY_TIER_1] = max(
-		int(config.get_value(PITY_SECTION, PITY_TIER_1_KEY, 0)),
-		0
-	)
-	pity_points_by_tier[BranchDefinition.LEGENDARY_TIER_2] = max(
-		int(config.get_value(PITY_SECTION, PITY_TIER_2_KEY, 0)),
-		0
-	)
-	pity_points_by_tier[BranchDefinition.LEGENDARY_TIER_3] = max(
-		int(config.get_value(PITY_SECTION, PITY_TIER_3_KEY, 0)),
-		0
-	)
 
 	return true
 
 
 func is_branch_seed_unlocked(branch_id: StringName) -> bool:
-	return branch_id != &"" and unlocked_branch_seed_ids.has(branch_id)
+	return get_acquired_tier(branch_id) >= BranchDefinition.LEGENDARY_TIER_1
+
+
+func get_acquired_tier(branch_id: StringName) -> int:
+	var tier: int = int(acquired_tiers_by_branch_id.get(branch_id, 0))
+	if tier not in [1, 2, 3]:
+		return BranchDefinition.LEGENDARY_TIER_NONE
+	return tier
 
 
 func get_unlocked_branch_seed_ids() -> Array[StringName]:
@@ -138,23 +151,41 @@ func get_pity_threshold(
 
 
 func unlock_branch_seed(branch_definition: BranchDefinition) -> bool:
+	return acquire_branch_seed(branch_definition, BranchDefinition.LEGENDARY_TIER_1)
+
+
+func acquire_branch_seed(
+	branch_definition: BranchDefinition,
+	acquired_tier: int
+) -> bool:
 	if (
 		not is_instance_valid(branch_definition)
 		or not branch_definition.is_valid_definition()
 		or not branch_definition.is_legendary_branch()
 	):
 		return false
+	if acquired_tier not in [1, 2, 3]:
+		return false
 
 	var branch_id: StringName = branch_definition.branch_id
-	if is_branch_seed_unlocked(branch_id):
+	var previous_tier: int = get_acquired_tier(branch_id)
+	if acquired_tier <= previous_tier:
 		return false
 
-	unlocked_branch_seed_ids.append(branch_id)
+	acquired_tiers_by_branch_id[branch_id] = acquired_tier
+	if not unlocked_branch_seed_ids.has(branch_id):
+		unlocked_branch_seed_ids.append(branch_id)
 	if not save_unlocks():
-		unlocked_branch_seed_ids.erase(branch_id)
+		if previous_tier == 0:
+			acquired_tiers_by_branch_id.erase(branch_id)
+			unlocked_branch_seed_ids.erase(branch_id)
+		else:
+			acquired_tiers_by_branch_id[branch_id] = previous_tier
 		return false
 
-	branch_seed_unlocked.emit(branch_id)
+	if previous_tier == 0:
+		branch_seed_unlocked.emit(branch_id)
+	branch_seed_tier_changed.emit(branch_id, acquired_tier)
 	return true
 
 
@@ -233,19 +264,29 @@ func process_enemy_defeat(
 		return &""
 
 	var branch_id: StringName = selected_entry.get_branch_id()
-	unlocked_branch_seed_ids.append(branch_id)
+	var previous_acquired_tier: int = get_acquired_tier(branch_id)
+	acquired_tiers_by_branch_id[branch_id] = selected_tier
+	if not unlocked_branch_seed_ids.has(branch_id):
+		unlocked_branch_seed_ids.append(branch_id)
 	pity_points_by_tier[selected_tier] = 0
 
 	if not save_unlocks():
-		unlocked_branch_seed_ids.erase(branch_id)
+		if previous_acquired_tier == 0:
+			acquired_tiers_by_branch_id.erase(branch_id)
+			unlocked_branch_seed_ids.erase(branch_id)
+		else:
+			acquired_tiers_by_branch_id[branch_id] = previous_acquired_tier
 		pity_points_by_tier[selected_tier] = previous_pity
 		return &""
 
-	branch_seed_unlocked.emit(branch_id)
+	if previous_acquired_tier == 0:
+		branch_seed_unlocked.emit(branch_id)
+	branch_seed_tier_changed.emit(branch_id, selected_tier)
 	if previous_pity != 0:
 		branch_seed_pity_changed.emit(selected_tier, 0, threshold)
 	branch_seed_dropped.emit(
 		branch_id,
+		selected_tier,
 		enemy_definition.enemy_id,
 		world_position
 	)
@@ -269,6 +310,10 @@ func save_unlocks() -> bool:
 
 	config.set_value(SAVE_SECTION, SAVE_VERSION_KEY, SAVE_VERSION)
 	config.set_value(SAVE_SECTION, SAVE_IDS_KEY, stored_ids)
+	var stored_tiers: Dictionary = {}
+	for branch_id in unlocked_branch_seed_ids:
+		stored_tiers[String(branch_id)] = get_acquired_tier(branch_id)
+	config.set_value(SAVE_SECTION, SAVE_TIERS_KEY, stored_tiers)
 	config.set_value(
 		PITY_SECTION,
 		PITY_TIER_1_KEY,
@@ -310,11 +355,27 @@ func reset_all_progress_for_debug() -> bool:
 			)
 			return false
 	unlocked_branch_seed_ids.clear()
+	acquired_tiers_by_branch_id.clear()
 	_reset_pity_points()
 	return true
 
 
-func _load_unlock_ids(config: ConfigFile) -> void:
+func clear_for_prestige() -> bool:
+	var previous_ids: Array[StringName] = unlocked_branch_seed_ids.duplicate()
+	var previous_tiers: Dictionary = acquired_tiers_by_branch_id.duplicate(true)
+	var previous_pity: Dictionary = pity_points_by_tier.duplicate(true)
+	unlocked_branch_seed_ids.clear()
+	acquired_tiers_by_branch_id.clear()
+	_reset_pity_points()
+	if save_unlocks():
+		return true
+	unlocked_branch_seed_ids = previous_ids
+	acquired_tiers_by_branch_id = previous_tiers
+	pity_points_by_tier = previous_pity
+	return false
+
+
+func _load_legacy_unlock_ids(config: ConfigFile) -> void:
 	var stored_ids = config.get_value(
 		SAVE_SECTION,
 		SAVE_IDS_KEY,
@@ -331,6 +392,23 @@ func _load_unlock_ids(config: ConfigFile) -> void:
 			continue
 
 		loaded_ids[branch_id] = true
+		unlocked_branch_seed_ids.append(branch_id)
+		acquired_tiers_by_branch_id[branch_id] = BranchDefinition.LEGENDARY_TIER_1
+
+
+func _load_acquired_tiers(config: ConfigFile) -> void:
+	var stored_tiers = config.get_value(SAVE_SECTION, SAVE_TIERS_KEY, {})
+	if stored_tiers is not Dictionary:
+		return
+	for stored_id in stored_tiers:
+		var branch_id := StringName(str(stored_id))
+		var tier_value = stored_tiers[stored_id]
+		if branch_id == &"" or tier_value is not int:
+			continue
+		var tier: int = int(tier_value)
+		if tier not in [1, 2, 3]:
+			continue
+		acquired_tiers_by_branch_id[branch_id] = tier
 		unlocked_branch_seed_ids.append(branch_id)
 
 
@@ -351,7 +429,7 @@ func _get_locked_entries_for_tier(
 	for entry in loot_pool.get_entries_for_tier(legendary_tier):
 		if not entry.is_valid_definition():
 			continue
-		if is_branch_seed_unlocked(entry.get_branch_id()):
+		if get_acquired_tier(entry.get_branch_id()) >= legendary_tier:
 			continue
 		locked_entries.append(entry)
 

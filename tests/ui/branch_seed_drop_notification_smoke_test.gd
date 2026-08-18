@@ -96,9 +96,10 @@ func run_test() -> void:
 
 	var drop_events: Array[Dictionary] = []
 	service.branch_seed_dropped.connect(
-		func(branch_id: StringName, enemy_id: StringName, position: Vector2) -> void:
+		func(branch_id: StringName, tier: int, enemy_id: StringName, position: Vector2) -> void:
 			drop_events.append({
 				"branch_id": branch_id,
+				"tier": tier,
 				"enemy_id": enemy_id,
 				"position": position
 			})
@@ -119,6 +120,7 @@ func run_test() -> void:
 	expect(
 		drop_events == [{
 			"branch_id": &"thorn_crown",
+			"tier": BranchDefinition.LEGENDARY_TIER_1,
 			"enemy_id": &"bark_warden",
 			"position": drop_position
 		}],
@@ -129,9 +131,8 @@ func run_test() -> void:
 	expect(title_label.text == "LEGENDARY BRANCH SEED UNLOCKED", "Title differs.")
 	expect(branch_name_label.text == THORN_CROWN.display_name, "Branch name differs.")
 	expect(
-		tier_label.text == THORN_CROWN.get_legendary_tier_display_name()
-		and tier_label.text == "Tier I",
-		"Tier text differs from BranchDefinition."
+		tier_label.text == "Tier I",
+		"Tier text differs from acquired drop Tier."
 	)
 	expect(source_label.text == "Dropped by Bark Warden", "Source text differs.")
 	expect(
@@ -149,6 +150,7 @@ func run_test() -> void:
 	var first_tween: Tween = notification.presentation_tween
 	service.branch_seed_dropped.emit(
 		&"thorn_crown",
+		BranchDefinition.LEGENDARY_TIER_3,
 		&"ancient_bark_colossus",
 		Vector2.ZERO
 	)
@@ -173,6 +175,7 @@ func run_test() -> void:
 
 	reloaded.branch_seed_dropped.emit(
 		&"missing_branch",
+		BranchDefinition.LEGENDARY_TIER_1,
 		&"bark_warden",
 		Vector2.ZERO
 	)
@@ -183,12 +186,13 @@ func run_test() -> void:
 
 	reloaded.branch_seed_dropped.emit(
 		&"thorn_crown",
+		BranchDefinition.LEGENDARY_TIER_2,
 		&"missing_enemy",
 		Vector2.ZERO
 	)
 	expect(notification.visible, "Unknown enemy suppressed a valid Branch acquisition.")
 	expect(branch_name_label.text == "Thorn Crown", "Unknown enemy changed Branch text.")
-	expect(tier_label.text == "Tier I", "Unknown enemy changed Tier text.")
+	expect(tier_label.text == "Tier II", "Unknown enemy changed Tier text.")
 	expect(
 		not source_label.visible
 		and source_label.text.is_empty()

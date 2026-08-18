@@ -144,6 +144,7 @@ func create_notification_panel_style() -> StyleBoxFlat:
 
 func _on_branch_seed_dropped(
 	branch_id: StringName,
+	legendary_tier: int,
 	enemy_id: StringName,
 	_world_position: Vector2
 ) -> void:
@@ -159,9 +160,7 @@ func _on_branch_seed_dropped(
 		)
 		return
 
-	var tier_text: String = (
-		branch_definition.get_legendary_tier_display_name()
-	)
+	var tier_text: String = BranchDefinition.get_legendary_tier_display_name_for_tier(legendary_tier)
 	if tier_text.is_empty():
 		push_warning(
 			"Branch Seed notification ignored Branch '%s' with invalid Tier."

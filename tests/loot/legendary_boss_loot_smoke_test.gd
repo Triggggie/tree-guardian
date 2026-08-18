@@ -70,15 +70,14 @@ func test_legendary_tiers() -> void:
 	expect(not standard_tier_one.is_valid_definition(), "Standard Tier I was valid.")
 
 	var legendary_tier_zero: BranchDefinition = create_branch(&"tier_zero", 0)
-	expect(not legendary_tier_zero.is_valid_definition(), "Legendary Tier 0 was valid.")
+	expect(legendary_tier_zero.is_valid_definition(), "Tier-neutral Legendary definition was invalid.")
 
 	var expected_names: Dictionary = {1: "Tier I", 2: "Tier II", 3: "Tier III"}
 	for tier in range(1, 4):
 		var branch: BranchDefinition = create_branch(StringName("tier_%d" % tier), tier)
 		expect(branch.is_valid_definition(), "Legendary Tier %d is invalid." % tier)
-		expect(branch.is_legendary_tier(tier), "Tier helper rejected Tier %d." % tier)
 		expect(
-			branch.get_legendary_tier_display_name() == expected_names[tier],
+			BranchDefinition.get_legendary_tier_display_name_for_tier(tier) == expected_names[tier],
 			"Tier %d display text differs." % tier
 		)
 		var entry := create_entry(branch, 1.0)
@@ -89,7 +88,7 @@ func test_legendary_tiers() -> void:
 		)
 
 	var outside_tier: BranchDefinition = create_branch(&"outside", 4)
-	expect(not outside_tier.is_valid_definition(), "Tier outside 1-3 was valid.")
+	expect(outside_tier.is_valid_definition(), "Acquisition-neutral Legendary definition was invalid.")
 	expect(
 		STRENGTH.branch_id == &"strength_branch"
 		and STRENGTH.category_id == BranchDefinition.CATEGORY_STANDARD
@@ -384,13 +383,13 @@ func test_save_migration() -> void:
 	var migrated := ConfigFile.new()
 	migrated.load(path)
 	expect(
-		int(migrated.get_value("branch_seed_unlocks", "version", 0)) == 2,
-		"Version 1 save was not rewritten as version 2."
+		int(migrated.get_value("branch_seed_unlocks", "version", 0)) == 3,
+		"Version 1 save was not rewritten as version 3."
 	)
 	var reloaded: BranchSeedService = create_service(path, 77)
 	expect(
 		reloaded.get_unlocked_branch_seed_ids() == service.get_unlocked_branch_seed_ids(),
-		"Migrated version 2 reload differs."
+		"Migrated version 3 reload differs."
 	)
 	service.queue_free()
 	reloaded.queue_free()
@@ -446,6 +445,7 @@ func create_entry(
 ) -> BranchSeedLootEntryDefinition:
 	var entry := BranchSeedLootEntryDefinition.new()
 	entry.branch_definition = branch
+	entry.legendary_tier = branch.legendary_tier
 	entry.weight = weight
 	return entry
 

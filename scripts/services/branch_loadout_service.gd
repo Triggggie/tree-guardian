@@ -259,11 +259,6 @@ func _is_valid_apex_branch(branch_id: StringName) -> bool:
 	return (
 		definition.is_valid_definition()
 		and definition.is_legendary_branch()
-		and definition.get_legendary_tier() in [
-			BranchDefinition.LEGENDARY_TIER_1,
-			BranchDefinition.LEGENDARY_TIER_2,
-			BranchDefinition.LEGENDARY_TIER_3
-		]
 		and definition.branch_scene != null
 		and BranchSlotRules.can_place_definition(
 			definition,

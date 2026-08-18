@@ -879,7 +879,12 @@ func _refresh_seed_panel() -> void:
 		if not is_instance_valid(definition) or not definition.is_legendary_branch():
 			lines.append("Unknown Branch Seed\n%s" % branch_id)
 			continue
-		lines.append("%s - %s" % [definition.display_name, definition.get_legendary_tier_display_name()])
+		lines.append("%s\n%s" % [
+			definition.display_name,
+			BranchDefinition.get_legendary_tier_display_name_for_tier(
+				seed_service.get_acquired_tier(branch_id)
+			)
+		])
 	seed_list_label.text = "\n\n".join(lines)
 
 
@@ -1002,11 +1007,6 @@ func _is_valid_apex_definition(definition: BranchDefinition) -> bool:
 		is_instance_valid(definition)
 		and definition.is_valid_definition()
 		and definition.is_legendary_branch()
-		and definition.get_legendary_tier() in [
-			BranchDefinition.LEGENDARY_TIER_1,
-			BranchDefinition.LEGENDARY_TIER_2,
-			BranchDefinition.LEGENDARY_TIER_3
-		]
 		and definition.branch_scene != null
 		and BranchSlotRules.can_place_definition(
 			definition,
@@ -1215,7 +1215,13 @@ func _get_category_text(definition: BranchDefinition) -> String:
 	if not is_instance_valid(definition):
 		return "UNKNOWN"
 	if definition.is_legendary_branch():
-		return "LEGENDARY - %s" % definition.get_legendary_tier_display_name()
+		var seed_service := get_node_or_null("/root/BranchSeeds") as BranchSeedService
+		var tier: int = (
+			seed_service.get_acquired_tier(definition.branch_id)
+			if is_instance_valid(seed_service)
+			else 0
+		)
+		return "LEGENDARY - %s" % BranchDefinition.get_legendary_tier_display_name_for_tier(tier)
 	return "STANDARD"
 
 
@@ -1357,6 +1363,13 @@ func _connect_branch_seed_service() -> void:
 		)
 	):
 		seed_service.branch_seed_unlocked.connect(_on_branch_seed_unlocked)
+	if (
+		is_instance_valid(seed_service)
+		and not seed_service.branch_seed_tier_changed.is_connected(
+			_on_branch_seed_tier_changed
+		)
+	):
+		seed_service.branch_seed_tier_changed.connect(_on_branch_seed_tier_changed)
 
 
 func _connect_equipment_services() -> void:
@@ -1431,3 +1444,8 @@ func _on_branch_seed_unlocked(_branch_id: StringName) -> void:
 			select_branch_candidate(previous_candidate_id)
 			return
 	select_branch_candidate(candidate_definitions[0].branch_id)
+
+
+func _on_branch_seed_tier_changed(_branch_id: StringName, _acquired_tier: int) -> void:
+	if visible:
+		refresh_screen()

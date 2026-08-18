@@ -37,6 +37,8 @@ func _ready() -> void:
 
 	test_production_defaults()
 	await test_unlock_persistence_and_duplicate()
+	await test_acquired_tier_progression_and_prestige_reset()
+	await test_legacy_and_corrupt_tier_loading()
 	await test_stage_pool_drop_and_signal_order()
 	await test_save_rollback()
 	await test_enemy_death_hook()
@@ -95,6 +97,77 @@ func test_unlock_persistence_and_duplicate() -> void:
 	await get_tree().process_frame
 
 
+func test_acquired_tier_progression_and_prestige_reset() -> void:
+	var path: String = create_storage_path("tiers")
+	var service: BranchSeedService = create_service(path)
+	expect(service.acquire_branch_seed(THORN_CROWN_DEFINITION, 1), "Tier I acquisition failed.")
+	expect(service.acquire_branch_seed(THORN_CROWN_DEFINITION, 2), "Tier II did not replace Tier I.")
+	expect(
+		not service.acquire_branch_seed(THORN_CROWN_DEFINITION, 1),
+		"Tier I downgraded Tier II."
+	)
+	expect(service.acquire_branch_seed(THORN_CROWN_DEFINITION, 3), "Tier III did not replace Tier II.")
+	expect(
+		not service.acquire_branch_seed(THORN_CROWN_DEFINITION, 2),
+		"Tier II downgraded Tier III."
+	)
+	expect(service.get_acquired_tier(&"thorn_crown") == 3, "Tier III ownership was not retained.")
+
+	var runtime := CombatBranch.new()
+	runtime.branch_id = &"thorn_crown"
+	runtime.branch_definition = THORN_CROWN_DEFINITION
+	runtime.branch_seed_service = service
+	expect(runtime.get_acquired_legendary_tier() == 3, "Runtime could not resolve Tier III.")
+	runtime.free()
+
+	var reloaded: BranchSeedService = create_service(path)
+	expect(reloaded.get_acquired_tier(&"thorn_crown") == 3, "Save/load lost acquired Tier.")
+	reloaded.pity_points_by_tier[1] = 7
+	expect(reloaded.save_unlocks(), "Pity fixture save failed.")
+	expect(reloaded.clear_for_prestige(), "Prestige Branch Seed reset failed.")
+	expect(
+		reloaded.get_acquired_tier(&"thorn_crown") == 0
+		and reloaded.get_pity_points(1) == 0,
+		"Prestige did not clear ownership and pity."
+	)
+	service.queue_free()
+	reloaded.queue_free()
+	await get_tree().process_frame
+
+
+func test_legacy_and_corrupt_tier_loading() -> void:
+	var legacy_path: String = create_storage_path("legacy")
+	var legacy := ConfigFile.new()
+	legacy.set_value("branch_seed_unlocks", "version", 2)
+	legacy.set_value(
+		"branch_seed_unlocks",
+		"branch_ids",
+		PackedStringArray(["thorn_crown", "unknown_legacy"])
+	)
+	legacy.set_value("branch_seed_pity", "tier_1_points", 4)
+	expect(legacy.save(legacy_path) == OK, "Legacy fixture save failed.")
+	var migrated: BranchSeedService = create_service(legacy_path)
+	expect(migrated.get_acquired_tier(&"thorn_crown") == 1, "Legacy Thorn Crown did not migrate to Tier I.")
+	expect(migrated.get_acquired_tier(&"unknown_legacy") == 1, "Unknown legacy ID was not retained safely.")
+	expect(migrated.get_pity_points(1) == 4, "Version 2 pity was not migrated.")
+
+	var corrupt_path: String = create_storage_path("corrupt")
+	var corrupt := ConfigFile.new()
+	corrupt.set_value("branch_seed_unlocks", "version", 3)
+	corrupt.set_value("branch_seed_unlocks", "acquired_tiers", {
+		"thorn_crown": 99,
+		"bad_type": "III",
+		"valid_unknown": 2
+	})
+	expect(corrupt.save(corrupt_path) == OK, "Corrupt fixture save failed.")
+	var sanitized: BranchSeedService = create_service(corrupt_path)
+	expect(sanitized.get_acquired_tier(&"thorn_crown") == 0, "Corrupt Tier did not fail safely.")
+	expect(sanitized.get_acquired_tier(&"valid_unknown") == 2, "Valid unknown ID did not load safely.")
+	migrated.queue_free()
+	sanitized.queue_free()
+	await get_tree().process_frame
+
+
 func test_stage_pool_drop_and_signal_order() -> void:
 	var service: BranchSeedService = create_service(create_storage_path("drop"))
 	var branch: BranchDefinition = create_legendary_branch(&"stage_pool_seed")
@@ -110,7 +183,7 @@ func test_stage_pool_drop_and_signal_order() -> void:
 			events.append(&"pity")
 	)
 	service.branch_seed_dropped.connect(
-		func(_branch_id: StringName, _enemy_id: StringName, _position: Vector2) -> void:
+		func(_branch_id: StringName, _tier: int, _enemy_id: StringName, _position: Vector2) -> void:
 			events.append(&"drop")
 	)
 
@@ -157,7 +230,7 @@ func test_enemy_death_hook() -> void:
 	enemy_definition.branch_seed_roll_chance = 1.0
 	var drop_count: Array[int] = [0]
 	service.branch_seed_dropped.connect(
-		func(_branch_id: StringName, _enemy_id: StringName, _position: Vector2) -> void:
+		func(_branch_id: StringName, _tier: int, _enemy_id: StringName, _position: Vector2) -> void:
 			drop_count[0] += 1
 	)
 

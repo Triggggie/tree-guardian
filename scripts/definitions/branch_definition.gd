@@ -24,6 +24,8 @@ var description: String = ""
 
 @export var category_id: StringName = CATEGORY_STANDARD
 
+# Legacy authoring field retained for source/save compatibility only. Acquired
+# Legendary Tier is owned by BranchSeedService, not by this shared definition.
 @export_range(0, 3, 1)
 var legendary_tier: int = LEGENDARY_TIER_NONE
 
@@ -94,10 +96,11 @@ func is_legendary_tier(checked_tier: int) -> bool:
 
 
 func get_legendary_tier_display_name() -> String:
-	if not is_legendary_branch():
-		return ""
+	return get_legendary_tier_display_name_for_tier(legendary_tier)
 
-	match legendary_tier:
+
+static func get_legendary_tier_display_name_for_tier(tier: int) -> String:
+	match tier:
 		LEGENDARY_TIER_1:
 			return "Tier I"
 		LEGENDARY_TIER_2:
@@ -129,13 +132,6 @@ func is_valid_definition() -> bool:
 		return false
 
 	if is_standard_branch() and legendary_tier != LEGENDARY_TIER_NONE:
-		return false
-
-	if is_legendary_branch() and legendary_tier not in [
-		LEGENDARY_TIER_1,
-		LEGENDARY_TIER_2,
-		LEGENDARY_TIER_3
-	]:
 		return false
 
 	if display_name.strip_edges().is_empty():

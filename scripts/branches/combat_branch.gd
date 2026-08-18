@@ -81,6 +81,7 @@ var combat_enabled: bool = true
 var tree_node: Node2D
 var branch_definition: BranchDefinition
 var branch_progress_service: BranchProgressService
+var branch_seed_service: BranchSeedService
 var has_warned_invalid_slot_assignment: bool = false
 
 
@@ -171,6 +172,16 @@ func is_legendary_branch() -> bool:
 		return false
 
 	return branch_definition.is_legendary_branch()
+
+
+func get_acquired_legendary_tier() -> int:
+	if not is_legendary_branch():
+		return BranchDefinition.LEGENDARY_TIER_NONE
+	if not is_instance_valid(branch_seed_service):
+		branch_seed_service = get_node_or_null("/root/BranchSeeds") as BranchSeedService
+	if not is_instance_valid(branch_seed_service):
+		return BranchDefinition.LEGENDARY_TIER_NONE
+	return branch_seed_service.get_acquired_tier(branch_id)
 
 
 func validate_slot_assignment() -> void:

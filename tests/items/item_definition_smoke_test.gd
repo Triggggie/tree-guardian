@@ -93,7 +93,8 @@ func test_branch_tier_separation() -> void:
 	expect(
 		is_instance_valid(thorn_crown)
 		and thorn_crown.is_legendary_branch()
-		and thorn_crown.get_legendary_tier_display_name() == "Tier I"
+		and thorn_crown.get_legendary_tier() == BranchDefinition.LEGENDARY_TIER_NONE
+		and BranchDefinition.get_legendary_tier_display_name_for_tier(1) == "Tier I"
 		and ItemRarityRules.get_rarity_display_name(ItemRarityRules.LEGENDARY) == "Legendary",
 		"Equipment rarity and Legendary Branch Tier APIs are not separate."
 	)

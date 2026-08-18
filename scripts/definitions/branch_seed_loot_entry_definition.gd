@@ -4,6 +4,9 @@ extends Resource
 
 @export var branch_definition: BranchDefinition
 
+@export_range(1, 3, 1)
+var legendary_tier: int = BranchDefinition.LEGENDARY_TIER_1
+
 @export_range(0.0001, 1000000.0, 0.0001)
 var weight: float = 1.0
 
@@ -19,14 +22,14 @@ func get_legendary_tier() -> int:
 	if not is_instance_valid(branch_definition):
 		return BranchDefinition.LEGENDARY_TIER_NONE
 
-	return branch_definition.get_legendary_tier()
+	return legendary_tier
 
 
 func get_legendary_tier_display_name() -> String:
 	if not is_instance_valid(branch_definition):
 		return ""
 
-	return branch_definition.get_legendary_tier_display_name()
+	return BranchDefinition.get_legendary_tier_display_name_for_tier(legendary_tier)
 
 
 func is_valid_definition() -> bool:

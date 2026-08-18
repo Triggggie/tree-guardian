@@ -8,13 +8,16 @@ func _ready() -> void:
 	var loadout := get_node("/root/BranchLoadout") as BranchLoadoutService
 	var seeds := get_node("/root/BranchSeeds") as BranchSeedService
 	var saved_seed_ids: Array[StringName] = seeds.unlocked_branch_seed_ids.duplicate()
+	var saved_seed_tiers: Dictionary = seeds.acquired_tiers_by_branch_id.duplicate(true)
 	seeds.unlocked_branch_seed_ids.clear()
+	seeds.acquired_tiers_by_branch_id.clear()
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	await run_test()
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	seeds.unlocked_branch_seed_ids = saved_seed_ids
+	seeds.acquired_tiers_by_branch_id = saved_seed_tiers
 	if failures.is_empty():
 		print("TREE SCREEN SMOKE TEST PASS")
 		get_tree().quit(0)
@@ -89,10 +92,13 @@ func run_test() -> void:
 	expect(seed_label.text == "No Legendary Branch Seeds unlocked.", "Seed empty state is wrong.")
 	var seeds := get_node("/root/BranchSeeds") as BranchSeedService
 	var saved_ids: Array[StringName] = seeds.unlocked_branch_seed_ids.duplicate()
+	var saved_tiers: Dictionary = seeds.acquired_tiers_by_branch_id.duplicate(true)
 	seeds.unlocked_branch_seed_ids = [&"legacy_unknown_branch"]
+	seeds.acquired_tiers_by_branch_id = {&"legacy_unknown_branch": 1}
 	screen.call("refresh_screen")
 	expect(seed_label.text.contains("Unknown Branch Seed") and seed_label.text.contains("legacy_unknown_branch"), "Unknown Seed fallback is wrong.")
 	seeds.unlocked_branch_seed_ids = saved_ids
+	seeds.acquired_tiers_by_branch_id = saved_tiers
 	var synthetic := BranchDefinition.new()
 	synthetic.category_id = BranchDefinition.CATEGORY_LEGENDARY
 	synthetic.legendary_tier = BranchDefinition.LEGENDARY_TIER_2

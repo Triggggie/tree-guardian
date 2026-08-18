@@ -6,4 +6,5 @@
 [resource]
 script = ExtResource("1_entry")
 branch_definition = ExtResource("2_thorn_crown")
+legendary_tier = 1
 weight = 1.0

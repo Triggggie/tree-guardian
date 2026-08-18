@@ -14,13 +14,16 @@ func _ready() -> void:
 	var progress := get_node("/root/BranchProgress") as BranchProgressService
 	var seeds := get_node("/root/BranchSeeds") as BranchSeedService
 	var saved_seed_ids: Array[StringName] = seeds.unlocked_branch_seed_ids.duplicate()
+	var saved_seed_tiers: Dictionary = seeds.acquired_tiers_by_branch_id.duplicate(true)
 	seeds.unlocked_branch_seed_ids.clear()
+	seeds.acquired_tiers_by_branch_id.clear()
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	await run_test(loadout)
 	loadout.clear_runtime_loadout_for_testing()
 	progress.clear_runtime_progress_for_testing()
 	seeds.unlocked_branch_seed_ids = saved_seed_ids
+	seeds.acquired_tiers_by_branch_id = saved_seed_tiers
 
 	if failures.is_empty():
 		print("TREE BRANCH PICKER SMOKE TEST PASS")

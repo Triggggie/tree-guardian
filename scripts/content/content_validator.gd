@@ -245,19 +245,6 @@ static func validate_branch_content(
 		):
 			errors.append("%s is standard and must use Tier 0." % branch_label)
 
-		if branch.is_legendary_branch() and (
-			branch.get_legendary_tier() not in [
-				BranchDefinition.LEGENDARY_TIER_1,
-				BranchDefinition.LEGENDARY_TIER_2,
-				BranchDefinition.LEGENDARY_TIER_3
-			]
-		):
-			errors.append("%s is legendary and must use Tier I-III." % branch_label)
-		elif branch.is_legendary_branch() and (
-			branch.get_legendary_tier_display_name().is_empty()
-		):
-			errors.append("%s has no player-facing Legendary Tier text." % branch_label)
-
 		if not is_instance_valid(branch.branch_scene):
 			errors.append(
 				"%s has no branch scene."
@@ -922,7 +909,7 @@ static func validate_stage_branch_seed_loot_pool(
 		if is_instance_valid(registered_branch):
 			registered_branches_by_id[registered_branch.branch_id] = registered_branch
 
-	var used_branch_ids: Dictionary = {}
+	var used_branch_tiers: Dictionary = {}
 	for entry_index in range(loot_pool.entries.size()):
 		var entry: BranchSeedLootEntryDefinition = loot_pool.entries[entry_index]
 		if not is_instance_valid(entry):
@@ -938,12 +925,15 @@ static func validate_stage_branch_seed_loot_pool(
 			continue
 
 		var branch_id: StringName = branch.branch_id
-		if used_branch_ids.has(branch_id):
+		var branch_tier_key: String = "%s:%d" % [
+			branch_id, entry.get_legendary_tier()
+		]
+		if used_branch_tiers.has(branch_tier_key):
 			errors.append(
 				"%s loot pool duplicates Branch '%s'." % [stage_label, branch_id]
 			)
 		else:
-			used_branch_ids[branch_id] = true
+			used_branch_tiers[branch_tier_key] = true
 
 		var registered_branch: BranchDefinition = (
 			registered_branches_by_id.get(branch_id) as BranchDefinition
@@ -955,14 +945,14 @@ static func validate_stage_branch_seed_loot_pool(
 			)
 
 		if not branch.is_legendary_branch() or (
-			branch.get_legendary_tier() not in [
+			entry.get_legendary_tier() not in [
 				BranchDefinition.LEGENDARY_TIER_1,
 				BranchDefinition.LEGENDARY_TIER_2,
 				BranchDefinition.LEGENDARY_TIER_3
 			]
 		):
 			errors.append(
-				"%s loot pool Branch '%s' is not a valid Legendary Tier I-III Branch."
+				"%s loot pool entry for Branch '%s' has no valid Legendary drop Tier."
 				% [stage_label, branch_id]
 			)
 
