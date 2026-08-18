@@ -45,6 +45,7 @@ texture = ExtResource("25_guardian_grove_background")
 [node name="World" type="Node2D" parent="." unique_id=1290850012]
 
 [node name="Ground" type="Node2D" parent="World" unique_id=1985133093]
+visible = false
 script = ExtResource("1_tt5ry")
 
 [node name="LeftSpawnPoint" type="Marker2D" parent="World" unique_id=1388330771]
