@@ -27,6 +27,7 @@ func run_overlap_test() -> void:
 	await get_tree().process_frame
 	var manager: Node = world.get_node("WaveManager")
 	var director := world.get_node("WaveDirector") as WaveDirector
+	director.debug_start_global_wave = 0
 	var tracker := world.get_node("EnemyTracker") as EnemyTracker
 	var tree_node: Node = world.get_node("Entities/Tree")
 	director.wave_changed.connect(_on_wave_started)

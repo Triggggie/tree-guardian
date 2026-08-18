@@ -39,6 +39,7 @@ func run_test() -> void:
 
 	var manager: Node = world.get_node("WaveManager")
 	var director := world.get_node("WaveDirector") as WaveDirector
+	director.debug_start_global_wave = 0
 	var tree_node: Node = world.get_node("Entities/Tree")
 	var game_over_panel: Panel = world.get_node("UI/GameOverPanel") as Panel
 	var controller := world.get_node(

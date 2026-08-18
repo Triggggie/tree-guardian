@@ -40,8 +40,13 @@ var highest_completed_wave: int = 0
 
 var _wave_cycle_id: int = 0
 var _cycle_running: bool = false
+var _is_shutting_down: bool = false
 var _debug_start_applied: bool = false
 var active_wave_cohorts: Array[Dictionary] = []
+
+
+func _enter_tree() -> void:
+	_is_shutting_down = false
 
 
 func _ready() -> void:
@@ -191,6 +196,7 @@ func _load_enemy_definitions() -> bool:
 
 
 func _exit_tree() -> void:
+	_is_shutting_down = true
 	_wave_cycle_id += 1
 	_cycle_running = false
 
@@ -294,10 +300,15 @@ func is_cycle_active(
 	cycle_id: int
 ) -> bool:
 	return (
-		is_inside_tree()
+		not _is_shutting_down
+		and is_inside_tree()
 		and _initialized
 		and _cycle_running
 		and cycle_id == _wave_cycle_id
+		and is_instance_valid(enemy_tracker)
+		and enemy_tracker.is_inside_tree()
+		and is_instance_valid(spawn_director)
+		and spawn_director.is_inside_tree()
 	)
 
 
@@ -574,6 +585,8 @@ func _run_wave_loop(
 	var first_wave: int = current_wave if retry_current_wave else current_wave + 1
 	if not await _launch_wave(cycle_id, first_wave):
 		return
+	if not is_cycle_active(cycle_id):
+		return
 
 	while is_cycle_active(cycle_id):
 		while not active_wave_cohorts.is_empty():
@@ -602,7 +615,10 @@ func _run_wave_loop(
 			continue
 
 		await enemy_tracker.enemy_count_changed
-		await get_tree().process_frame
+		if not is_cycle_active(cycle_id):
+			return
+		if not await _await_cycle_process_frame(cycle_id):
+			return
 
 
 func _launch_wave(cycle_id: int, global_wave: int) -> bool:
@@ -686,7 +702,7 @@ func _launch_wave(cycle_id: int, global_wave: int) -> bool:
 		wave_definition.spawn_interval,
 		is_cycle_active.bind(cycle_id)
 	)
-	if not spawn_completed or not is_cycle_active(cycle_id):
+	if not is_cycle_active(cycle_id) or not spawn_completed:
 		if cycle_id == _wave_cycle_id:
 			_cycle_running = false
 		return false
@@ -739,7 +755,8 @@ func _finalize_wave_cohort(cycle_id: int, cohort: Dictionary) -> void:
 		return
 	var safe_time_after_wave: float = max(wave_definition.time_after_wave, 0.0)
 	if safe_time_after_wave > 0.0:
-		await get_tree().create_timer(safe_time_after_wave).timeout
+		if not await _await_cycle_timer(cycle_id, safe_time_after_wave):
+			return
 
 
 func _reach_substage_checkpoint_if_needed(completed_global_wave: int) -> bool:
@@ -773,10 +790,31 @@ func _show_wave_complete_message(
 		0.0
 	)
 	if safe_message_duration > 0.0:
-		await get_tree().create_timer(safe_message_duration).timeout
+		if not await _await_cycle_timer(cycle_id, safe_message_duration):
+			return
 	if not is_cycle_active(cycle_id):
 		return
 	wave_message_changed.emit("")
+
+
+func _await_cycle_process_frame(cycle_id: int) -> bool:
+	if not is_cycle_active(cycle_id):
+		return false
+	var scene_tree: SceneTree = get_tree()
+	if scene_tree == null:
+		return false
+	await scene_tree.process_frame
+	return is_cycle_active(cycle_id)
+
+
+func _await_cycle_timer(cycle_id: int, duration: float) -> bool:
+	if not is_cycle_active(cycle_id):
+		return false
+	var scene_tree: SceneTree = get_tree()
+	if scene_tree == null:
+		return false
+	await scene_tree.create_timer(max(duration, 0.0)).timeout
+	return is_cycle_active(cycle_id)
 
 
 func _get_wave_in_stage(global_wave: int) -> int:
