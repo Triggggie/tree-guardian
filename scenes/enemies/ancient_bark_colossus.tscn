@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_health_component.gd" id="2_health"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_attack_component.gd" id="3_attack"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_movement_component.gd" id="4_movement"]
+[ext_resource type="Texture2D" path="res://resources/enemies/ancient_bark_colossus/ancient_bark_colossus_v1.png" id="5_colossus_visual"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_colossus"]
 radius = 82.0
@@ -27,14 +28,21 @@ script = ExtResource("4_movement")
 
 [node name="Visual" type="Node2D" parent="."]
 
+[node name="AncientBarkColossusSprite" type="Sprite2D" parent="Visual"]
+texture_filter = 1
+position = Vector2(0, -110)
+scale = Vector2(1.05, 1.05)
+texture = ExtResource("5_colossus_visual")
+flip_h = true
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_colossus")
 
 [node name="HealthBar" type="ProgressBar" parent="."]
 offset_left = -86.0
-offset_top = -112.0
+offset_top = -232.0
 offset_right = 86.0
-offset_bottom = -98.0
+offset_bottom = -218.0
 max_value = 300.0
 value = 300.0
 show_percentage = false
