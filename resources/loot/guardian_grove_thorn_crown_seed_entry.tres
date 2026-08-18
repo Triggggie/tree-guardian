@@ -1,10 +1,8 @@
-[gd_resource type="Resource" script_class="BranchSeedLootEntryDefinition" format=3]
+[gd_resource type="Resource" script_class="BranchSeedLootEntryDefinition" format=3 uid="uid://cqtej41f7lwkf"]
 
-[ext_resource type="Script" path="res://scripts/definitions/branch_seed_loot_entry_definition.gd" id="1_entry"]
-[ext_resource type="Resource" path="res://resources/branches/thorn_crown_branch_definition.tres" id="2_thorn_crown"]
+[ext_resource type="Script" uid="uid://csgkxop11hoag" path="res://scripts/definitions/branch_seed_loot_entry_definition.gd" id="1_entry"]
+[ext_resource type="Resource" uid="uid://bo13ahundnpqh" path="res://resources/branches/thorn_crown_branch_definition.tres" id="2_thorn_crown"]
 
 [resource]
 script = ExtResource("1_entry")
 branch_definition = ExtResource("2_thorn_crown")
-legendary_tier = 1
-weight = 1.0
