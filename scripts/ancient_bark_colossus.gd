@@ -37,6 +37,33 @@ func update_walk_animation() -> void:
 	colossus_sprite.pause()
 
 
+func play_attack_visual() -> void:
+	if (
+		not is_instance_valid(visual)
+		or not is_instance_valid(colossus_sprite)
+		or not colossus_sprite.sprite_frames.has_animation(&"attack")
+	):
+		return
+
+	cancel_attack_visual()
+	attack_visual_active = true
+	visual.position = resting_visual_position
+	colossus_sprite.speed_scale = 1.0
+	colossus_sprite.animation = &"attack"
+	colossus_sprite.set_frame_and_progress(0, 0.0)
+	colossus_sprite.play()
+
+	var attack_frame_count: int = colossus_sprite.sprite_frames.get_frame_count(
+		&"attack"
+	)
+	var attack_fps: float = max(
+		colossus_sprite.sprite_frames.get_animation_speed(&"attack"), 0.01
+	)
+	attack_visual_tween = create_tween()
+	attack_visual_tween.tween_interval(float(attack_frame_count) / attack_fps)
+	attack_visual_tween.tween_callback(finish_attack_visual)
+
+
 func setup_crowd_formation(
 	new_formation_side: float,
 	new_lane_index: int,

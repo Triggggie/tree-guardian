@@ -23,6 +23,7 @@ var failures: Array[String] = []
 
 func _ready() -> void:
 	await test_heavy_walk_presentation()
+	await test_basic_melee_presentation()
 	await test_phase_one_quake()
 	await test_phase_two_double_pulse()
 	await test_death_between_pulses()
@@ -111,6 +112,102 @@ func test_heavy_walk_presentation() -> void:
 				"Walk frame %d does not preserve populated authored order." % frame_index
 			)
 	await cleanup_fixture(root)
+
+
+func test_basic_melee_presentation() -> void:
+	var fixture: Dictionary = await create_fixture(
+		"BasicMeleePresentation", COLOSSUS
+	)
+	var enemy: CharacterBody2D = fixture.enemy
+	enemy.set_physics_process(false)
+	var sprite := enemy.get_node(
+		"Visual/AncientBarkColossusSprite"
+	) as AnimatedSprite2D
+	var visual := enemy.get_node("Visual") as Node2D
+	expect(
+		sprite.sprite_frames.has_animation(&"attack"),
+		"Attack animation is missing."
+	)
+	expect(
+		sprite.sprite_frames.get_frame_count(&"attack") == 9,
+		"Attack does not use nine populated frames."
+	)
+	expect(
+		not sprite.sprite_frames.get_animation_loop(&"attack"),
+		"Attack animation loops."
+	)
+	expect(
+		is_equal_approx(
+			sprite.sprite_frames.get_animation_speed(&"attack"), 14.0
+		),
+		"Attack baseline is not 14 FPS."
+	)
+
+	enemy.velocity.x = COLOSSUS.movement_speed
+	enemy.call("update_walk_animation")
+	expect(
+		sprite.animation == &"walk" and sprite.is_playing(),
+		"Walk setup failed."
+	)
+	enemy.call("play_attack_visual")
+	expect(
+		bool(enemy.get("attack_visual_active"))
+		and sprite.animation == &"attack"
+		and sprite.frame == 0
+		and sprite.is_playing(),
+		"Basic melee did not restart once from attack frame 0."
+	)
+	expect(visual.position == Vector2.ZERO, "Attack moved the resting Visual.")
+
+	visual.position = Vector2(40.0, 40.0)
+	enemy.call("play_attack_visual")
+	expect(
+		visual.position == Vector2.ZERO
+		and sprite.animation == &"attack"
+		and sprite.frame == 0,
+		"Repeated attack did not cancel and restore presentation cleanly."
+	)
+	await wait_seconds(0.70)
+	expect(
+		not bool(enemy.get("attack_visual_active")),
+		"Attack presentation did not finish."
+	)
+	expect(
+		sprite.animation == &"walk" and sprite.is_playing(),
+		"Moving Colossus did not resume its heavy walk after attacking."
+	)
+
+	enemy.velocity.x = 0.0
+	enemy.call("play_attack_visual")
+	await wait_seconds(0.70)
+	expect(
+		sprite.animation == &"walk" and not sprite.is_playing(),
+		"Stationary Colossus walked in place after attacking."
+	)
+	enemy.call("setup_crowd_formation", -1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(not sprite.flip_h, "Left-spawned melee does not face right.")
+	enemy.call("play_attack_visual")
+	expect(visual.position == Vector2.ZERO, "Left attack changed gameplay position.")
+	enemy.call("setup_crowd_formation", 1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
+	expect(sprite.flip_h, "Right-spawned melee does not face left.")
+
+	for frame_index in range(sprite.sprite_frames.get_frame_count(&"attack")):
+		var frame_texture := sprite.sprite_frames.get_frame_texture(
+			&"attack", frame_index
+		) as AtlasTexture
+		expect(
+			is_instance_valid(frame_texture),
+			"Attack frame %d has no atlas texture." % frame_index
+		)
+		if is_instance_valid(frame_texture):
+			expect(
+				frame_texture.region == Rect2(
+					256.0 * float(frame_index + 1), 0.0, 256.0, 256.0
+				),
+				"Attack frame %d does not preserve populated authored order."
+				% frame_index
+			)
+	await cleanup_fixture(fixture.root)
 
 
 func test_phase_one_quake() -> void:
