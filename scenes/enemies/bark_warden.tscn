@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_health_component.gd" id="2_health"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_attack_component.gd" id="3_attack"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_movement_component.gd" id="4_movement"]
+[ext_resource type="Texture2D" path="res://resources/enemies/bark_warden/bark_warden_v1.png" id="5_warden_visual"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_warden"]
 radius = 50.0
@@ -27,14 +28,21 @@ script = ExtResource("4_movement")
 
 [node name="Visual" type="Node2D" parent="."]
 
+[node name="BarkWardenSprite" type="Sprite2D" parent="Visual"]
+texture_filter = 1
+position = Vector2(0, -62)
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("5_warden_visual")
+flip_h = true
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_warden")
 
 [node name="HealthBar" type="ProgressBar" parent="."]
 offset_left = -54.0
-offset_top = -78.0
+offset_top = -120.0
 offset_right = 54.0
-offset_bottom = -68.0
+offset_bottom = -110.0
 max_value = 120.0
 value = 120.0
 show_percentage = false
