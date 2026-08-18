@@ -42,6 +42,15 @@ func run_test() -> void:
 	director.debug_start_global_wave = 0
 	var tree_node: Node = world.get_node("Entities/Tree")
 	var game_over_panel: Panel = world.get_node("UI/GameOverPanel") as Panel
+	game_over_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	game_over_panel.set("automatic_retry_delay", 0.1)
+	var retry_button := game_over_panel.get_node(
+		"VBoxContainer/RestartButton"
+	) as Button
+	var automatic_retry_count: Array[int] = [0]
+	game_over_panel.retry_requested.connect(
+		func() -> void: automatic_retry_count[0] += 1
+	)
 	var controller := world.get_node(
 		"Entities/Tree/Systems/TreeBranchLoadoutController"
 	) as TreeBranchLoadoutController
@@ -136,6 +145,11 @@ func run_test() -> void:
 	tree_node.call("die")
 	await get_tree().process_frame
 	expect(manager.tree_defeated, "Tree death did not set defeated state.")
+	expect(game_over_panel.visible, "Tree death presentation did not appear.")
+	expect(
+		not retry_button.visible and retry_button.disabled,
+		"Tree death still exposes a manual retry button."
+	)
 	expect(
 		not manager.is_branch_loadout_edit_allowed(),
 		"Defeated Tree still allows loadout editing."
@@ -152,8 +166,7 @@ func run_test() -> void:
 		get_tree().get_nodes_in_group("enemies").is_empty(),
 		"Tree death did not remove enemies."
 	)
-	game_over_panel.call("request_retry")
-	await get_tree().process_frame
+	await get_tree().create_timer(0.15).timeout
 	expect(not manager.tree_defeated, "Retry did not clear defeated state.")
 	expect(
 		manager.is_branch_loadout_edit_allowed(),
@@ -167,6 +180,11 @@ func run_test() -> void:
 		and director.current_wave == 300,
 		"Retry did not prepare Substage 4 Wave 1."
 	)
+	expect(not game_over_panel.visible, "Automatic retry left the death modal visible.")
+	expect(
+		automatic_retry_count[0] == 1,
+		"Tree death emitted duplicate automatic retry requests."
+	)
 
 	started_waves.clear()
 	expect(manager.continue_from_preparation(), "RETRY SUBSTAGE failed.")
@@ -174,6 +192,18 @@ func run_test() -> void:
 		started_waves == [301]
 		and director.get_current_progress_code() == "1-4-1",
 		"Retry Continue did not begin at 1-4-1."
+	)
+	director.current_wave = 373
+	tree_node.call("die")
+	await get_tree().create_timer(0.15).timeout
+	expect(
+		automatic_retry_count[0] == 2
+		and not manager.tree_defeated
+		and manager.is_preparation_active()
+		and manager.get_preparation_reason() == &"retry"
+		and director.current_wave == 300
+		and not director.is_cycle_running(),
+		"Repeated death accumulated retry state or failed to prepare the same Substage."
 	)
 	director.cancel_cycle(true)
 	manager.remove_remaining_enemies()

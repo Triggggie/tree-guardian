@@ -5,8 +5,8 @@ signal retry_requested
 
 
 @export_category("Respawn")
-@export_range(1, 60, 1)
-var automatic_respawn_seconds: int = 10
+@export_range(0.1, 5.0, 0.1)
+var automatic_retry_delay: float = 1.5
 
 
 @onready var vbox_container: VBoxContainer = (
@@ -23,7 +23,7 @@ var automatic_respawn_seconds: int = 10
 
 
 var tree_node: Node
-var countdown_id: int = 0
+var automatic_retry_timer: Timer
 var retry_already_requested: bool = false
 
 
@@ -55,18 +55,14 @@ func _ready() -> void:
 
 	game_over_label.visible = true
 
-	restart_button.text = "RETRY NOW"
+	restart_button.visible = false
+	restart_button.disabled = true
 
-	restart_button.custom_minimum_size = Vector2(
-		400.0,
-		60.0
-	)
-
-	restart_button.visible = true
-
-	restart_button.pressed.connect(
-		_on_restart_button_pressed
-	)
+	automatic_retry_timer = Timer.new()
+	automatic_retry_timer.name = "AutomaticRetryTimer"
+	automatic_retry_timer.one_shot = true
+	automatic_retry_timer.timeout.connect(request_retry)
+	add_child(automatic_retry_timer)
 
 	tree_node = (
 		get_tree().get_first_node_in_group("tree")
@@ -85,52 +81,14 @@ func _ready() -> void:
 
 func _on_tree_died() -> void:
 	retry_already_requested = false
-	countdown_id += 1
-
-	var active_countdown_id: int = (
-		countdown_id
-	)
 
 	show()
-	restart_button.grab_focus()
-
-	run_respawn_countdown(
-		active_countdown_id
+	game_over_label.text = (
+		"TREE DEFEATED\n"
+		+ "The Tree will awaken..."
 	)
-
-
-func run_respawn_countdown(
-	active_countdown_id: int
-) -> void:
-	for seconds_left in range(
-		automatic_respawn_seconds,
-		0,
-		-1
-	):
-		if active_countdown_id != countdown_id:
-			return
-
-		if retry_already_requested:
-			return
-
-		game_over_label.text = (
-			"TREE DEFEATED\n"
-			+ "Respawning in %d s"
-			% seconds_left
-		)
-
-		await get_tree().create_timer(
-			1.0
-		).timeout
-
-	if active_countdown_id != countdown_id:
-		return
-
-	request_retry()
-
-
-func _on_restart_button_pressed() -> void:
-	request_retry()
+	if is_instance_valid(automatic_retry_timer):
+		automatic_retry_timer.start(max(automatic_retry_delay, 0.1))
 
 
 func request_retry() -> void:
@@ -138,9 +96,8 @@ func request_retry() -> void:
 		return
 
 	retry_already_requested = true
-	countdown_id += 1
-
-	restart_button.disabled = true
+	if is_instance_valid(automatic_retry_timer):
+		automatic_retry_timer.stop()
 
 	game_over_label.text = (
 		"THE TREE AWAKENS..."
@@ -149,6 +106,3 @@ func request_retry() -> void:
 	hide()
 
 	retry_requested.emit()
-
-	# Připraví tlačítko pro případ další smrti.
-	restart_button.disabled = false
