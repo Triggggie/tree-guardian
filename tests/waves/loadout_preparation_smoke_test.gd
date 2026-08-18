@@ -40,6 +40,7 @@ func run_test() -> void:
 	var manager: Node = world.get_node("WaveManager")
 	var director := world.get_node("WaveDirector") as WaveDirector
 	director.debug_start_global_wave = 0
+	var tracker := world.get_node("EnemyTracker") as EnemyTracker
 	var tree_node: Node = world.get_node("Entities/Tree")
 	var game_over_panel: Panel = world.get_node("UI/GameOverPanel") as Panel
 	game_over_panel.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -140,8 +141,11 @@ func run_test() -> void:
 	director.cancel_cycle(true)
 	manager.remove_remaining_enemies()
 
+	started_waves.clear()
 	director.current_wave = 373
 	director._cycle_running = true
+	tree_node.call("add_forest_essence", 17)
+	var essence_before_death: int = int(tree_node.call("get_forest_essence"))
 	tree_node.call("die")
 	await get_tree().process_frame
 	expect(manager.tree_defeated, "Tree death did not set defeated state.")
@@ -168,42 +172,58 @@ func run_test() -> void:
 	)
 	await get_tree().create_timer(0.15).timeout
 	expect(not manager.tree_defeated, "Retry did not clear defeated state.")
-	expect(
-		manager.is_branch_loadout_edit_allowed(),
-		"Retry Preparation did not restore loadout editing."
-	)
+	expect(manager.is_branch_loadout_edit_allowed(), "Retry did not restore loadout editing.")
 	expect(float(tree_node.get("current_health")) > 0.0, "Retry did not revive the Tree.")
-	expect(not director.is_cycle_running(), "Retry started a wave before confirmation.")
 	expect(
-		manager.is_preparation_active()
-		and manager.get_preparation_reason() == &"retry"
-		and director.current_wave == 300,
-		"Retry did not prepare Substage 4 Wave 1."
+		int(tree_node.call("get_forest_essence")) == essence_before_death,
+		"Automatic retry rolled back earned Forest Essence."
+	)
+	tree_node.call("add_forest_essence", 3)
+	expect(
+		int(tree_node.call("get_forest_essence")) == essence_before_death + 3,
+		"Automatic restart could not continue earning Forest Essence."
+	)
+	expect(
+		not manager.is_preparation_active()
+		and manager.get_preparation_reason() == &""
+		and director.is_cycle_running()
+		and director.current_wave == 301
+		and director.get_current_progress_code() == "1-4-1",
+		"Retry did not automatically start Substage 4 Wave 1."
 	)
 	expect(not game_over_panel.visible, "Automatic retry left the death modal visible.")
+	expect(not tree_screen.visible, "Automatic retry opened blocking Preparation UI.")
 	expect(
 		automatic_retry_count[0] == 1,
 		"Tree death emitted duplicate automatic retry requests."
 	)
 
-	started_waves.clear()
-	expect(manager.continue_from_preparation(), "RETRY SUBSTAGE failed.")
 	expect(
-		started_waves == [301]
-		and director.get_current_progress_code() == "1-4-1",
-		"Retry Continue did not begin at 1-4-1."
+		started_waves == [301],
+		"Tree death started a duplicate or skipped retry cycle."
 	)
+	expect(
+		not tracker.get_tracked_global_waves().has(373),
+		"Automatic retry retained an enemy cohort from the failed run."
+	)
+	var essence_before_second_death: int = int(tree_node.call("get_forest_essence"))
 	director.current_wave = 373
 	tree_node.call("die")
 	await get_tree().create_timer(0.15).timeout
 	expect(
 		automatic_retry_count[0] == 2
 		and not manager.tree_defeated
-		and manager.is_preparation_active()
-		and manager.get_preparation_reason() == &"retry"
-		and director.current_wave == 300
-		and not director.is_cycle_running(),
-		"Repeated death accumulated retry state or failed to prepare the same Substage."
+		and not manager.is_preparation_active()
+		and manager.get_preparation_reason() == &""
+		and director.current_wave == 301
+		and director.is_cycle_running()
+		and started_waves == [301, 301],
+		"Repeated death accumulated retry state or failed to restart the same Substage."
+	)
+	expect(
+		int(tree_node.call("get_forest_essence")) == essence_before_second_death
+		and not tracker.get_tracked_global_waves().has(373),
+		"Repeated retry changed rewards or retained failed-run enemies."
 	)
 	director.cancel_cycle(true)
 	manager.remove_remaining_enemies()

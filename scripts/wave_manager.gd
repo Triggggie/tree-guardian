@@ -29,10 +29,12 @@ const PREPARATION_REASON_RETRY: StringName = &"retry"
 
 var tree_node: Node2D
 var wave_director: WaveDirector
+var enemy_tracker: EnemyTracker
 var branch_loadout_controller: TreeBranchLoadoutController
 var tree_defeated: bool = false
 var preparation_active: bool = false
 var preparation_reason: StringName = PREPARATION_REASON_NONE
+var retry_generation: int = 0
 
 var current_wave: int:
 	get:
@@ -50,6 +52,10 @@ func _ready() -> void:
 			"wave_director"
 		)
 		as WaveDirector
+	)
+	enemy_tracker = (
+		get_tree().get_first_node_in_group("enemy_tracker")
+		as EnemyTracker
 	)
 
 	tree_node = (
@@ -124,6 +130,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	retry_generation += 1
 	if not is_instance_valid(wave_director):
 		return
 
@@ -332,15 +339,17 @@ func _on_retry_requested() -> void:
 		wave_director.get_current_wave_in_substage()
 	)
 
+	retry_generation += 1
+	var active_retry_generation: int = retry_generation
 	remove_remaining_enemies()
+	if not await _wait_for_enemy_cleanup(active_retry_generation):
+		return
 
 	if (
 		is_instance_valid(tree_node)
 		and tree_node.has_method("revive")
 	):
 		tree_node.revive()
-
-	tree_defeated = false
 
 	print(
 		"Strom byl oživen | selhání v ",
@@ -358,13 +367,33 @@ func _on_retry_requested() -> void:
 		wave_director.prepare_current_substage_restart()
 	)
 
-	if restart_prepared:
-		_enter_preparation(PREPARATION_REASON_RETRY)
+	if restart_prepared and wave_director.start_cycle(false):
+		tree_defeated = false
+		_resume_combat_branches()
 		return
 
 	tree_defeated = true
 	push_error(
 		"WaveManager could not restart the current Substage."
+	)
+
+
+func _wait_for_enemy_cleanup(active_retry_generation: int) -> bool:
+	if not is_instance_valid(enemy_tracker):
+		push_error("WaveManager cannot retry without EnemyTracker cleanup.")
+		return false
+	while enemy_tracker.get_total_active_enemy_count() > 0:
+		await enemy_tracker.enemies_cleared
+		if (
+			active_retry_generation != retry_generation
+			or not is_inside_tree()
+			or not is_instance_valid(enemy_tracker)
+			or not enemy_tracker.is_inside_tree()
+		):
+			return false
+	return (
+		active_retry_generation == retry_generation
+		and is_inside_tree()
 	)
 
 
@@ -385,6 +414,10 @@ func _exit_preparation() -> void:
 	preparation_active = false
 	preparation_reason = PREPARATION_REASON_NONE
 	preparation_state_changed.emit(false, PREPARATION_REASON_NONE)
+	_resume_combat_branches()
+
+
+func _resume_combat_branches() -> void:
 	get_tree().call_group("combat_branch", "resume_combat")
 
 
