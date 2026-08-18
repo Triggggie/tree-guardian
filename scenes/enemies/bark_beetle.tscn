@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_health_component.gd" id="2_health"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_attack_component.gd" id="3_attack"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_movement_component.gd" id="4_movement"]
+[ext_resource type="Texture2D" path="res://resources/enemies/bark_beetle/bark_beetle_v1.png" id="5_bark_beetle_visual"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_oij6s"]
 radius = 32.0
@@ -32,6 +33,13 @@ wait_time = 1.5
 script = ExtResource("4_movement")
 
 [node name="Visual" type="Node2D" parent="." unique_id=296908097]
+
+[node name="BarkBeetleSprite" type="Sprite2D" parent="Visual"]
+texture_filter = 1
+position = Vector2(0, -33)
+scale = Vector2(0.474, 0.474)
+texture = ExtResource("5_bark_beetle_visual")
+flip_h = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226018101]
 shape = SubResource("CircleShape2D_oij6s")

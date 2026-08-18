@@ -47,6 +47,9 @@ var knockback_resistance: float = 0.0
 @onready var movement_component: EnemyMovementComponent = (
 	$MovementComponent
 )
+@onready var visual_sprite: Sprite2D = (
+	get_node_or_null("Visual/BarkBeetleSprite") as Sprite2D
+)
 @onready var health_bar: ProgressBar = $HealthBar
 
 var enemy_definition: EnemyDefinition
@@ -275,6 +278,8 @@ func setup_crowd_formation(
 	formation_side = new_formation_side
 	lane_index = new_lane_index
 	queue_order = new_queue_order
+	if is_instance_valid(visual_sprite):
+		visual_sprite.flip_h = formation_side > 0.0
 
 	var formation_success: bool = (
 		movement_component.configure_formation(
@@ -835,25 +840,3 @@ func stop_combat() -> void:
 func cancel_boss_ability_runtime() -> void:
 	if is_instance_valid(boss_ability_runtime):
 		boss_ability_runtime.cancel_runtime()
-
-
-func _draw() -> void:
-	draw_circle(
-		Vector2.ZERO,
-		32.0,
-		Color("3a2118")
-	)
-
-	draw_line(
-		Vector2(-12, -22),
-		Vector2(-25, -38),
-		Color("3a2118"),
-		5.0
-	)
-
-	draw_line(
-		Vector2(12, -22),
-		Vector2(25, -38),
-		Color("3a2118"),
-		5.0
-	)
