@@ -69,8 +69,8 @@ func test_heavy_walk_presentation() -> void:
 	)
 	expect(sprite.sprite_frames.get_animation_loop(&"walk"), "Walk animation does not loop.")
 	expect(
-		is_equal_approx(sprite.sprite_frames.get_animation_speed(&"walk"), 7.0),
-		"Walk baseline is not 7 FPS."
+		is_equal_approx(sprite.sprite_frames.get_animation_speed(&"walk"), 10.0),
+		"Walk baseline is not 10 FPS."
 	)
 	expect(
 		sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
