@@ -4,7 +4,64 @@
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_health_component.gd" id="2_health"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_attack_component.gd" id="3_attack"]
 [ext_resource type="Script" path="res://scripts/enemies/components/enemy_movement_component.gd" id="4_movement"]
-[ext_resource type="Texture2D" path="res://resources/enemies/bark_warden/bark_warden_v1.png" id="5_warden_visual"]
+[ext_resource type="Texture2D" path="res://resources/enemies/bark_warden/animations/bark_warden_walk_v1.png" id="5_warden_walk"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk_0"]
+atlas = ExtResource("5_warden_walk")
+region = Rect2(256, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk_1"]
+atlas = ExtResource("5_warden_walk")
+region = Rect2(512, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk_2"]
+atlas = ExtResource("5_warden_walk")
+region = Rect2(768, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk_3"]
+atlas = ExtResource("5_warden_walk")
+region = Rect2(1024, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk_4"]
+atlas = ExtResource("5_warden_walk")
+region = Rect2(1280, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk_5"]
+atlas = ExtResource("5_warden_walk")
+region = Rect2(1536, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk_6"]
+atlas = ExtResource("5_warden_walk")
+region = Rect2(1792, 0, 256, 256)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_warden_walk"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk_6")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 9.0
+}]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_warden"]
 radius = 50.0
@@ -28,11 +85,12 @@ script = ExtResource("4_movement")
 
 [node name="Visual" type="Node2D" parent="."]
 
-[node name="BarkWardenSprite" type="Sprite2D" parent="Visual"]
+[node name="BarkWardenSprite" type="AnimatedSprite2D" parent="Visual"]
 texture_filter = 1
 position = Vector2(0, -62)
 scale = Vector2(0.6, 0.6)
-texture = ExtResource("5_warden_visual")
+sprite_frames = SubResource("SpriteFrames_warden_walk")
+animation = &"walk"
 flip_h = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
