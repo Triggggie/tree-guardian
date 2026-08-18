@@ -69,8 +69,8 @@ func test_heavy_walk_presentation() -> void:
 	)
 	expect(sprite.sprite_frames.get_animation_loop(&"walk"), "Walk animation does not loop.")
 	expect(
-		is_equal_approx(sprite.sprite_frames.get_animation_speed(&"walk"), 8.0),
-		"Walk baseline is not 8 FPS."
+		is_equal_approx(sprite.sprite_frames.get_animation_speed(&"walk"), 7.0),
+		"Walk baseline is not 7 FPS."
 	)
 	expect(
 		sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
@@ -92,11 +92,10 @@ func test_heavy_walk_presentation() -> void:
 	enemy.call("update_walk_animation")
 	expect(is_equal_approx(sprite.speed_scale, 0.5), "Walk cadence did not follow velocity.")
 
-	var grounded_frame: int = sprite.frame
 	enemy.velocity.x = 0.0
 	enemy.call("update_walk_animation")
 	expect(not sprite.is_playing(), "Walk continued while stationary.")
-	expect(sprite.frame == grounded_frame, "Stationary walk snapped to another frame.")
+	expect(sprite.frame == 0, "Stationary walk did not use its grounded rest frame.")
 	enemy.call("setup_crowd_formation", 1.0, 0, 0.0, 0, 1.0, 0.0, 1.0)
 	expect(sprite.flip_h, "Right-spawned Colossus does not face left.")
 
@@ -232,9 +231,9 @@ func test_quake_presentation() -> void:
 	)
 	expect(
 		is_equal_approx(
-			sprite.sprite_frames.get_animation_speed(&"quake"), 5.0
+			sprite.sprite_frames.get_animation_speed(&"quake"), 10.0
 		),
-		"Quake baseline is not 5 FPS."
+		"Quake baseline is not 10 FPS."
 	)
 
 	enemy.velocity.x = COLOSSUS.movement_speed
@@ -247,13 +246,18 @@ func test_quake_presentation() -> void:
 		and bool(enemy.get("attack_visual_active"))
 		and sprite.animation == &"quake"
 		and sprite.frame == 0
-		and sprite.is_playing(),
+		and not sprite.is_playing(),
 		"Telegraph did not interrupt melee and restart Quake at frame 0."
 	)
 	expect(visual.position == Vector2.ZERO, "Quake moved the resting Visual.")
 	expect(
-		is_equal_approx(sprite.speed_scale, 5.0 / 1.2 / 5.0),
-		"Phase 1 Quake did not align its slam to the first pulse."
+		is_equal_approx(sprite.speed_scale, 1.0),
+		"Phase 1 Quake did not preserve smooth baseline playback."
+	)
+	expect(
+		is_equal_approx(float(enemy.call("get_quake_start_delay", 1.2, 10.0)), 0.7)
+		and is_equal_approx(float(enemy.call("get_quake_start_delay", 1.0, 10.0)), 0.5),
+		"Quake opening holds do not align slam frame 6 with production pulses."
 	)
 	enemy.call("play_attack_visual")
 	expect(
@@ -265,8 +269,9 @@ func test_quake_presentation() -> void:
 	expect(
 		sprite.animation == &"quake"
 		and sprite.frame == 0
+		and not sprite.is_playing()
 		and is_equal_approx(sprite.speed_scale, 1.0),
-		"Phase 2 Quake did not restart with pulse-aligned playback."
+		"Phase 2 Quake did not restart with its opening brace hold."
 	)
 	enemy.call("cancel_attack_visual")
 	enemy.call("update_walk_animation")
@@ -319,7 +324,7 @@ func test_phase_one_quake() -> void:
 	await runtime.telegraph_started
 	expect(runtime.is_ability_running(), "Phase 1 Quake did not telegraph.")
 	expect(
-		sprite.animation == &"quake" and sprite.is_playing(),
+		sprite.animation == &"quake" and not sprite.is_playing(),
 		"Phase 1 telegraph did not start the character animation."
 	)
 	expect(runtime.has_active_telegraph(), "Phase 1 telegraph visual is missing.")
@@ -355,7 +360,7 @@ func test_phase_two_double_pulse() -> void:
 	await runtime.telegraph_started
 	expect(runtime.is_ability_running(), "Phase 2 Quake did not start.")
 	expect(
-		sprite.animation == &"quake" and sprite.is_playing(),
+		sprite.animation == &"quake" and not sprite.is_playing(),
 		"Phase 2 telegraph did not start the character animation."
 	)
 	expect(count_damage(tree_node.damage_events, 10.0) == 0, "Phase 2 Quake dealt premature damage.")

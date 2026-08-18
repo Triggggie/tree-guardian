@@ -180,39 +180,39 @@ animations = [{
 }],
 "loop": false,
 "name": &"quake",
-"speed": 5.0
+"speed": 10.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.2,
 "texture": SubResource("AtlasTexture_walk_0")
 }, {
-"duration": 1.0,
+"duration": 1.15,
 "texture": SubResource("AtlasTexture_walk_1")
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_walk_2")
 }, {
-"duration": 1.0,
+"duration": 0.9,
 "texture": SubResource("AtlasTexture_walk_3")
 }, {
-"duration": 1.0,
+"duration": 0.8,
 "texture": SubResource("AtlasTexture_walk_4")
 }, {
-"duration": 1.0,
+"duration": 0.8,
 "texture": SubResource("AtlasTexture_walk_5")
 }, {
-"duration": 1.0,
+"duration": 0.85,
 "texture": SubResource("AtlasTexture_walk_6")
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_walk_7")
 }, {
-"duration": 1.0,
+"duration": 1.2,
 "texture": SubResource("AtlasTexture_walk_8")
 }],
 "loop": true,
 "name": &"walk",
-"speed": 8.0
+"speed": 7.0
 }]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_colossus"]
