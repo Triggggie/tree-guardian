@@ -21,7 +21,7 @@ const TREE_TEXTURES: Array[Texture2D] = [
 # Each authored sprite uses a 256x256 canvas. These offsets center the
 # opaque artwork and place its lowest root pixel on the Tree origin.
 const STAGE_POSITIONS: Array[Vector2] = [
-	Vector2(1.0, -124.0),
+	Vector2(2.0, -124.0),
 	Vector2(2.775, -127.65),
 	Vector2(-0.8, -150.4),
 	Vector2(0.0, -159.075)

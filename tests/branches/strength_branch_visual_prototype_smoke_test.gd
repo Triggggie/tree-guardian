@@ -1,6 +1,21 @@
 extends Node
 
 
+class MockEnemy:
+	extends Node2D
+
+	var damage_taken: float = 0.0
+
+	func _ready() -> void:
+		add_to_group("enemies")
+
+	func is_targetable() -> bool:
+		return true
+
+	func take_damage(amount: float, _source: Node = null) -> void:
+		damage_taken += amount
+
+
 const MAIN_WORLD_SCENE: PackedScene = preload(
 	"res://scenes/main_world.tscn"
 )
@@ -8,7 +23,7 @@ const MAIN_WORLD_SCENE: PackedScene = preload(
 const TEST_AGES: Array[int] = [1, 40, 80, 200]
 
 const EXPECTED_POSITIONS: Array[Vector2] = [
-	Vector2(32.0, -14.0),
+	Vector2(28.0, -10.0),
 	Vector2(42.0, -18.0),
 	Vector2(57.0, -23.0),
 	Vector2(71.0, -28.0)
@@ -86,6 +101,17 @@ func run_test() -> void:
 		and right_sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
 		"Lower Strength sprites are not using nearest-neighbor filtering."
 	)
+	expect(
+		is_equal_approx(
+			left_visual.get_attack_presentation_angle_degrees(18.0),
+			8.0
+		)
+		and is_equal_approx(
+			right_visual.get_attack_presentation_angle_degrees(18.0),
+			8.0
+		),
+		"Lower Strength attack presentation did not use the socket-safe angle."
+	)
 
 	for stage_index in range(TEST_AGES.size()):
 		var tree_age: int = TEST_AGES[stage_index]
@@ -128,6 +154,12 @@ func run_test() -> void:
 			"Tree stage transition recreated a lower Strength Branch."
 		)
 
+	await test_attack_presentation(
+		world,
+		left_branch,
+		right_branch
+	)
+
 	expect(
 		loadout.equip_standard_branch(
 			BranchSlotRules.STANDARD_SLOT_2_ID,
@@ -144,6 +176,13 @@ func run_test() -> void:
 		not upper_visual.is_using_lower_production_sprite()
 		and not upper_visual.get_node("ProductionSprite").visible,
 		"An upper Strength slot incorrectly enabled the lower prototype."
+	)
+	expect(
+		is_equal_approx(
+			upper_visual.get_attack_presentation_angle_degrees(18.0),
+			18.0
+		),
+		"The lower prototype changed upper Strength attack presentation."
 	)
 
 	expect(
@@ -180,6 +219,63 @@ func run_test() -> void:
 	world.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+func test_attack_presentation(
+	world: Node,
+	left_branch: CombatBranch,
+	right_branch: CombatBranch
+) -> void:
+	var branches: Array[CombatBranch] = [
+		left_branch,
+		right_branch
+	]
+
+	for branch in branches:
+		var enemy := MockEnemy.new()
+		world.add_child(enemy)
+		enemy.global_position = (
+			branch.global_position
+			+ Vector2(
+				branch.get_facing_direction() * 100.0,
+				0.0
+			)
+		)
+		var resting_position: Vector2 = branch.position
+		branch.set("combat_enabled", true)
+		branch.set("current_target", enemy)
+		branch.call("perform_attack_animation")
+		var attack_tween: Tween = branch.get("attack_tween") as Tween
+		expect(
+			is_instance_valid(attack_tween),
+			"Lower Strength attack did not create its presentation tween."
+		)
+
+		if is_instance_valid(attack_tween):
+			var attack_duration: float = float(
+				branch.get("attack_duration")
+			)
+			attack_tween.custom_step(attack_duration)
+			expect(
+				is_equal_approx(
+					abs(rad_to_deg(branch.rotation)),
+					8.0
+				),
+				"Lower Strength attack exceeded the socket-safe rotation."
+			)
+			expect(
+				branch.position == resting_position,
+				"Lower Strength attack translated its gameplay root."
+			)
+			attack_tween.custom_step(attack_duration)
+			expect(
+				is_zero_approx(branch.rotation)
+				and branch.position == resting_position,
+				"Lower Strength attack did not return to its resting transform."
+			)
+
+		enemy.queue_free()
+		await get_tree().process_frame
 
 
 func expect(condition: bool, message: String) -> void:

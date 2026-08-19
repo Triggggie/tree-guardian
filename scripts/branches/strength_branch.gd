@@ -172,7 +172,12 @@ func get_tree_age() -> int:
 	if not is_instance_valid(tree_node):
 		return 1
 
-	return int(tree_node.get("age"))
+	var tree_age_value: Variant = tree_node.get("age")
+
+	if tree_age_value == null:
+		return 1
+
+	return int(tree_age_value)
 
 
 func warn_missing_branch_visual_once() -> void:
@@ -385,8 +390,14 @@ func perform_attack_animation() -> void:
 		current_target.get_instance_id()
 	)
 
+	var presentation_angle_degrees: float = (
+		branch_visual.get_attack_presentation_angle_degrees(
+			attack_angle_degrees
+		)
+	)
+
 	var signed_attack_angle: float = (
-		attack_angle_degrees
+		presentation_angle_degrees
 		* -get_facing_direction()
 	)
 

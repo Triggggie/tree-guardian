@@ -5,13 +5,13 @@ extends Node2D
 const LOWER_STAGE_LAYOUTS: Array[Dictionary] = [
 	{
 		BranchSlotRules.STANDARD_SLOT_1_ID: {
-			&"position": Vector2(-32.0, -14.0),
+			&"position": Vector2(-28.0, -10.0),
 			&"scale": Vector2(0.4, 0.4),
 			&"flip_h": true,
 			&"rotation": 0.0
 		},
 		BranchSlotRules.STANDARD_SLOT_3_ID: {
-			&"position": Vector2(32.0, -14.0),
+			&"position": Vector2(28.0, -10.0),
 			&"scale": Vector2(0.4, 0.4),
 			&"flip_h": false,
 			&"rotation": 0.0
@@ -60,6 +60,8 @@ const LOWER_STAGE_LAYOUTS: Array[Dictionary] = [
 		}
 	}
 ]
+
+const LOWER_PRODUCTION_ATTACK_ANGLE_DEGREES: float = 8.0
 
 
 @export_category("Visual Growth")
@@ -121,6 +123,18 @@ func set_presentation_context(
 
 func is_using_lower_production_sprite() -> bool:
 	return uses_lower_production_sprite
+
+
+func get_attack_presentation_angle_degrees(
+	default_angle_degrees: float
+) -> float:
+	if not uses_lower_production_sprite:
+		return default_angle_degrees
+
+	return min(
+		default_angle_degrees,
+		LOWER_PRODUCTION_ATTACK_ANGLE_DEGREES
+	)
 
 
 func set_branch_level(new_level: int) -> void:
