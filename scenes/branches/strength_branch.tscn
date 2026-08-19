@@ -1,13 +1,19 @@
-[gd_scene format=3 uid="uid://i3e2ifeg4itl"]
+[gd_scene load_steps=4 format=3 uid="uid://i3e2ifeg4itl"]
 
 [ext_resource type="Script" uid="uid://bdg6ucrh3dr0u" path="res://scripts/branches/strength_branch.gd" id="1_se3xx"]
 [ext_resource type="Script" path="res://scripts/branches/strength_branch_visual.gd" id="2_visual"]
+[ext_resource type="Texture2D" path="res://resources/branches/strength/visuals/strength_branch_stage_1.png" id="3_prototype"]
 
 [node name="StrengthBranch" type="Node2D" unique_id=769172115]
 script = ExtResource("1_se3xx")
 
 [node name="Visual" type="Node2D" parent="." unique_id=1143745195]
 script = ExtResource("2_visual")
+
+[node name="ProductionSprite" type="Sprite2D" parent="Visual"]
+visible = false
+texture_filter = 1
+texture = ExtResource("3_prototype")
 
 [node name="AttackOrigin" type="Marker2D" parent="." unique_id=126429593]
 

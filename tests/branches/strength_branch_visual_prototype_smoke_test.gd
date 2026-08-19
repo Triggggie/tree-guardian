@@ -1,0 +1,190 @@
+extends Node
+
+
+const MAIN_WORLD_SCENE: PackedScene = preload(
+	"res://scenes/main_world.tscn"
+)
+
+const TEST_AGES: Array[int] = [1, 40, 80, 200]
+
+const EXPECTED_POSITIONS: Array[Vector2] = [
+	Vector2(32.0, -14.0),
+	Vector2(42.0, -18.0),
+	Vector2(57.0, -23.0),
+	Vector2(71.0, -28.0)
+]
+
+const EXPECTED_SCALES: Array[Vector2] = [
+	Vector2(0.4, 0.4),
+	Vector2(0.5, 0.5),
+	Vector2(0.64, 0.64),
+	Vector2(0.78, 0.78)
+]
+
+
+var failures: Array[String] = []
+var loadout: BranchLoadoutService
+var progress: BranchProgressService
+
+
+func _ready() -> void:
+	loadout = get_node("/root/BranchLoadout") as BranchLoadoutService
+	progress = get_node("/root/BranchProgress") as BranchProgressService
+	loadout.clear_runtime_loadout_for_testing()
+	progress.clear_runtime_progress_for_testing()
+	await run_test()
+	loadout.clear_runtime_loadout_for_testing()
+	progress.clear_runtime_progress_for_testing()
+
+	if failures.is_empty():
+		print("STRENGTH BRANCH VISUAL PROTOTYPE SMOKE TEST PASS")
+		get_tree().quit(0)
+		return
+
+	print(
+		"STRENGTH BRANCH VISUAL PROTOTYPE SMOKE TEST FAIL: "
+		+ "%d failure(s)" % failures.size()
+	)
+	get_tree().quit(1)
+
+
+func run_test() -> void:
+	var world: Node = MAIN_WORLD_SCENE.instantiate()
+	world.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(world)
+	await get_tree().process_frame
+
+	var tree_node: Node = world.get_node("Entities/Tree")
+	var controller := tree_node.get_node(
+		"Systems/TreeBranchLoadoutController"
+	) as TreeBranchLoadoutController
+	var left_branch: CombatBranch = controller.get_runtime_branch(
+		BranchSlotRules.STANDARD_SLOT_1_ID
+	)
+	var right_branch: CombatBranch = controller.get_runtime_branch(
+		BranchSlotRules.STANDARD_SLOT_3_ID
+	)
+	var left_visual := left_branch.get_node("Visual") as StrengthBranchVisual
+	var right_visual := right_branch.get_node("Visual") as StrengthBranchVisual
+	var left_sprite := left_visual.get_node("ProductionSprite") as Sprite2D
+	var right_sprite := right_visual.get_node("ProductionSprite") as Sprite2D
+	var left_instance_id: int = left_branch.get_instance_id()
+	var right_instance_id: int = right_branch.get_instance_id()
+
+	expect(
+		left_visual.is_using_lower_production_sprite()
+		and right_visual.is_using_lower_production_sprite(),
+		"Default lower Strength Branches did not enable the prototype sprite."
+	)
+	expect(
+		left_sprite.texture.resource_path
+		== "res://resources/branches/strength/visuals/strength_branch_stage_1.png",
+		"LeftLower uses the wrong prototype texture."
+	)
+	expect(
+		left_sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST
+		and right_sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
+		"Lower Strength sprites are not using nearest-neighbor filtering."
+	)
+
+	for stage_index in range(TEST_AGES.size()):
+		var tree_age: int = TEST_AGES[stage_index]
+		tree_node.set("age", tree_age)
+		tree_node.emit_signal("age_changed", tree_age)
+
+		expect(
+			left_sprite.visible and right_sprite.visible,
+			"A lower Strength sprite disappeared at Age %d." % tree_age
+		)
+		expect(
+			left_sprite.position
+			== Vector2(
+				-EXPECTED_POSITIONS[stage_index].x,
+				EXPECTED_POSITIONS[stage_index].y
+			),
+			"LeftLower used the wrong layout at Age %d." % tree_age
+		)
+		expect(
+			right_sprite.position == EXPECTED_POSITIONS[stage_index],
+			"RightLower used the wrong layout at Age %d." % tree_age
+		)
+		expect(
+			left_sprite.scale == EXPECTED_SCALES[stage_index]
+			and right_sprite.scale == EXPECTED_SCALES[stage_index],
+			"Lower Strength scale is wrong at Age %d." % tree_age
+		)
+		expect(
+			left_sprite.flip_h and not right_sprite.flip_h,
+			"Lower Strength mirroring is wrong at Age %d." % tree_age
+		)
+		expect(
+			is_zero_approx(left_sprite.rotation)
+			and is_zero_approx(right_sprite.rotation),
+			"Lower Strength rotation changed at Age %d." % tree_age
+		)
+		expect(
+			left_branch.get_instance_id() == left_instance_id
+			and right_branch.get_instance_id() == right_instance_id,
+			"Tree stage transition recreated a lower Strength Branch."
+		)
+
+	expect(
+		loadout.equip_standard_branch(
+			BranchSlotRules.STANDARD_SLOT_2_ID,
+			&"strength_branch"
+		),
+		"Could not equip the upper Strength validation fixture."
+	)
+	await get_tree().process_frame
+	var upper_strength: CombatBranch = controller.get_runtime_branch(
+		BranchSlotRules.STANDARD_SLOT_2_ID
+	)
+	var upper_visual := upper_strength.get_node("Visual") as StrengthBranchVisual
+	expect(
+		not upper_visual.is_using_lower_production_sprite()
+		and not upper_visual.get_node("ProductionSprite").visible,
+		"An upper Strength slot incorrectly enabled the lower prototype."
+	)
+
+	expect(
+		loadout.equip_standard_branch(
+			BranchSlotRules.STANDARD_SLOT_1_ID,
+			&"blossom_branch"
+		),
+		"Could not equip the lower non-Strength validation fixture."
+	)
+	await get_tree().process_frame
+	var lower_blossom: CombatBranch = controller.get_runtime_branch(
+		BranchSlotRules.STANDARD_SLOT_1_ID
+	)
+	expect(
+		lower_blossom.branch_id == &"blossom_branch"
+		and lower_blossom.get_node_or_null("Visual/ProductionSprite") == null,
+		"A non-Strength lower slot received Strength artwork."
+	)
+
+	expect(
+		loadout.unequip_standard_branch(
+			BranchSlotRules.STANDARD_SLOT_3_ID
+		),
+		"Could not empty the RightLower validation slot."
+	)
+	await get_tree().process_frame
+	expect(
+		controller.get_runtime_branch(
+			BranchSlotRules.STANDARD_SLOT_3_ID
+		) == null,
+		"An empty lower slot retained Strength artwork."
+	)
+
+	world.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func expect(condition: bool, message: String) -> void:
+	if condition:
+		return
+
+	failures.append(message)
+	push_error(message)

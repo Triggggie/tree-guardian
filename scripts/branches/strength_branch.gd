@@ -78,6 +78,8 @@ func _ready() -> void:
 	if is_instance_valid(tree_node):
 		if tree_node.has_signal("growth_changed"):
 			tree_node.growth_changed.connect(_on_tree_growth_changed)
+		if tree_node.has_signal("age_changed"):
+			tree_node.age_changed.connect(_on_tree_age_changed)
 	cooldown_timer.timeout.connect(_on_cooldown_timer_timeout)
 	update_attack_cooldown()
 	sync_visual_state()
@@ -159,6 +161,18 @@ func sync_visual_state() -> void:
 	branch_visual.set_facing_direction(
 		get_facing_direction()
 	)
+
+	branch_visual.set_presentation_context(
+		get_slot_id(),
+		get_tree_age()
+	)
+
+
+func get_tree_age() -> int:
+	if not is_instance_valid(tree_node):
+		return 1
+
+	return int(tree_node.get("age"))
 
 
 func warn_missing_branch_visual_once() -> void:
@@ -274,6 +288,17 @@ func _on_tree_growth_changed(_growth_factor: float) -> void:
 
 	branch_visual.set_tree_growth_factor(
 		_growth_factor
+	)
+
+
+func _on_tree_age_changed(new_age: int) -> void:
+	if not is_instance_valid(branch_visual):
+		warn_missing_branch_visual_once()
+		return
+
+	branch_visual.set_presentation_context(
+		get_slot_id(),
+		new_age
 	)
 
 func is_valid_attack_target(target: Node) -> bool:

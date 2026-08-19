@@ -2,6 +2,66 @@ class_name StrengthBranchVisual
 extends Node2D
 
 
+const LOWER_STAGE_LAYOUTS: Array[Dictionary] = [
+	{
+		BranchSlotRules.STANDARD_SLOT_1_ID: {
+			&"position": Vector2(-32.0, -14.0),
+			&"scale": Vector2(0.4, 0.4),
+			&"flip_h": true,
+			&"rotation": 0.0
+		},
+		BranchSlotRules.STANDARD_SLOT_3_ID: {
+			&"position": Vector2(32.0, -14.0),
+			&"scale": Vector2(0.4, 0.4),
+			&"flip_h": false,
+			&"rotation": 0.0
+		}
+	},
+	{
+		BranchSlotRules.STANDARD_SLOT_1_ID: {
+			&"position": Vector2(-42.0, -18.0),
+			&"scale": Vector2(0.5, 0.5),
+			&"flip_h": true,
+			&"rotation": 0.0
+		},
+		BranchSlotRules.STANDARD_SLOT_3_ID: {
+			&"position": Vector2(42.0, -18.0),
+			&"scale": Vector2(0.5, 0.5),
+			&"flip_h": false,
+			&"rotation": 0.0
+		}
+	},
+	{
+		BranchSlotRules.STANDARD_SLOT_1_ID: {
+			&"position": Vector2(-57.0, -23.0),
+			&"scale": Vector2(0.64, 0.64),
+			&"flip_h": true,
+			&"rotation": 0.0
+		},
+		BranchSlotRules.STANDARD_SLOT_3_ID: {
+			&"position": Vector2(57.0, -23.0),
+			&"scale": Vector2(0.64, 0.64),
+			&"flip_h": false,
+			&"rotation": 0.0
+		}
+	},
+	{
+		BranchSlotRules.STANDARD_SLOT_1_ID: {
+			&"position": Vector2(-71.0, -28.0),
+			&"scale": Vector2(0.78, 0.78),
+			&"flip_h": true,
+			&"rotation": 0.0
+		},
+		BranchSlotRules.STANDARD_SLOT_3_ID: {
+			&"position": Vector2(71.0, -28.0),
+			&"scale": Vector2(0.78, 0.78),
+			&"flip_h": false,
+			&"rotation": 0.0
+		}
+	}
+]
+
+
 @export_category("Visual Growth")
 
 @export_range(2, 50, 1)
@@ -26,6 +86,41 @@ var tree_growth_factor: float = 1.0
 var facing_direction: float = 1.0
 var feedback_tween: Tween
 var active_feedback_id: StringName = &""
+var uses_lower_production_sprite: bool = false
+
+
+@onready var production_sprite: Sprite2D = $ProductionSprite
+
+
+func set_presentation_context(
+	slot_id: StringName,
+	tree_age: int
+) -> void:
+	var tree_stage: int = TreeGrowthVisual.resolve_stage_for_age(
+		tree_age
+	)
+	var stage_layout: Dictionary = LOWER_STAGE_LAYOUTS[
+		tree_stage - TreeGrowthVisual.STAGE_1
+	]
+	var slot_layout: Dictionary = stage_layout.get(
+		slot_id,
+		{}
+	) as Dictionary
+
+	uses_lower_production_sprite = not slot_layout.is_empty()
+	production_sprite.visible = uses_lower_production_sprite
+
+	if uses_lower_production_sprite:
+		production_sprite.position = slot_layout[&"position"]
+		production_sprite.scale = slot_layout[&"scale"]
+		production_sprite.flip_h = bool(slot_layout[&"flip_h"])
+		production_sprite.rotation = float(slot_layout[&"rotation"])
+
+	queue_redraw()
+
+
+func is_using_lower_production_sprite() -> bool:
+	return uses_lower_production_sprite
 
 
 func set_branch_level(new_level: int) -> void:
@@ -159,6 +254,11 @@ func reset_talent_feedback() -> void:
 
 func _draw() -> void:
 	var current_length: float = get_current_length()
+
+	if uses_lower_production_sprite:
+		draw_talent_feedback(current_length)
+		return
+
 	var current_thickness: float = get_current_thickness()
 	var branch_color := Color("6b4423")
 	var young_shoot_color := Color("76502b")
