@@ -277,15 +277,15 @@ func test_tree_scene_base_structure() -> void:
 		tree_node.free()
 		return
 
-	var expected_marker_positions: Dictionary = {
-		"LeftUpper": Vector2(-30.0, -45.0),
-		"LeftLower": Vector2(-35.0, 45.0),
-		"RightUpper": Vector2(30.0, -45.0),
-		"RightLower": Vector2(35.0, 45.0),
-		"Apex": Vector2(0.0, -95.0)
-	}
+	var marker_names: Array[String] = [
+		"LeftUpper",
+		"LeftLower",
+		"RightUpper",
+		"RightLower",
+		"Apex"
+	]
 
-	for marker_name in expected_marker_positions:
+	for marker_name in marker_names:
 		var marker: Node = attachment_points.get_node_or_null(
 			marker_name
 		)
@@ -294,13 +294,6 @@ func test_tree_scene_base_structure() -> void:
 			"AttachmentPoints/%s is not a Marker2D."
 			% marker_name
 		)
-
-		if marker is Marker2D:
-			expect_vector(
-				(marker as Marker2D).position,
-				expected_marker_positions[marker_name],
-				"%s base position" % marker_name
-			)
 
 	var expected_branch_data: Dictionary = {
 		"LeftUpper": Vector2(-20.0, -170.0),
@@ -377,25 +370,15 @@ func test_main_world_runtime() -> void:
 		"MainWorld Apex BranchMount is not initialized EMPTY."
 	)
 
-	var growth_factor: float = float(
-		tree_node.call("get_tree_growth_factor")
-	)
-
 	if is_instance_valid(apex):
 		expect_vector(
 			apex.position,
-			Vector2(0.0, -95.0) * growth_factor,
-			"Runtime Apex growth position"
+			TreeGrowthVisual.STAGE_ATTACHMENT_POSITIONS[
+				TreeGrowthVisual.STAGE_1 - 1
+			][&"Apex"],
+			"Stage 1 Apex presentation position"
 		)
 		expect_apex_topmost(attachment_points, "Sapling")
-
-		var base_positions: Dictionary = tree_node.get(
-			"attachment_base_positions"
-		) as Dictionary
-		expect(
-			base_positions.has(apex.get_path()),
-			"Tree growth system did not store the Apex base position."
-		)
 
 	var combat_branches: Array[Node] = (
 		get_tree().get_nodes_in_group("combat_branch")
@@ -505,12 +488,15 @@ func test_main_world_runtime() -> void:
 	)
 	tree_node.set("age", maturity_age)
 	tree_node.call("update_tree_growth")
+	tree_node.emit_signal("age_changed", maturity_age)
 
 	if is_instance_valid(apex):
 		expect_vector(
 			apex.position,
-			Vector2(0.0, -95.0),
-			"Mature Apex growth position"
+			TreeGrowthVisual.STAGE_ATTACHMENT_POSITIONS[
+				TreeGrowthVisual.STAGE_2 - 1
+			][&"Apex"],
+			"Stage 2 Apex presentation position"
 		)
 		expect_apex_topmost(attachment_points, "Mature")
 

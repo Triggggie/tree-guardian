@@ -95,9 +95,6 @@ var is_dead: bool = false
 var resting_position: Vector2
 var damage_tween: Tween
 
-# Původní pozice markerů z editoru.
-var attachment_base_positions: Dictionary = {}
-
 # Aktivní léčivé efekty v čase.
 # Klíčem je effect_id, takže opětovná aplikace stejného efektu
 # pouze obnoví jeho trvání a nevytvoří další stack.
@@ -133,7 +130,6 @@ func _ready() -> void:
 		_on_equipment_stats_changed
 	)
 
-	store_attachment_positions()
 	update_tree_growth()
 
 	health_changed.emit(
@@ -186,61 +182,7 @@ func get_tree_growth_factor() -> float:
 		get_growth_progress()
 	)
 
-func store_attachment_positions() -> void:
-	var attachment_points: Node = get_node_or_null(
-		"AttachmentPoints"
-	)
-
-	if attachment_points == null:
-		return
-
-	for child in attachment_points.get_children():
-		if child is not Node2D:
-			continue
-
-		var marker := child as Node2D
-
-		attachment_base_positions[
-			marker.get_path()
-		] = marker.position
-
-
-func update_attachment_positions() -> void:
-	var attachment_points: Node = get_node_or_null(
-		"AttachmentPoints"
-	)
-
-	if attachment_points == null:
-		return
-
-	var growth_factor: float = (
-		get_tree_growth_factor()
-	)
-
-	for child in attachment_points.get_children():
-		if child is not Node2D:
-			continue
-
-		var marker := child as Node2D
-		var marker_path: NodePath = marker.get_path()
-
-		if not attachment_base_positions.has(
-			marker_path
-		):
-			continue
-
-		var base_position: Vector2 = (
-			attachment_base_positions[marker_path]
-		)
-
-		marker.position = (
-			base_position * growth_factor
-		)
-
-
 func update_tree_growth() -> void:
-	update_attachment_positions()
-
 	growth_changed.emit(
 		get_tree_growth_factor()
 	)

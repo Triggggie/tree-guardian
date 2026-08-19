@@ -48,6 +48,22 @@ const EXPECTED_SCALES: Array[Vector2] = [
 	Vector2(1.575, 1.575)
 ]
 
+const ATTACHMENT_NAMES: Array[StringName] = [
+	&"LeftLower",
+	&"RightLower",
+	&"LeftUpper",
+	&"RightUpper",
+	&"Apex"
+]
+
+const BRANCH_MOUNT_OFFSETS: Dictionary = {
+	&"LeftLower": Vector2(-20.0, -170.0),
+	&"RightLower": Vector2(20.0, -170.0),
+	&"LeftUpper": Vector2(-20.0, -170.0),
+	&"RightUpper": Vector2(20.0, -170.0),
+	&"Apex": Vector2(0.0, -170.0)
+}
+
 const OPAQUE_CENTERS_X: Array[float] = [
 	127.5,
 	126.5,
@@ -130,13 +146,11 @@ func test_runtime_visuals() -> void:
 		NodePath("AttachmentPoints/Apex/BranchMount")
 	]
 	var mounts: Array[Node] = []
-	var mount_positions: Array[Vector2] = []
 	var mount_child_counts: Array[int] = []
 
 	for mount_path in mount_paths:
 		var mount: Node2D = tree_node.get_node(mount_path) as Node2D
 		mounts.append(mount)
-		mount_positions.append(mount.position)
 		mount_child_counts.append(mount.get_child_count())
 
 	for test_index in range(TEST_AGES.size()):
@@ -144,6 +158,11 @@ func test_runtime_visuals() -> void:
 		var expected_stage: int = EXPECTED_STAGES[test_index]
 		tree_node.set("age", tree_age)
 		tree_node.emit_signal("age_changed", tree_age)
+		var expected_layout: Dictionary = (
+			TreeGrowthVisual.STAGE_ATTACHMENT_POSITIONS[
+				expected_stage - 1
+			]
+		)
 
 		expect(
 			visual.get_current_stage() == expected_stage,
@@ -160,6 +179,26 @@ func test_runtime_visuals() -> void:
 			"Runtime Age %d used the wrong Tree texture."
 			% tree_age
 		)
+
+		for attachment_name: StringName in ATTACHMENT_NAMES:
+			var attachment_point := tree_node.get_node(
+				"AttachmentPoints/%s" % attachment_name
+			) as Node2D
+			var branch_mount := attachment_point.get_node(
+				"BranchMount"
+			) as Node2D
+			expect(
+				attachment_point.position
+				== expected_layout[attachment_name],
+				"Age %d used the wrong %s presentation position."
+				% [tree_age, attachment_name]
+			)
+			expect(
+				branch_mount.position
+				== BRANCH_MOUNT_OFFSETS[attachment_name],
+				"Age %d changed the stable %s BranchMount offset."
+				% [tree_age, attachment_name]
+			)
 
 	for stage_index in range(EXPECTED_TEXTURE_PATHS.size()):
 		visual.refresh_for_age(
@@ -212,10 +251,6 @@ func test_runtime_visuals() -> void:
 		expect(
 			current_mount == mounts[mount_index],
 			"A visual stage swap recreated a BranchMount."
-		)
-		expect(
-			current_mount.position == mount_positions[mount_index],
-			"A visual stage swap relocated a BranchMount."
 		)
 		expect(
 			current_mount.get_child_count()
