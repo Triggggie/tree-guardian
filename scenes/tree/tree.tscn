@@ -1,10 +1,19 @@
-[gd_scene format=3 uid="uid://d3uxb01hw3ht0"]
+[gd_scene load_steps=4 format=3 uid="uid://d3uxb01hw3ht0"]
 
 [ext_resource type="Script" uid="uid://b3slat4u2avky" path="res://scripts/tree.gd" id="1_cuvwl"]
 [ext_resource type="Script" uid="uid://h6cl4ggi7vec" path="res://scripts/branches/tree_branch_loadout_controller.gd" id="2_loadout"]
+[ext_resource type="Script" path="res://scripts/tree_growth_visual.gd" id="3_growth_visual"]
 
 [node name="Tree" type="Node2D" unique_id=1588258163]
 script = ExtResource("1_cuvwl")
+
+[node name="Visual" type="Node2D" parent="."]
+script = ExtResource("3_growth_visual")
+
+[node name="BaseTreeSprite" type="Sprite2D" parent="Visual"]
+texture_filter = 1
+
+[node name="SoulCoreVisual" type="Node2D" parent="Visual"]
 
 [node name="Trunk" type="Node2D" parent="." unique_id=1750106346]
 

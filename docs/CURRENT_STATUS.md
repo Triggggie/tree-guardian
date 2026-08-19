@@ -257,6 +257,14 @@ The SOUL status panel draws a neutral gray orb glyph while no Soul is selected a
 
 Normal death does not clear the selected Soul or rank. `TreeSoulService` provides a prestige-clear method, but no player-facing prestige flow currently calls it.
 
+### Guardian Tree Growth Visuals V1
+
+The production Guardian Tree base visual is driven only by canonical `Tree.age`. `TreeGrowthVisual` owns one nearest-filtered `Visual/BaseTreeSprite`, listens to `Tree.age_changed`, and swaps among four authored 256x256 transparent PNGs without polling or changing the Tree gameplay node. The approved mapping is Stage 1 at Age 1-39, Stage 2 at Age 40-79, Stage 3 at Age 80-199, and Stage 4 at Age 200+. Age 200 displays the Mature Guardian Tree immediately while the existing Tree Soul system independently unlocks selection at the same milestone.
+
+All stages use scale `(1.5, 1.5)`. Their presentation-only offsets are Stage 1 `(0.75, -93)`, Stage 2 `(2.25, -103.5)`, Stage 3 `(-0.75, -141)`, and Stage 4 `(0, -151.5)`. These values center each opaque sprite bound and align its lowest root pixel to the Tree origin. The authored dormant gray Soul Core remains baked into each base sprite; the empty `Visual/SoulCoreVisual` node reserves a future overlay without hard-coding a selected Soul color in this checkpoint.
+
+Visual swaps do not relocate or recreate `AttachmentPoints`, `BranchMount` nodes, runtime Branches, collision, Tree HP, or progression. Ordinary death/revive does not change Age and therefore retains the same visual stage. There is still no player-facing Prestige flow; a future canonical reset that changes Age to 1 will resolve to Stage 1 without a second Age counter.
+
 ## 8. Manual Test Status
 
 ### Shared Branch Progression Checkpoint
@@ -770,12 +778,11 @@ Recommended next checkpoint: **Blossom Full Talent Tree V1**.
 - There is no found-versus-equipped Apex Branch comparison.
 - Bark Warden and Ancient Bark Colossus now have their first unique abilities, but there is no dedicated boss health-bar or encounter-intro UI and no additional boss ability set.
 - Normal enemies can drop Bark/Roots equipment at the production 1% chance; no material, Garden, pet, or Soul Relic loot exists.
-- The Tree Soul orb described in project guidance as visible from Age 1 is not a persistent world-space element; only the hidden-by-default SOUL panel and selection cards draw orb glyphs.
+- The production Guardian Tree sprites contain the dormant gray Soul Core from Age 1. A separate colored world-space Soul overlay remains future work.
 - A service-level prestige reset hook exists, but there is no integrated player-facing prestige flow.
 - Gameplay scripts contain extensive prototype debug logging.
-- Visuals are primarily code-drawn prototype shapes; the repository has no production art or audio content beyond the project icon.
+- Guardian Grove, the current enemy roster, and the Guardian Tree now use production pixel-art foundations; some Branch/UI visuals and audio remain prototype or future work.
 - Schedule validation has automated negative fixtures, but broader ContentValidator failure presentation has not been manually exercised in the editor.
-- Project guidance describes a Soul orb visible from Age 1, but the current implementation has no persistent world-space orb; orb glyphs exist only in the SOUL panel and selection cards.
 
 ### Balance Note
 

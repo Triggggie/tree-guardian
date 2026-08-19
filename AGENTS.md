@@ -227,6 +227,8 @@ Example:
 
 Do not reintroduce Age farming from repeated waves.
 
+Guardian Tree production visuals resolve only from canonical `Tree.age`: Stage 1 at Age 1-39, Stage 2 at Age 40-79, Stage 3 at Age 80-199, and Stage 4 at Age 200+. Age 200 therefore displays the Mature Guardian Tree immediately and independently unlocks Tree Soul selection through the existing Soul system; pending Soul selection does not block Stage 4, and the authored Soul Core remains dormant gray until a Soul is actually selected. Ordinary death/retry preserves the current Age-derived visual stage. Future canonical Prestige Age reset returns the visual resolver to Stage 1 without a separate visual progression counter.
+
 Normal Wave overlap is disabled for onboarding Waves 1–10. After onboarding, only adjacent normal Waves may overlap, only after the current Wave finishes spawning and reaches its configured survivor threshold, and never with more than two active cohorts. Boss/miniboss Waves and Preparation boundaries are hard no-overlap boundaries. Every enemy retains its origin global Wave for tracking, scaling, completion, Item Level, and reward context even when `current_wave` represents a newer launched Wave. Wave completion remains ordered, and Age advances only from ordered completion rather than Wave launch.
 
 ## Combat targeting

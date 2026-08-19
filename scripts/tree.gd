@@ -57,36 +57,9 @@ var essence_gain_per_upgrade: float = 0.10
 @export_range(2, 500, 1)
 var maturity_age: int = 40
 
-# Rozměry mladého stromku.
-@export var sapling_trunk_height: float = 125.0
-@export var sapling_trunk_width: float = 48.0
-@export var sapling_crown_radius: float = 82.0
-
-# Konečné rozměry dospělého stromu.
-@export var mature_trunk_height: float = 205.0
-@export var mature_trunk_width: float = 82.0
-@export var mature_crown_radius: float = 128.0
-
 # Attachment pointy jsou u mladého stromku blíž ke středu.
 @export_range(0.5, 1.0, 0.01)
 var sapling_attachment_scale: float = 0.72
-
-
-@export_category("Tree Aging")
-@export_range(1, 1000, 1)
-var old_tree_age: int = 100
-
-@export_range(1, 2000, 1)
-var ancient_tree_age: int = 250
-
-@export var young_trunk_color: Color = Color("825235")
-@export var mature_trunk_color: Color = Color("70452d")
-@export var ancient_trunk_color: Color = Color("594034")
-
-@export var young_crown_color: Color = Color("54a860")
-@export var mature_crown_color: Color = Color("3f8f4f")
-@export var ancient_crown_color: Color = Color("597f4b")
-
 
 @export_category("Idle Animation")
 @export_range(0.0, 0.1, 0.001)
@@ -177,7 +150,7 @@ func _process(delta: float) -> void:
 	)
 
 	# Scale slouží pouze pro jemné dýchání.
-	# Samotný růst stromu řeší rozměry v _draw().
+	# Věkové vizuální fáze řeší child Visual.
 	scale = Vector2(
 		1.0 + breath,
 		1.0 - breath * 0.35
@@ -185,130 +158,6 @@ func _process(delta: float) -> void:
 
 	process_health_regeneration(delta)
 	process_healing_over_time(delta)
-
-
-func _draw() -> void:
-	var growth_progress: float = (
-		get_growth_progress()
-	)
-
-	var trunk_height: float = lerp(
-		sapling_trunk_height,
-		mature_trunk_height,
-		growth_progress
-	)
-
-	var trunk_width: float = lerp(
-		sapling_trunk_width,
-		mature_trunk_width,
-		growth_progress
-	)
-
-	var crown_radius: float = lerp(
-		sapling_crown_radius,
-		mature_crown_radius,
-		growth_progress
-	)
-
-	var trunk_color: Color = get_current_trunk_color()
-	var crown_color: Color = get_current_crown_color()
-
-	draw_trunk(
-		trunk_height,
-		trunk_width,
-		trunk_color
-	)
-
-	draw_crown(
-		trunk_height,
-		crown_radius,
-		crown_color
-	)
-
-	draw_age_details(
-		trunk_height,
-		trunk_width
-	)
-
-
-func draw_trunk(
-	trunk_height: float,
-	trunk_width: float,
-	trunk_color: Color
-) -> void:
-	draw_rect(
-		Rect2(
-			-trunk_width * 0.5,
-			-trunk_height,
-			trunk_width,
-			trunk_height
-		),
-		trunk_color
-	)
-
-
-func draw_crown(
-	trunk_height: float,
-	crown_radius: float,
-	crown_color: Color
-) -> void:
-	var crown_center := Vector2(
-		0.0,
-		-trunk_height - crown_radius * 0.38
-	)
-
-	draw_circle(
-		crown_center,
-		crown_radius,
-		crown_color
-	)
-
-
-func draw_age_details(
-	trunk_height: float,
-	trunk_width: float
-) -> void:
-	if age < old_tree_age:
-		return
-
-	var bark_color := Color(
-		0.20,
-		0.13,
-		0.09,
-		0.45
-	)
-
-	var detail_count: int = 3
-
-	if age >= ancient_tree_age:
-		detail_count = 5
-
-	for detail_index in range(detail_count):
-		var x_position: float = lerp(
-			-trunk_width * 0.28,
-			trunk_width * 0.28,
-			float(detail_index)
-			/ max(float(detail_count - 1), 1.0)
-		)
-
-		var top_y: float = (
-			-trunk_height * 0.82
-			+ detail_index * 11.0
-		)
-
-		var bottom_y: float = (
-			-trunk_height * 0.20
-			- detail_index * 8.0
-		)
-
-		draw_line(
-			Vector2(x_position, top_y),
-			Vector2(x_position - 5.0, bottom_y),
-			bark_color,
-			3.0,
-			true
-		)
-
 
 func get_growth_progress() -> float:
 	var safe_maturity_age: int = max(
@@ -336,71 +185,6 @@ func get_tree_growth_factor() -> float:
 		1.0,
 		get_growth_progress()
 	)
-
-
-func get_current_trunk_color() -> Color:
-	if age < old_tree_age:
-		var progress: float = clamp(
-			float(age - 1)
-			/ float(max(old_tree_age - 1, 1)),
-			0.0,
-			1.0
-		)
-
-		return young_trunk_color.lerp(
-			mature_trunk_color,
-			progress
-		)
-
-	var ancient_progress: float = clamp(
-		float(age - old_tree_age)
-		/ float(
-			max(
-				ancient_tree_age - old_tree_age,
-				1
-			)
-		),
-		0.0,
-		1.0
-	)
-
-	return mature_trunk_color.lerp(
-		ancient_trunk_color,
-		ancient_progress
-	)
-
-
-func get_current_crown_color() -> Color:
-	if age < old_tree_age:
-		var progress: float = clamp(
-			float(age - 1)
-			/ float(max(old_tree_age - 1, 1)),
-			0.0,
-			1.0
-		)
-
-		return young_crown_color.lerp(
-			mature_crown_color,
-			progress
-		)
-
-	var ancient_progress: float = clamp(
-		float(age - old_tree_age)
-		/ float(
-			max(
-				ancient_tree_age - old_tree_age,
-				1
-			)
-		),
-		0.0,
-		1.0
-	)
-
-	return mature_crown_color.lerp(
-		ancient_crown_color,
-		ancient_progress
-	)
-
 
 func store_attachment_positions() -> void:
 	var attachment_points: Node = get_node_or_null(
@@ -456,7 +240,6 @@ func update_attachment_positions() -> void:
 
 func update_tree_growth() -> void:
 	update_attachment_positions()
-	queue_redraw()
 
 	growth_changed.emit(
 		get_tree_growth_factor()
