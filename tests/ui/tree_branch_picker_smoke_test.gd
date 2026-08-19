@@ -115,7 +115,9 @@ func run_test(loadout: BranchLoadoutService) -> void:
 		"Current candidate performed or allowed a no-op equip."
 	)
 
-	original_slot_1.add_xp(2)
+	original_slot_1.add_xp(
+		original_slot_1.get_safe_xp_required_per_level()
+	)
 	expect(
 		original_slot_1.purchase_talent(&"sweeping_strike"),
 		"Could not prepare Slot 1 Strength saved build."
@@ -133,7 +135,9 @@ func run_test(loadout: BranchLoadoutService) -> void:
 		and not slot_1_blossom.combat_enabled,
 		"Swapped Blossom is wrong or combat-enabled during Preparation."
 	)
-	slot_1_blossom.add_xp(2)
+	slot_1_blossom.add_xp(
+		slot_1_blossom.get_safe_xp_required_per_level()
+	)
 	expect(
 		slot_1_blossom.purchase_talent(&"abundant_bloom"),
 		"Could not prepare Slot 1 Blossom saved build."

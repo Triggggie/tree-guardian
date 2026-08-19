@@ -33,7 +33,7 @@ func run_test() -> void:
 	if not is_instance_valid(slot_one) or not is_instance_valid(slot_three):
 		expect(false, "Strength respec fixtures were not created.")
 		return
-	level_to(slot_one, 14)
+	level_to(slot_one, 35)
 	var cleaver_path: Array[StringName] = [
 		&"sweeping_strike", &"cleaver", &"serrated_arc",
 		&"reaping_sweep", &"whirling_bough"
@@ -41,7 +41,7 @@ func run_test() -> void:
 	for talent_id in cleaver_path:
 		expect(slot_one.purchase_talent(talent_id), "Could not buy %s." % talent_id)
 	expect(slot_three.purchase_talent(&"rebuff"), "Other-slot fixture purchase failed.")
-	expect(slot_one.get_available_talent_points() == 0, "Five-point build did not spend its budget.")
+	expect(slot_one.get_available_talent_points() == 0, "Five-talent build did not spend its earned budget.")
 
 	var reason: String = slot_one.get_talent_refund_reason(&"sweeping_strike")
 	expect(
@@ -108,7 +108,7 @@ func run_test() -> void:
 		"Full reset changed another slot using the same archetype."
 	)
 	expect(
-		slot_one.branch_level == 14 and slot_three.branch_level == 14,
+		slot_one.branch_level == 35 and slot_three.branch_level == 35,
 		"Full reset changed shared archetype progress."
 	)
 	expect(SaveGame.save_now(), "Reset build save failed.")

@@ -132,7 +132,9 @@ func run_test(
 	var old_blossom: CombatBranch = controller.get_runtime_branch(
 		&"standard_slot_4"
 	)
-	old_blossom.add_xp(2)
+	old_blossom.add_xp(
+		old_blossom.get_safe_xp_required_per_level()
+	)
 	expect(
 		old_blossom.purchase_talent(&"abundant_bloom"),
 		"Could not prepare the Slot 4 Blossom saved build."

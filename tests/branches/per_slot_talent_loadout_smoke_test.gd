@@ -38,7 +38,7 @@ func run_test() -> void:
 		return
 
 	expect(strength_1.branch_level == 1 and strength_3.branch_level == 1, "Strength did not start at Level 1.")
-	strength_1.add_xp(2)
+	level_to(strength_1, 2)
 	expect(strength_1.branch_level == 2 and strength_3.branch_level == 2, "Strength Level was not shared.")
 	expect(strength_1.total_talent_points_earned == 1 and strength_3.total_talent_points_earned == 1, "Strength total TP was not shared.")
 	expect(strength_1.available_talent_points == 1 and strength_3.available_talent_points == 1, "Each Strength slot did not receive the full TP budget.")
@@ -50,11 +50,11 @@ func run_test() -> void:
 	expect(strength_1.talent_effect_set.has_active_effect(&"sweeping_strike") and not strength_3.talent_effect_set.has_active_effect(&"sweeping_strike"), "Sweeping Strike effect leaked across slots.")
 	expect(strength_3.talent_effect_set.has_active_effect(&"rebuff") and not strength_1.talent_effect_set.has_active_effect(&"rebuff"), "Rebuff effect leaked across slots.")
 
-	strength_1.add_xp(4)
+	level_to(strength_1, 5)
 	expect(strength_1.total_talent_points_earned == 2, "Second shared TP milestone was not awarded.")
 	expect(strength_1.available_talent_points == 1 and strength_3.available_talent_points == 1, "Available TP was not derived from each slot's own spend.")
 
-	blossom_2.add_xp(6)
+	level_to(blossom_2, 5)
 	expect(blossom_2.available_talent_points == 2 and blossom_4.available_talent_points == 2, "Blossom slots did not receive the full TP budget.")
 	expect(blossom_2.purchase_talent(&"abundant_bloom"), "Slot 2 could not buy Abundant Bloom.")
 	expect(blossom_4.purchase_talent(&"twin_petals"), "Slot 4 could not buy Twin Petals.")
@@ -78,7 +78,7 @@ func run_test() -> void:
 	var recreated_blossom_4 := recreated.get(4) as CombatBranch
 	expect(recreated_strength_1.has_talent(&"sweeping_strike") and recreated_strength_3.has_talent(&"rebuff"), "Strength loadouts did not survive MainWorld recreation.")
 	expect(recreated_blossom_2.has_talent(&"abundant_bloom") and recreated_blossom_4.has_talent(&"twin_petals"), "Blossom loadouts did not survive MainWorld recreation.")
-	expect(recreated_strength_1.branch_level == 4 and recreated_strength_3.branch_level == 4, "Shared Strength progress did not survive recreation.")
+	expect(recreated_strength_1.branch_level == 5 and recreated_strength_3.branch_level == 5, "Shared Strength progress did not survive recreation.")
 	await cleanup_world(recreated_world)
 	branch_progress.clear_runtime_progress_for_testing()
 	await test_same_talent_in_two_slots()
@@ -91,7 +91,7 @@ func test_same_talent_in_two_slots() -> void:
 	var branches: Dictionary = find_branches(world)
 	var strength_1 := branches.get(1) as CombatBranch
 	var strength_3 := branches.get(3) as CombatBranch
-	strength_1.add_xp(2)
+	level_to(strength_1, 2)
 	expect(strength_1.purchase_talent(&"sweeping_strike"), "Slot 1 same-talent purchase failed.")
 	expect(strength_3.purchase_talent(&"sweeping_strike"), "Slot 3 same-talent purchase failed.")
 	expect(not strength_3.purchase_talent(&"sweeping_strike"), "Duplicate purchase in the same slot succeeded.")
@@ -102,13 +102,13 @@ func test_archetype_swap_persistence() -> void:
 	var fixture := Node2D.new()
 	add_child(fixture)
 	var strength: CombatBranch = await create_branch(STRENGTH_SCENE, fixture, 1)
-	strength.add_xp(2)
+	level_to(strength, 2)
 	expect(strength.purchase_talent(&"sweeping_strike"), "Swap fixture Strength purchase failed.")
 	strength.queue_free()
 	await get_tree().process_frame
 
 	var blossom: CombatBranch = await create_branch(BLOSSOM_SCENE, fixture, 1)
-	blossom.add_xp(2)
+	level_to(blossom, 2)
 	expect(blossom.purchase_talent(&"abundant_bloom"), "Swap fixture Blossom purchase failed.")
 	blossom.queue_free()
 	await get_tree().process_frame
@@ -172,6 +172,11 @@ func all_valid(branches: Array) -> bool:
 			expect(false, "Production Tree is missing an equipped Branch slot.")
 			return false
 	return true
+
+
+func level_to(branch: CombatBranch, target_level: int) -> void:
+	while branch.branch_level < target_level:
+		branch.add_xp(branch.get_safe_xp_required_per_level())
 
 
 func expect(condition: bool, message: String) -> void:

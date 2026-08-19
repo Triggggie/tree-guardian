@@ -98,7 +98,9 @@ func run_test() -> void:
 		"Apex no-op replaced runtime or emitted signal."
 	)
 
-	apex_a.add_xp(2)
+	apex_a.add_xp(
+		apex_a.get_safe_xp_required_per_level()
+	)
 	expect(
 		apex_a.branch_level == 2
 		and apex_a.total_talent_points_earned == 1,

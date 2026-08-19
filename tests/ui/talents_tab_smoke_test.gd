@@ -523,7 +523,12 @@ func test_branch_detection(
 		is_instance_valid(left_blossom)
 		and is_instance_valid(right_blossom)
 	):
-		left_blossom.call("add_xp", 2)
+		left_blossom.call(
+			"add_xp",
+			left_blossom.call(
+				"get_safe_xp_required_per_level"
+			)
+		)
 		expect(
 			left_blossom.get("available_talent_points") == 1
 			and right_blossom.get("available_talent_points") == 1,

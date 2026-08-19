@@ -35,10 +35,17 @@ const EXPECTED_TEXTURE_PATHS: Array[String] = [
 ]
 
 const EXPECTED_POSITIONS: Array[Vector2] = [
-	Vector2(0.75, -93.0),
-	Vector2(2.25, -103.5),
-	Vector2(-0.75, -141.0),
-	Vector2(0.0, -151.5)
+	Vector2(1.0, -124.0),
+	Vector2(2.775, -127.65),
+	Vector2(-0.8, -150.4),
+	Vector2(0.0, -159.075)
+]
+
+const EXPECTED_SCALES: Array[Vector2] = [
+	Vector2(2.0, 2.0),
+	Vector2(1.85, 1.85),
+	Vector2(1.6, 1.6),
+	Vector2(1.575, 1.575)
 ]
 
 const OPAQUE_CENTERS_X: Array[float] = [
@@ -165,7 +172,8 @@ func test_runtime_visuals() -> void:
 			% (stage_index + 1)
 		)
 		expect(
-			base_tree_sprite.scale == Vector2(1.5, 1.5),
+			base_tree_sprite.scale
+			== EXPECTED_SCALES[stage_index],
 			"Stage %d visual scale changed."
 			% (stage_index + 1)
 		)

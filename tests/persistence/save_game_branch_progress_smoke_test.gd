@@ -36,7 +36,7 @@ func _ready() -> void:
 	expect(
 		strength_record != null and strength_record.branch_level == 14
 		and strength_record.current_xp == 1
-		and strength_record.total_talent_points_earned == 5
+		and strength_record.total_talent_points_earned == 3
 		and strength_record.get_upgrade_level(strength.get_upgrade_ids()[0]) == 4,
 		"Strength shared progress did not round trip."
 	)

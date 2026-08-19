@@ -539,7 +539,9 @@ func _build_graph_layout(talent_ids: Array[StringName]) -> Dictionary:
 
 
 func _get_fallback_row(required_level: int) -> int:
-	var milestone_levels: Array[int] = [2, 4, 7, 10, 14]
+	var milestone_levels: Array[int] = (
+		BranchProgressionRules.get_talent_point_levels()
+	)
 	for index in range(milestone_levels.size()):
 		if required_level <= milestone_levels[index]:
 			return index

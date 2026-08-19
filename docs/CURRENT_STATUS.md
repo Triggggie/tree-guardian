@@ -90,9 +90,13 @@ The two Strength instances share one Strength archetype progress record, and the
 
 `BranchProgressService`, registered as the `BranchProgress` autoload after `BranchSeeds`, owns shared records by `branch_id` and talent loadouts by `slot_id + branch_id`. Each physical slot receives the complete Talent Point budget earned by its archetype; available points are derived as shared total earned minus the TalentDefinition costs purchased by that loadout. A loadout survives unregister/recreate and a temporary replacement by another archetype in the same slot.
 
+`BranchProgressionRules` centrally defines Branch XP and Talent Point progression. XP required to advance from the current level is `ceil(2.0 + 1.5 * pow(level, 1.35))`; the cost is recalculated after every level in a multi-level grant and overflow XP is preserved. The 12 Talent Point milestones are Levels 2, 5, 10, 20, 35, 55, 80, 110, 150, 200, 275, and 375. Earned budget is derived from shared Branch Level, while purchases remain independent per `slot_id + branch_id`.
+
+Save structure remains compatible: saved Branch Level and current XP are preserved, and the new next-level requirement plus earned Talent Point budget are derived from the restored level. Existing purchased talent IDs remain intact even if an old build has spent more points than its newly derived current-level budget; no level, XP, or purchased talent is removed.
+
 Valid examples include `Slot 1 Strength -> Sweeping Strike` beside `Slot 3 Strength -> Rebuff`, and independent stored builds for `Slot 1 Strength` and `Slot 1 Blossom`. Runtime `TalentEffectSet` objects remain separate per physical instance.
 
-This Branch progress is not yet stored on disk. Recreating a runtime Branch or MainWorld in the same process restores it, but exiting the application loses it. Talent-effect set objects remain separate per physical Strength or Blossom instance, and only purchased effect IDs are synchronized. Forest Essence is spent once by the authoritative upgrade transaction, even though all matching runtime instances receive the new level.
+Branch progress and slot-specific talent loadouts are stored on disk through `SaveGame`. Talent-effect set objects remain separate per physical Strength or Blossom instance, and only purchased effect IDs are synchronized. Forest Essence is spent once by the authoritative upgrade transaction, even though all matching runtime instances receive the new level.
 
 ## 4. Content Resource Architecture
 
@@ -261,7 +265,7 @@ Normal death does not clear the selected Soul or rank. `TreeSoulService` provide
 
 The production Guardian Tree base visual is driven only by canonical `Tree.age`. `TreeGrowthVisual` owns one nearest-filtered `Visual/BaseTreeSprite`, listens to `Tree.age_changed`, and swaps among four authored 256x256 transparent PNGs without polling or changing the Tree gameplay node. The approved mapping is Stage 1 at Age 1-39, Stage 2 at Age 40-79, Stage 3 at Age 80-199, and Stage 4 at Age 200+. Age 200 displays the Mature Guardian Tree immediately while the existing Tree Soul system independently unlocks selection at the same milestone.
 
-All stages use scale `(1.5, 1.5)`. Their presentation-only offsets are Stage 1 `(0.75, -93)`, Stage 2 `(2.25, -103.5)`, Stage 3 `(-0.75, -141)`, and Stage 4 `(0, -151.5)`. These values center each opaque sprite bound and align its lowest root pixel to the Tree origin. The authored dormant gray Soul Core remains baked into each base sprite; the empty `Visual/SoulCoreVisual` node reserves a future overlay without hard-coding a selected Soul color in this checkpoint.
+Presentation scales are Stage 1 `(2.0, 2.0)`, Stage 2 `(1.85, 1.85)`, Stage 3 `(1.6, 1.6)`, and Stage 4 `(1.575, 1.575)`. Their corresponding presentation-only offsets are `(1, -124)`, `(2.775, -127.65)`, `(-0.8, -150.4)`, and `(0, -159.075)`. These values center each opaque sprite bound and align its lowest root pixel to the Tree origin. The authored dormant gray Soul Core remains baked into each base sprite; the empty `Visual/SoulCoreVisual` node reserves a future overlay without hard-coding a selected Soul color in this checkpoint.
 
 Visual swaps do not relocate or recreate `AttachmentPoints`, `BranchMount` nodes, runtime Branches, collision, Tree HP, or progression. Ordinary death/revive does not change Age and therefore retains the same visual stage. There is still no player-facing Prestige flow; a future canonical reset that changes Age to 1 will resolve to Stage 1 without a second Age counter.
 
@@ -697,7 +701,7 @@ After a manual save/load and Inventory visual playtest, choose either Run Save &
 Checkpoint date: 2026-08-17.
 
 - Strength is the first production five-layer talent graph: 27 one-point talents across required levels 2, 4, 7, 10, and 14. Each slot retains its independent `slot_id + branch_id` build while XP, level, earned-point budget, and Essence upgrades remain shared by archetype.
-- The mutually exclusive fork pairs are Cleaver/Earthbreaker, Disruptor/Protector, and Executioner/Relentless. Roots do not conflict, so the five-point level-14 budget may complete one root-to-capstone specialization or form any valid prerequisite-respecting split build.
+- The mutually exclusive fork pairs are Cleaver/Earthbreaker, Disruptor/Protector, and Executioner/Relentless. Roots do not conflict, so five earned points can complete one root-to-capstone specialization or form any valid prerequisite-respecting split build. The current graph does not yet consume the full 12-point Level 375 budget; later content expansion will add valid uses without weakening prerequisites or conflicts.
 - All runtime counters, target snapshots, combo state, interrupt counts, and pending sequences belong to the physical Strength instance. Talent damage uses the current Strength damage pipeline and `AttackResolver`; delayed Aftershock/Combo/Flurry work revalidates targets and is invalidated by combat stop or replacement.
 - Persistence remains `SAVE_VERSION = 1`: the stored schema is still a list of stable `purchased_talent_ids` under `slot_id + branch_id`. Old root-only saves load unchanged, new IDs default unpurchased, unknown IDs are skipped without losing other valid state, and repeated load remains idempotent.
 

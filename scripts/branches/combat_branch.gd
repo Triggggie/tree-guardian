@@ -45,18 +45,6 @@ var facing_side: int = 0
 var slot_index: int = 1
 
 
-@export_category("Progression")
-@export var xp_required_per_level: int = 2
-
-@export var talent_point_levels: Array[int] = [
-	2,
-	4,
-	7,
-	10,
-	14
-]
-
-
 @export_category("Talent Definitions")
 @export var talent_tree_definition: TalentTreeDefinition
 
@@ -327,9 +315,8 @@ func try_spend_essence(
 
 
 func get_safe_xp_required_per_level() -> int:
-	return max(
-		xp_required_per_level,
-		1
+	return BranchProgressionRules.get_xp_required_for_level(
+		branch_level
 	)
 
 

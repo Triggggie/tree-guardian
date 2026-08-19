@@ -212,7 +212,7 @@ func test_talents() -> void:
 	var right_primary := create_enemy(root, "RightPrimary", Vector2(100.0, 0.0))
 	var right_secondary := create_enemy(root, "RightSecondary", Vector2(150.0, 0.0))
 
-	branch.add_xp(2)
+	level_to(branch, 2)
 	expect(branch.branch_level == 2 and branch.purchase_talent(&"barbed_core"), "Barbed Core purchase failed at Level 2.")
 	right_primary.targetable = false
 	right_secondary.targetable = false
@@ -220,8 +220,8 @@ func test_talents() -> void:
 	expect_damage(left_primary, [16.8], "Barbed Core primary")
 	expect_damage(left_secondary, [12.0], "Barbed Core splash")
 
-	branch.add_xp(4)
-	expect(branch.branch_level == 4 and branch.purchase_talent(&"twin_torment"), "Twin Torment purchase failed at Level 4.")
+	level_to(branch, 5)
+	expect(branch.branch_level == 5 and branch.purchase_talent(&"twin_torment"), "Twin Torment purchase failed at the second TP milestone.")
 	clear_damage([left_primary, left_secondary, right_primary, right_secondary])
 	right_primary.targetable = true
 	right_secondary.targetable = true
@@ -237,8 +237,8 @@ func test_talents() -> void:
 	expect_damage(left_primary, [16.8], "Twin Torment single-side primary")
 	expect_damage(left_secondary, [12.0], "Twin Torment single-side splash")
 
-	branch.add_xp(6)
-	expect(branch.branch_level == 7 and branch.purchase_talent(&"overgrowth"), "Overgrowth purchase failed at Level 7.")
+	level_to(branch, 10)
+	expect(branch.branch_level == 10 and branch.purchase_talent(&"overgrowth"), "Overgrowth purchase failed at the third TP milestone.")
 	var expanded_secondary := create_enemy(root, "ExpandedSecondary", Vector2(-220.0, 0.0))
 	right_primary.targetable = true
 	right_secondary.targetable = true
@@ -275,7 +275,7 @@ func test_apex_progress_persistence_and_lifecycle() -> void:
 	expect(loadout.equip_apex_branch(&"thorn_crown"), "Production Thorn Crown low-level equip failed.")
 	var branch: CombatBranch = controller.get_runtime_apex_branch()
 	expect(is_instance_valid(branch) and branch.get_slot_id() == &"apex_slot", "Production Apex runtime is missing.")
-	branch.add_xp(2)
+	level_to(branch, 2)
 	expect(branch.purchase_talent(&"barbed_core"), "Production Apex Barbed Core purchase failed.")
 	branch.resume_combat()
 	var timer := branch.get_node("CooldownTimer") as Timer
@@ -361,6 +361,11 @@ func cleanup_fixture(root: Node) -> void:
 	root.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+func level_to(branch: CombatBranch, target_level: int) -> void:
+	while branch.branch_level < target_level:
+		branch.add_xp(branch.get_safe_xp_required_per_level())
 
 
 func expect_damage(enemy: MockEnemy, expected: Array, label: String) -> void:

@@ -21,13 +21,18 @@ const TREE_TEXTURES: Array[Texture2D] = [
 # Each authored sprite uses a 256x256 canvas. These offsets center the
 # opaque artwork and place its lowest root pixel on the Tree origin.
 const STAGE_POSITIONS: Array[Vector2] = [
-	Vector2(0.75, -93.0),
-	Vector2(2.25, -103.5),
-	Vector2(-0.75, -141.0),
-	Vector2(0.0, -151.5)
+	Vector2(1.0, -124.0),
+	Vector2(2.775, -127.65),
+	Vector2(-0.8, -150.4),
+	Vector2(0.0, -159.075)
 ]
 
-const TREE_VISUAL_SCALE: Vector2 = Vector2(1.5, 1.5)
+const STAGE_SCALES: Array[Vector2] = [
+	Vector2(2.0, 2.0),
+	Vector2(1.85, 1.85),
+	Vector2(1.6, 1.6),
+	Vector2(1.575, 1.575)
+]
 
 
 @onready var base_tree_sprite: Sprite2D = $BaseTreeSprite
@@ -68,7 +73,7 @@ func refresh_for_age(tree_age: int) -> void:
 	var stage_index: int = current_stage - 1
 	base_tree_sprite.texture = TREE_TEXTURES[stage_index]
 	base_tree_sprite.position = STAGE_POSITIONS[stage_index]
-	base_tree_sprite.scale = TREE_VISUAL_SCALE
+	base_tree_sprite.scale = STAGE_SCALES[stage_index]
 
 
 func get_current_stage() -> int:

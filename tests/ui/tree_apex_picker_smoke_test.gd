@@ -153,7 +153,9 @@ func run_test(
 		and detail_text(screen).contains("LEGENDARY - Tier I"),
 		"Equipped Apex detail or Tier is wrong."
 	)
-	apex_a.add_xp(2)
+	apex_a.add_xp(
+		apex_a.get_safe_xp_required_per_level()
+	)
 	expect(apex_a.purchase_talent(&"test_talent_a"), "Apex A talent purchase failed.")
 
 	expect(manager.continue_from_preparation(), "START RUN with Apex failed.")

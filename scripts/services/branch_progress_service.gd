@@ -145,18 +145,37 @@ func add_xp(branch: CombatBranch, amount: int) -> bool:
 	if progress == null:
 		return false
 
-	var xp_required: int = branch.get_safe_xp_required_per_level()
 	var previous_level: int = progress.branch_level
 	var previous_total_points: int = progress.total_talent_points_earned
 	var gained_talent_levels: Array[int] = []
 	progress.current_xp += amount
 
-	while progress.current_xp >= xp_required:
+	while true:
+		var xp_required: int = (
+			BranchProgressionRules.get_xp_required_for_level(
+				progress.branch_level
+			)
+		)
+		if progress.current_xp < xp_required:
+			break
+
 		progress.current_xp -= xp_required
 		progress.branch_level += 1
-		if progress.branch_level in branch.talent_point_levels:
-			progress.total_talent_points_earned += 1
+		if BranchProgressionRules.is_talent_point_level(
+			progress.branch_level
+		):
 			gained_talent_levels.append(progress.branch_level)
+
+	progress.total_talent_points_earned = (
+		BranchProgressionRules.get_total_talent_points_for_level(
+			progress.branch_level
+		)
+	)
+	var next_xp_required: int = (
+		BranchProgressionRules.get_xp_required_for_level(
+			progress.branch_level
+		)
+	)
 
 	_synchronize_registered_branches(branch.branch_id)
 	_emit_instance_progress_signals(
@@ -170,7 +189,11 @@ func add_xp(branch: CombatBranch, amount: int) -> bool:
 		gained_talent_levels
 	)
 	progress_changed.emit(branch.branch_id)
-	xp_changed.emit(branch.branch_id, progress.current_xp, xp_required)
+	xp_changed.emit(
+		branch.branch_id,
+		progress.current_xp,
+		next_xp_required
+	)
 
 	if progress.branch_level != previous_level:
 		level_changed.emit(branch.branch_id, progress.branch_level)
@@ -444,7 +467,11 @@ func restore_persistence_state(stored_state: Dictionary) -> bool:
 		progress.branch_id = branch_id
 		progress.branch_level = int(branch_level_value)
 		progress.current_xp = int(current_xp_value)
-		progress.total_talent_points_earned = int(talent_points_value)
+		progress.total_talent_points_earned = (
+			BranchProgressionRules.get_total_talent_points_for_level(
+				progress.branch_level
+			)
+		)
 		for stored_upgrade_id in stored_upgrade_levels:
 			var upgrade_id := StringName(str(stored_upgrade_id))
 			var level_value = stored_upgrade_levels[stored_upgrade_id]

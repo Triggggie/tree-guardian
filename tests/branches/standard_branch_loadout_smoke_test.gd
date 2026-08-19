@@ -58,7 +58,9 @@ func run_test() -> void:
 		effect_sets[branch.talent_effect_set] = true
 	expect(effect_sets.size() == 4, "Four Strength copies share TalentEffectSet objects.")
 
-	strengths[0].add_xp(2)
+	strengths[0].add_xp(
+		strengths[0].get_safe_xp_required_per_level()
+	)
 	for branch in strengths:
 		expect(branch.branch_level == 2 and branch.total_talent_points_earned == 1, "Shared Strength progress did not reach every copy.")
 	expect(strengths[0].purchase_talent(&"sweeping_strike"), "Slot 1 Sweeping Strike failed.")
@@ -82,7 +84,9 @@ func run_test() -> void:
 	expect(loadout.equip_standard_branch(&"standard_slot_1", &"blossom_branch"), "Slot 1 Strength-to-Blossom failed.")
 	await get_tree().process_frame
 	var blossom: CombatBranch = controller.get_runtime_branch(&"standard_slot_1")
-	blossom.add_xp(2)
+	blossom.add_xp(
+		blossom.get_safe_xp_required_per_level()
+	)
 	expect(blossom.purchase_talent(&"abundant_bloom"), "Slot 1 Abundant Bloom failed.")
 	expect(loadout.equip_standard_branch(&"standard_slot_1", &"strength_branch"), "Slot 1 Blossom-to-Strength failed.")
 	await get_tree().process_frame

@@ -61,7 +61,9 @@ func run_test() -> void:
 	var strength_1 := branches[&"standard_slot_1"] as CombatBranch
 	var strength_3 := branches[&"standard_slot_3"] as CombatBranch
 	var blossom_2 := branches[&"standard_slot_2"] as CombatBranch
-	strength_1.add_xp(2)
+	strength_1.add_xp(
+		strength_1.get_safe_xp_required_per_level()
+	)
 	expect(strength_1.purchase_talent(&"sweeping_strike"), "Slot 1 talent purchase failed.")
 	expect(strength_3.purchase_talent(&"rebuff"), "Slot 3 talent purchase failed.")
 	screen.call("select_slot", &"standard_slot_1")

@@ -110,7 +110,9 @@ func run_test() -> void:
 			strength_signal_counts["right_tp"] += 1
 	)
 
-	left_strength.add_xp(2)
+	left_strength.add_xp(
+		left_strength.get_safe_xp_required_per_level()
+	)
 	expect_same_shared_progress(left_strength, right_strength, "Strength XP")
 	expect(left_strength.branch_level == 2, "Strength did not level to 2.")
 	expect(
@@ -156,7 +158,9 @@ func run_test() -> void:
 		"Strength runtime targets were shared."
 	)
 
-	left_blossom.add_xp(2)
+	left_blossom.add_xp(
+		left_blossom.get_safe_xp_required_per_level()
+	)
 	expect_same_shared_progress(left_blossom, right_blossom, "Blossom XP")
 	expect(left_blossom.branch_level == 2, "Blossom did not level to 2.")
 	var blossom_talent_id: StringName = left_blossom.get_talent_ids()[0]
