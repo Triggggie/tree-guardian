@@ -17,6 +17,13 @@ enum TargetPriority {
 }
 
 
+enum SideMode {
+	OWN_SIDE_ONLY,
+	OWN_SIDE_PREFERRED,
+	ANY_SIDE
+}
+
+
 @export_category("Target")
 
 @export var target_group: StringName = &"enemies"
@@ -24,6 +31,11 @@ enum TargetPriority {
 @export var target_priority: TargetPriority = (
 	TargetPriority.NEAREST
 )
+
+
+@export_category("Side")
+
+@export var side_mode: SideMode = SideMode.OWN_SIDE_ONLY
 
 
 @export_category("Lane")
@@ -76,6 +88,13 @@ func is_lane_allowed(
 
 func is_valid_definition() -> bool:
 	if target_group == &"":
+		return false
+
+	if side_mode not in [
+		SideMode.OWN_SIDE_ONLY,
+		SideMode.OWN_SIDE_PREFERRED,
+		SideMode.ANY_SIDE
+	]:
 		return false
 
 	if preferred_lane_span < 0:

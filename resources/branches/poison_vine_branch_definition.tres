@@ -10,6 +10,7 @@
 
 [sub_resource type="Resource" id="Resource_targeting"]
 script = ExtResource("2_targeting")
+side_mode = 1
 
 [resource]
 script = ExtResource("1_branch")

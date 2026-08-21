@@ -816,6 +816,19 @@ Checkpoint date: 2026-08-21.
 - Regression coverage verifies all four slots across Ages 1, 40, 80, and 200, left/right mirroring, upper/lower replacement, Poison Vine visual isolation, lower-only Strength rejection, and SaveGame restoration of production Blossom art in both lower slots.
 - Manual rendered MainWorld verification remains required for final attachment, overlap, and composition quality in all four positions. Automated tests verify node/resource identity and transforms but do not establish final visual quality.
 
+### Ranged Cross-Lane Assistance
+
+Checkpoint date: 2026-08-21.
+
+- `TargetingProfile.SideMode` is immutable targeting content with three reusable policies. `OWN_SIDE_ONLY` searches only the Branch's mounted side. `OWN_SIDE_PREFERRED` completes normal selection on the mounted side before considering the opposite side. `ANY_SIDE` scores all otherwise valid targets together without side preference.
+- `CombatTargeting` centrally resolves the side search order and target membership relative to the supplied side origin. Each acquisition takes one candidate snapshot from `EnemyTracker` when available, with the existing target group as an isolated-fixture fallback; side and lane passes reuse that snapshot. Side policy remains separate from lane preference, range validation, and target scoring, so future Branches can reuse the policy without branch-ID conditionals.
+- Strength is authored `OWN_SIDE_ONLY`. Its runtime profile is an instance-local copy of the definition profile, and both acquisition and delayed hit revalidation remain side-locked. Strength damage, cooldown, range, talents, and balance are unchanged.
+- Blossom and Poison Vine are authored `OWN_SIDE_PREFERRED`. Blossom preserves its existing nearest-to-Tree selection and true 650-unit Euclidean range. Poison Vine evaluates below-cap stacks, higher current health, and normal fallback independently within each searched side; any valid own-side target therefore wins before a more desirable opposite-side Poison target.
+- Opposite-side targets remain subject to the same alive/targetable/group/range and projectile revalidation as own-side targets. No assist-mode state is retained: every normal acquisition starts with the mounted side again, and a committed projectile is not cancelled merely because a new local enemy appears.
+- Thorn Crown is authored `ANY_SIDE` to describe its bilateral identity, while its established independent left/right attack-cycle implementation remains unchanged.
+- The focused cross-lane smoke test covers all three modes, invalid-mode validation, left/right Strength isolation, Blossom assistance from all four Standard mounts, own-side reacquisition, exact out-of-range rejection, cross-Tree projectile origin/target, Poison stack/health priority on the assisted side, Poison own-side precedence, right-to-left assistance, and cleanup. SaveGame round-trip coverage verifies restored Branches retain their definition-owned policies.
+- Manual rendered MainWorld verification remains required for cross-Tree projectile composition and the live own-side-clear/reacquisition scenarios. Automated tests verify targeting and projectile state but do not establish final visual quality.
+
 ## 9. Known Gaps and Limitations
 
 - There is no active-run resume system; Save Foundation V1 persists stable player progression only.

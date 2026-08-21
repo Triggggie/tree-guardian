@@ -43,6 +43,15 @@ func _ready() -> void:
 		and controller.get_runtime_apex_branch().branch_id == &"thorn_crown",
 		"Runtime Branches did not reflect restored non-default loadout."
 	)
+	expect(
+		controller.get_runtime_branch(&"standard_slot_1").branch_definition.targeting_profile.side_mode
+		== TargetingProfile.SideMode.OWN_SIDE_PREFERRED
+		and controller.get_runtime_branch(&"standard_slot_2").branch_definition.targeting_profile.side_mode
+		== TargetingProfile.SideMode.OWN_SIDE_PREFERRED
+		and controller.get_runtime_apex_branch().branch_definition.targeting_profile.side_mode
+		== TargetingProfile.SideMode.ANY_SIDE,
+		"Restored Branches did not retain their authored side-targeting policies."
+	)
 	for lower_slot_id: StringName in [
 		BranchSlotRules.STANDARD_SLOT_1_ID,
 		BranchSlotRules.STANDARD_SLOT_3_ID

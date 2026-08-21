@@ -21,33 +21,76 @@ static func find_target(
 	if not profile.is_valid_definition():
 		return null
 
-	var safe_range: float = max(
-		maximum_range,
-		0.0
-	)
-
-	var safe_facing_direction: float = (
-		-1.0
-		if facing_direction < 0.0
-		else 1.0
-	)
-
-	if (
-		profile.lane_mode
-		== TargetingProfile.LaneMode.PREFERRED
+	var candidates: Array[Node] = get_target_candidates(source, profile)
+	for side_direction in get_side_search_order(
+		profile,
+		facing_direction
 	):
-		var preferred_target: Node2D = (
-			find_best_target(
-				source,
-				profile,
-				preferred_lane_index,
-				safe_range,
-				safe_facing_direction,
-				true
-			)
+		var target: Node2D = find_target_on_side(
+			source,
+			profile,
+			preferred_lane_index,
+			maximum_range,
+			side_direction,
+			source.global_position.x,
+			candidates
 		)
+		if is_instance_valid(target):
+			return target
 
-		if preferred_target != null:
+	return null
+
+
+static func get_side_search_order(
+	profile: TargetingProfile,
+	own_side_direction: float
+) -> Array[float]:
+	var search_order: Array[float] = []
+	if not is_instance_valid(profile) or not profile.is_valid_definition():
+		return search_order
+
+	var normalized_own_side: float = (
+		-1.0 if own_side_direction < 0.0 else 1.0
+	)
+	match profile.side_mode:
+		TargetingProfile.SideMode.OWN_SIDE_ONLY:
+			search_order.append(normalized_own_side)
+		TargetingProfile.SideMode.OWN_SIDE_PREFERRED:
+			search_order.append(normalized_own_side)
+			search_order.append(-normalized_own_side)
+		TargetingProfile.SideMode.ANY_SIDE:
+			search_order.append(0.0)
+
+	return search_order
+
+
+static func find_target_on_side(
+	source: Node2D,
+	profile: TargetingProfile,
+	preferred_lane_index: int,
+	maximum_range: float,
+	required_side_direction: float,
+	side_origin_x: float,
+	candidates: Array[Node]
+) -> Node2D:
+	if not is_instance_valid(source) or not source.is_inside_tree():
+		return null
+	if not is_instance_valid(profile) or not profile.is_valid_definition():
+		return null
+
+	var safe_range: float = max(maximum_range, 0.0)
+	if profile.lane_mode == TargetingProfile.LaneMode.PREFERRED:
+		var preferred_target: Node2D = find_best_target(
+			source,
+			profile,
+			preferred_lane_index,
+			safe_range,
+			required_side_direction,
+			side_origin_x,
+			true,
+			candidates
+		)
+		if is_instance_valid(preferred_target):
 			return preferred_target
 
 		return find_best_target(
@@ -55,21 +98,10 @@ static func find_target(
 			profile,
 			preferred_lane_index,
 			safe_range,
-			safe_facing_direction,
-			false
-		)
-
-	if (
-		profile.lane_mode
-		== TargetingProfile.LaneMode.STRICT
-	):
-		return find_best_target(
-			source,
-			profile,
-			preferred_lane_index,
-			safe_range,
-			safe_facing_direction,
-			true
+			required_side_direction,
+			side_origin_x,
+			false,
+			candidates
 		)
 
 	return find_best_target(
@@ -77,9 +109,31 @@ static func find_target(
 		profile,
 		preferred_lane_index,
 		safe_range,
-		safe_facing_direction,
-		false
+		required_side_direction,
+		side_origin_x,
+		profile.lane_mode == TargetingProfile.LaneMode.STRICT,
+		candidates
 	)
+
+
+static func get_target_candidates(
+	source: Node2D,
+	profile: TargetingProfile
+) -> Array[Node]:
+	var candidates: Array[Node] = []
+	if not is_instance_valid(source) or not source.is_inside_tree():
+		return candidates
+	if not is_instance_valid(profile) or profile.target_group == &"":
+		return candidates
+
+	if profile.target_group == &"enemies":
+		var enemy_tracker: EnemyTracker = source.get_tree().get_first_node_in_group(
+			"enemy_tracker"
+		) as EnemyTracker
+		if is_instance_valid(enemy_tracker):
+			return enemy_tracker.get_enemies()
+
+	return source.get_tree().get_nodes_in_group(profile.target_group)
 
 
 static func find_best_target(
@@ -87,16 +141,12 @@ static func find_best_target(
 	profile: TargetingProfile,
 	preferred_lane_index: int,
 	maximum_range: float,
-	facing_direction: float,
-	require_preferred_lane: bool
+	required_side_direction: float,
+	side_origin_x: float,
+	require_preferred_lane: bool,
+	candidates: Array[Node]
 ) -> Node2D:
 	var best_target: Node2D = null
-
-	var candidates: Array[Node] = (
-		source.get_tree().get_nodes_in_group(
-			profile.target_group
-		)
-	)
 
 	for candidate in candidates:
 		if not is_valid_target(
@@ -104,7 +154,8 @@ static func find_best_target(
 			candidate,
 			profile,
 			maximum_range,
-			facing_direction
+			required_side_direction,
+			side_origin_x
 		):
 			continue
 
@@ -142,7 +193,8 @@ static func is_valid_target(
 	candidate: Node,
 	profile: TargetingProfile,
 	maximum_range: float,
-	facing_direction: float
+	required_side_direction: float,
+	side_origin_x: float = INF
 ) -> bool:
 	if not is_instance_valid(candidate):
 		return false
@@ -176,27 +228,45 @@ static func is_valid_target(
 		return false
 
 	var candidate_node := candidate as Node2D
-
-	var horizontal_difference: float = (
-		candidate_node.global_position.x
-		- source.global_position.x
-	)
-
-	if (
-		horizontal_difference
-		* facing_direction
-		<= 0.0
+	var resolved_side_origin_x: float = side_origin_x
+	if is_inf(resolved_side_origin_x):
+		resolved_side_origin_x = source.global_position.x
+	if not is_target_on_side(
+		candidate_node,
+		resolved_side_origin_x,
+		required_side_direction
 	):
 		return false
 
 	var horizontal_distance: float = abs(
-		horizontal_difference
+		candidate_node.global_position.x
+		- source.global_position.x
 	)
 
 	if horizontal_distance > maximum_range:
 		return false
 
 	return true
+
+
+static func is_target_on_side(
+	target: Node2D,
+	side_origin_x: float,
+	required_side_direction: float
+) -> bool:
+	if not is_instance_valid(target):
+		return false
+	if is_zero_approx(required_side_direction):
+		return true
+
+	var normalized_side_direction: float = (
+		-1.0 if required_side_direction < 0.0 else 1.0
+	)
+	return (
+		(target.global_position.x - side_origin_x)
+		* normalized_side_direction
+		> 0.0
+	)
 
 
 static func is_target_in_preferred_lane(

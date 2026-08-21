@@ -57,21 +57,8 @@ func _ready() -> void:
 	branch_display_name = "Strength Branch"
 	branch_id = &"strength_branch"
 
-	targeting_profile.target_group = &"enemies"
-
-	targeting_profile.target_priority = (
-		TargetingProfile.TargetPriority.NEAREST
-	)
-
-	targeting_profile.lane_mode = (
-		TargetingProfile.LaneMode.PREFERRED
-	)
-
-	targeting_profile.preferred_lane_span = (
-		target_lane_span
-	)
-
 	super._ready()
+	initialize_targeting_profile()
 	initialize_talent_effects()
 	add_to_group("strength_branch")
 	resting_rotation = rotation
@@ -85,6 +72,19 @@ func _ready() -> void:
 	sync_visual_state()
 	if cooldown_timer.is_stopped():
 		cooldown_timer.start()
+
+
+func initialize_targeting_profile() -> void:
+	if (
+		is_instance_valid(branch_definition)
+		and is_instance_valid(branch_definition.targeting_profile)
+	):
+		targeting_profile = branch_definition.targeting_profile.duplicate(true)
+	else:
+		targeting_profile = TargetingProfile.new()
+		targeting_profile.side_mode = TargetingProfile.SideMode.OWN_SIDE_ONLY
+
+	targeting_profile.preferred_lane_span = target_lane_span
 
 
 func initialize_talent_effects() -> void:
@@ -307,46 +307,13 @@ func _on_tree_age_changed(new_age: int) -> void:
 	)
 
 func is_valid_attack_target(target: Node) -> bool:
-	if not is_instance_valid(target):
-		return false
-
-	if target is not Node2D:
-		return false
-
-	if not target.is_in_group("enemies"):
-		return false
-
-	if not target.has_method("take_damage"):
-		return false
-
-	if not target.has_method("is_targetable"):
-		return false
-
-	if not bool(target.call("is_targetable")):
-		return false
-
-	var target_node := target as Node2D
-
-	var horizontal_difference: float = (
-		target_node.global_position.x
-		- global_position.x
+	return CombatTargeting.is_valid_target(
+		self,
+		target,
+		targeting_profile,
+		get_current_attack_range(),
+		get_facing_direction()
 	)
-
-	if (
-		horizontal_difference
-		* get_facing_direction()
-		<= 0.0
-	):
-		return false
-
-	var horizontal_distance: float = abs(
-		horizontal_difference
-	)
-
-	if horizontal_distance > get_current_attack_range():
-		return false
-
-	return true
 
 func _on_cooldown_timer_timeout() -> void:
 	if not combat_enabled:

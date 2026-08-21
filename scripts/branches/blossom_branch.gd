@@ -318,28 +318,37 @@ func process_ranged_attack(delta: float) -> void:
 	)
 
 func find_best_ranged_target() -> Node2D:
-	var own_side_target: Node2D = (
-		find_best_target_on_side(
-			facing_side
+	if not is_instance_valid(branch_definition):
+		return null
+	var profile: TargetingProfile = branch_definition.targeting_profile
+	var candidates: Array[Node] = CombatTargeting.get_target_candidates(
+		self,
+		profile
+	)
+	for side_direction in CombatTargeting.get_side_search_order(
+		profile,
+		get_facing_direction()
+	):
+		var target_side: int = -1
+		if not is_zero_approx(side_direction):
+			target_side = 0 if side_direction < 0.0 else 1
+		var target: Node2D = find_best_target_on_side(
+			target_side,
+			null,
+			candidates,
+			true
 		)
-	)
+		if is_valid_ranged_target(target):
+			return target
 
-	if is_valid_ranged_target(own_side_target):
-		return own_side_target
-
-	var opposite_side: int = 1
-
-	if facing_side == 1:
-		opposite_side = 0
-
-	return find_best_target_on_side(
-		opposite_side
-	)
+	return null
 
 
 func find_best_target_on_side(
 	target_side: int,
-	excluded_target: Node2D = null
+	excluded_target: Node2D = null,
+	candidate_override: Array[Node] = [],
+	use_candidate_override: bool = false
 ) -> Node2D:
 	if not is_instance_valid(tree_node):
 		return null
@@ -347,9 +356,13 @@ func find_best_target_on_side(
 	var best_target: Node2D = null
 	var best_tree_distance: float = INF
 
-	for enemy in get_tree().get_nodes_in_group(
-		"enemies"
-	):
+	var candidates: Array[Node] = candidate_override
+	if not use_candidate_override:
+		candidates = CombatTargeting.get_target_candidates(
+			self,
+			branch_definition.targeting_profile
+		)
+	for enemy in candidates:
 		if enemy == excluded_target:
 			continue
 
@@ -358,21 +371,19 @@ func find_best_target_on_side(
 
 		var enemy_node := enemy as Node2D
 
-		var horizontal_difference: float = (
-			enemy_node.global_position.x
-			- tree_node.global_position.x
-		)
-
-		var enemy_side: int = 0
-
-		if horizontal_difference > 0.0:
-			enemy_side = 1
-
-		if enemy_side != target_side:
+		var side_direction: float = 0.0
+		if target_side in [0, 1]:
+			side_direction = -1.0 if target_side == 0 else 1.0
+		if not CombatTargeting.is_target_on_side(
+			enemy_node,
+			tree_node.global_position.x,
+			side_direction
+		):
 			continue
 
 		var distance_from_tree: float = abs(
-			horizontal_difference
+			enemy_node.global_position.x
+			- tree_node.global_position.x
 		)
 
 		if distance_from_tree < best_tree_distance:

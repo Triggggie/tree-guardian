@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/branches/cross_lane_targeting_smoke_test.gd" id="1_test"]
+
+[node name="CrossLaneTargetingSmokeTest" type="Node"]
+script = ExtResource("1_test")

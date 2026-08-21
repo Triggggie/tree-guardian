@@ -11,6 +11,7 @@
 
 [sub_resource type="Resource" id="Resource_targeting"]
 script = ExtResource("2_targeting")
+side_mode = 2
 lane_mode = 0
 
 [resource]

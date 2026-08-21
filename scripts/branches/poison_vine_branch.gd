@@ -50,22 +50,52 @@ func _process(delta: float) -> void:
 
 
 func find_poison_target() -> Node2D:
-	var preferred_target: Node2D = _find_under_stack_cap(true)
-	if is_instance_valid(preferred_target):
-		return preferred_target
-	var fallback_lane_target: Node2D = _find_under_stack_cap(false)
-	if is_instance_valid(fallback_lane_target):
-		return fallback_lane_target
-	return CombatTargeting.find_target(
+	if not is_instance_valid(branch_definition):
+		return null
+	var profile: TargetingProfile = branch_definition.targeting_profile
+	var side_origin_x: float = _get_side_origin_x()
+	var candidates: Array[Node] = CombatTargeting.get_target_candidates(
 		self,
-		branch_definition.targeting_profile,
-		_get_preferred_lane_index(),
-		base_attack_range,
-		get_facing_direction()
+		profile
 	)
+	for side_direction in CombatTargeting.get_side_search_order(
+		profile,
+		get_facing_direction()
+	):
+		var preferred_target: Node2D = _find_under_stack_cap(
+			side_direction,
+			true,
+			candidates
+		)
+		if is_instance_valid(preferred_target):
+			return preferred_target
+		var fallback_lane_target: Node2D = _find_under_stack_cap(
+			side_direction,
+			false,
+			candidates
+		)
+		if is_instance_valid(fallback_lane_target):
+			return fallback_lane_target
+		var normal_target: Node2D = CombatTargeting.find_target_on_side(
+			self,
+			profile,
+			_get_preferred_lane_index(),
+			base_attack_range,
+			side_direction,
+			side_origin_x,
+			candidates
+		)
+		if is_instance_valid(normal_target):
+			return normal_target
+
+	return null
 
 
-func _find_under_stack_cap(require_preferred_lane: bool) -> Node2D:
+func _find_under_stack_cap(
+	required_side_direction: float,
+	require_preferred_lane: bool,
+	candidates: Array[Node]
+) -> Node2D:
 	if not is_instance_valid(branch_definition):
 		return null
 	var profile: TargetingProfile = branch_definition.targeting_profile
@@ -74,13 +104,14 @@ func _find_under_stack_cap(require_preferred_lane: bool) -> Node2D:
 		return null
 	var best_target: Node2D = null
 	var best_health: float = -1.0
-	for candidate in get_tree().get_nodes_in_group(profile.target_group):
+	for candidate in candidates:
 		if not CombatTargeting.is_valid_target(
 			self,
 			candidate,
 			profile,
 			base_attack_range,
-			get_facing_direction()
+			required_side_direction,
+			_get_side_origin_x()
 		):
 			continue
 		var candidate_node := candidate as Node2D
@@ -111,6 +142,12 @@ func _find_under_stack_cap(require_preferred_lane: bool) -> Node2D:
 			best_target = candidate_node
 			best_health = health
 	return best_target
+
+
+func _get_side_origin_x() -> float:
+	if is_instance_valid(tree_node):
+		return tree_node.global_position.x
+	return global_position.x
 
 
 func _get_preferred_lane_index() -> int:
