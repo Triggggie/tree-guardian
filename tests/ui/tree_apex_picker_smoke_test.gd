@@ -280,7 +280,7 @@ func run_test(
 	screen.call("select_slot", &"standard_slot_1")
 	expect(screen.call("open_branch_picker"), "Standard picker broke after Apex integration.")
 	expect(
-		candidate_ids(screen) == [&"strength_branch", &"blossom_branch"],
+		candidate_ids(screen) == [&"strength_branch", &"blossom_branch", &"poison_vine"],
 		"Standard picker contains Legendary candidates."
 	)
 	screen.call("close_branch_picker")

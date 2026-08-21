@@ -75,8 +75,13 @@ func refresh_standard_slot(slot_id: StringName) -> bool:
 		return true
 
 	var definition: BranchDefinition = GameContent.get_branch(requested_branch_id)
-	if not is_instance_valid(definition) or definition.branch_scene == null:
-		push_error("Cannot instantiate unknown Branch '%s'." % requested_branch_id)
+	var slot_index: int = BranchSlotRules.get_slot_index(slot_id)
+	if (
+		not is_instance_valid(definition)
+		or definition.branch_scene == null
+		or not BranchSlotRules.can_place_definition(definition, slot_index)
+	):
+		push_error("Cannot instantiate invalid Branch '%s' in %s." % [requested_branch_id, slot_id])
 		return false
 	var instance: Node = definition.branch_scene.instantiate()
 	if instance is not CombatBranch:
@@ -84,7 +89,7 @@ func refresh_standard_slot(slot_id: StringName) -> bool:
 		instance.queue_free()
 		return false
 	var runtime_branch := instance as CombatBranch
-	runtime_branch.slot_index = BranchSlotRules.get_slot_index(slot_id)
+	runtime_branch.slot_index = slot_index
 	runtime_branch.facing_side = 0 if runtime_branch.slot_index in [1, 2] else 1
 	runtime_branch.position = Vector2.ZERO
 	mount.add_child(runtime_branch)

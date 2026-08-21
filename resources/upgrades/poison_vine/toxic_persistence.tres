@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="1_upgrade"]
+
+[resource]
+script = ExtResource("1_upgrade")
+upgrade_id = &"toxic_persistence"
+display_name = "Toxic Persistence"
+description = "Increases Poison duration."
+effect_id = &"poison_duration_flat"
+value_per_level = 0.25
+base_cost = 8
+cost_growth = 1.35
+maximum_level = 16

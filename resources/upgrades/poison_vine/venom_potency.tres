@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="1_upgrade"]
+
+[resource]
+script = ExtResource("1_upgrade")
+upgrade_id = &"venom_potency"
+display_name = "Venom Potency"
+description = "Increases Poison damage per stack per tick."
+effect_id = &"poison_damage_per_stack_flat"
+value_per_level = 0.5
+base_cost = 9
+cost_growth = 1.35
+maximum_level = 0

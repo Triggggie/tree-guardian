@@ -9,6 +9,10 @@ const BLOSSOM_DEFINITION: BranchDefinition = preload(
 	"res://resources/branches/blossom_branch_definition.tres"
 )
 
+const POISON_VINE_DEFINITION: BranchDefinition = preload(
+	"res://resources/branches/poison_vine_branch_definition.tres"
+)
+
 const TREE_SCENE: PackedScene = preload(
 	"res://scenes/tree/tree.tscn"
 )
@@ -168,9 +172,14 @@ func test_slot_rules(
 			BranchSlotRules.can_place_definition(
 				STRENGTH_DEFINITION,
 				slot_index
-			),
-			"Standard Strength cannot use slot %d."
+			) == BranchSlotRules.is_lower_standard_slot(slot_index),
+			"Strength positional compatibility is wrong for slot %d."
 			% slot_index
+		)
+		expect(
+			BranchSlotRules.can_place_definition(BLOSSOM_DEFINITION, slot_index)
+			and BranchSlotRules.can_place_definition(POISON_VINE_DEFINITION, slot_index),
+			"Any-position Standard Branch was rejected from slot %d." % slot_index
 		)
 		expect(
 			not BranchSlotRules.can_place_definition(
@@ -184,6 +193,20 @@ func test_slot_rules(
 	expect(
 		BranchSlotRules.TOTAL_SLOT_COUNT == 5,
 		"Total Branch slot count changed from five."
+	)
+	expect(
+		BranchSlotRules.is_lower_standard_slot(1)
+		and BranchSlotRules.is_lower_standard_slot(3)
+		and not BranchSlotRules.is_lower_standard_slot(2)
+		and not BranchSlotRules.is_lower_standard_slot(4),
+		"Lower Standard slot mapping is wrong."
+	)
+	expect(
+		BranchSlotRules.is_upper_standard_slot(2)
+		and BranchSlotRules.is_upper_standard_slot(4)
+		and not BranchSlotRules.is_upper_standard_slot(1)
+		and not BranchSlotRules.is_upper_standard_slot(3),
+		"Upper Standard slot mapping is wrong."
 	)
 	expect(
 		BranchSlotRules.is_apex_slot(

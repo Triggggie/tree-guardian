@@ -68,6 +68,14 @@ static func is_standard_slot(
 	)
 
 
+static func is_lower_standard_slot(slot_index: int) -> bool:
+	return slot_index in [1, 3]
+
+
+static func is_upper_standard_slot(slot_index: int) -> bool:
+	return slot_index in [2, 4]
+
+
 static func is_apex_slot(
 	slot_index: int
 ) -> bool:
@@ -75,6 +83,25 @@ static func is_apex_slot(
 
 
 static func can_place_definition(
+	branch_definition: BranchDefinition,
+	slot_index: int
+) -> bool:
+	if not is_category_compatible(branch_definition, slot_index):
+		return false
+
+	if branch_definition.is_standard_branch():
+		match branch_definition.standard_position_id:
+			BranchDefinition.STANDARD_POSITION_ANY:
+				return true
+			BranchDefinition.STANDARD_POSITION_LOWER:
+				return is_lower_standard_slot(slot_index)
+			BranchDefinition.STANDARD_POSITION_UPPER:
+				return is_upper_standard_slot(slot_index)
+
+	return branch_definition.is_legendary_branch()
+
+
+static func is_category_compatible(
 	branch_definition: BranchDefinition,
 	slot_index: int
 ) -> bool:

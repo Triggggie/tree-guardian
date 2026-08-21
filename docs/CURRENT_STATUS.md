@@ -1,6 +1,6 @@
 # Tree Guardian — Current Project Status
 
-Updated: 2026-08-14
+Updated: 2026-08-21
 
 Implementation parent for this checkpoint: `d6c6302` (`Update status after gameplay UX pass`)
 
@@ -761,6 +761,51 @@ Not implemented in this checkpoint: scrap/materials, Run Resume, Blossom full ta
 
 Recommended next checkpoint: **Blossom Full Talent Tree V1**.
 
+### Standard Branch Positional Compatibility + Poison Vine V1
+
+Checkpoint date: 2026-08-21.
+
+#### Standard Branch positional compatibility
+
+- `BranchDefinition.standard_position_id` is immutable content data with the stable values `any_standard`, `lower_standard`, and `upper_standard`. `BranchSlotRules` remains the canonical authority for slot classification and placement.
+- The canonical physical mapping is lower Standard Slots 1 and 3 (`standard_slot_1`, `standard_slot_3`), upper Standard Slots 2 and 4 (`standard_slot_2`, `standard_slot_4`), and the distinct Apex Slot 5 (`apex_slot`).
+- Strength is authored `lower_standard` and is valid only in Slots 1 and 3. Blossom preserves its previous behavior through `any_standard`. Poison Vine is also `any_standard`. Standard content remains invalid in Apex, and Legendary content remains Apex-only through the existing category rule.
+- `BranchLoadout`, `TreeBranchLoadoutController`, `CombatBranch`, SaveGame restore, TREE candidate filtering/confirmation, and ContentValidator converge on `BranchSlotRules`. The UI therefore never offers Strength for an upper slot, and low-level runtime assignment also rejects it.
+- SaveGame remains version 1 because the stored schema did not change. A saved upper-slot Strength assignment is skipped and never instantiated; normal default initialization fills an uninitialized upper slot with Blossom when MainWorld is created. Valid lower Strength assignments restore. Shared Strength XP, Level, earned Talent Points, Essence upgrades, and historical `slot_id + branch_id` talent records are preserved. Positional rejection applies to physical equipment, while category-compatible historical talent records remain loadable.
+
+#### Status Effects Foundation
+
+- `EnemyStatusEffectComponent` is an enemy-owned runtime container. Each affected enemy owns its own mutable stacks, remaining duration, deterministic tick accumulation, periodic value, and weak application-source reference. Shared `StatusEffectDefinition` Resources remain immutable, and no global per-enemy status singleton exists.
+- The reusable foundation implements refresh, duration-add, intensity-stack, and replace modes plus generic periodic damage through `AttackContext` and `AttackResolver`. Periodic damage carries `status_effect` and `periodic_damage` tags plus `status_effect_id` metadata; it is distinct from direct/basic projectile hits and does not recursively apply Poison.
+- Enemy death, `stop_combat()`, forced cleanup, retry/wave teardown, and scene exit clear status state. Ticks revalidate the enemy immediately, and cleared or freed enemies cannot receive stale callbacks. A compact three-pip green indicator provides restrained stack feedback above the enemy HealthBar.
+- Production currently registers only `poison`. Burn, Bleed, Slow, Vulnerability, and other future effects remain intentionally unimplemented until their associated content is designed.
+
+#### Poison Vine
+
+- Poison Vine is a production Standard Branch with stable `branch_id = poison_vine`. No Common Branch unlock system exists yet, so it follows the current Standard availability rule and appears immediately for every compatible slot. It does not use Legendary Branch Seeds, unlock itself, or auto-equip. Its stable identity is ready for future Common Branch acquisition integration.
+- Base combat is 4 direct damage, a 1.80-second attack interval, a 0.60-second runtime floor, and 190 range. Direct hits use `AttackResolver`, then apply one Poison stack only after damage resolves.
+- Poison uses stable `status_effect_id = poison`, 4.0-second duration, 1.0-second ticks, 2 damage per stack per tick, and a maximum of three stacks. Every successful application below cap adds one stack and refreshes the full duration. At three stacks, another application remains at three and refreshes the full duration. One, two, and three stacks therefore deal 2, 4, and 6 damage per tick. A full uninterrupted four-second duration produces ticks at 1, 2, 3, and 4 seconds, then expires.
+- Targeting first considers valid outward enemies below the Poison cap, prefers the current preferred lane, and among eligible enemies favors higher current health so the DoT is more likely to realize its value. It then uses the normal lane fallback. If every valid enemy is fully poisoned, it falls back to the established targeting profile behavior. The scan occurs only when the 1.8-second attack cycle requests a target, not per frame.
+- Shared `poison_vine` archetype progress owns XP, Level, earned Talent Points, and Essence upgrades. Every physical instance owns its own cooldown, projectile collection, presentation tween, and current targeting work. Existing `slot_id + branch_id` talent-loadout persistence creates independent Poison Vine build records even though no Poison Vine talents are authored yet.
+- Resource-authored upgrades are Venom Potency (+0.5 Poison damage per stack per tick, first cost 9, dynamic Branch Level cap), Toxic Persistence (+0.25 seconds, first cost 8, maximum 16 levels), and Application Speed (-0.08 seconds, first cost 10, maximum 15 levels and the 0.60-second runtime floor). Run Branch Damage affects direct damage and the Poison value applied by the Branch; Attack Speed affects the offensive application interval but not Poison tick rate or duration.
+- The current visual is procedural placeholder art: a green living vine with alternating toxic thorns, a bright venom bulb at the true projectile endpoint, a brief attack pulse, and a distinct green toxic projectile. It mirrors from the actual `facing_side`, scales with Tree growth, and uses the unchanged canonical BranchMounts in all four Standard positions. Final production art is not complete.
+- Poison Vine intentionally has no TalentTree Resource in this checkpoint. The existing progress service still creates independent slot loadout records. Recommended future work is **Poison Vine Full Talent Tree V1**.
+
+#### Testing
+
+- Added `poison_vine_status_smoke_test`, covering content registration/validation, malformed Poison data, all four Standard slots, Apex rejection, scene instantiation, left/right endpoint mirroring, direct damage, stack 1/2/3, cap, tick timing and scaling, below-cap and max-cap refresh, duration expiry, direct/tick source distinction, cleanup/no stale ticks, targeting preference/fallback, four physical instances, shared XP/upgrades, independent cooldown/projectile state, and independent per-slot talent-loadout records.
+- Poison/status passed twice. Apex Slot Rules, Standard Branch Loadout, TREE Branch Picker, TREE Screen, TREE Apex Picker, live Branch replacement, SaveGame full round trip, SaveGame Branch Progress, Strength talent effects, Blossom talent effects, Blossom visual, shared Branch progress, per-slot talent loadouts, and Thorn Crown regressions passed in Godot 4.7.1.
+- Godot 4.7.1 headless editor/import passed without parser, Resource, UID, or ContentValidator errors.
+- Enemy Runtime passed after restoring the documented production `debug_start_global_wave = 0` value in `main_world.tscn`. The Strength Visual fixture now clears runtime BranchProgress at test start/end, matching the isolation used by other Branch tests, and passes without inheriting disk-loaded Strength Level or upgrades.
+- Manual rendered MainWorld checks remain required for Strength lower-left/lower-right appearance, absence of Strength in both upper candidate lists, Poison Vine in all four Standard mounts, left/right mirroring, projectile origin, Tree overlap, Tree growth presentation, and Poison stack-feedback readability. These were not claimed as visually verified.
+
+#### Recommended next work
+
+1. **Poison Vine Full Talent Tree V1**.
+2. Add Burn, Bleed, Slow, or other Status Effects only when their associated content is designed.
+3. Replace Poison Vine procedural placeholder visuals with final production art.
+4. Implement a Common Branch Seed/unlock system and migrate Poison Vine availability through that system without using Legendary Tier/pity semantics.
+
 ## 9. Known Gaps and Limitations
 
 - There is no active-run resume system; Save Foundation V1 persists stable player progression only.
@@ -775,7 +820,7 @@ Recommended next checkpoint: **Blossom Full Talent Tree V1**.
 - Bark Runner's placeholder appearance still needs manual visual confirmation.
 - `bark_runner.gd` currently inherits the shared runtime behavior from the Bark Beetle root script and overrides only drawing; separating a generic enemy root base is outside this checkpoint.
 - Plan item 40 is only partially complete because the smoke test validates the enemy runtime foundation rather than a full combat-integration scene.
-- No StatusEffect definitions are registered yet.
+- Poison is the first registered StatusEffect; Burn, Bleed, Slow, Vulnerability, and other effect content are not implemented.
 - Strength, Blossom, and Thorn Crown have separated visual and talent-effect responsibilities. Their runtime dispatchers remain Branch-specific rather than a global universal effect system.
 - A shared Branch visual base does not yet exist and is not needed for the current three implementations.
 - Branch category data, Slot 5 rules, disk-backed Apex loadout, persistent Branch Seed unlock storage, the legendary drop-processing foundation, natural production Thorn Crown acquisition, and a non-blocking acquisition notification exist. There is still no physical loot object or separate player-facing Apex unequip action.

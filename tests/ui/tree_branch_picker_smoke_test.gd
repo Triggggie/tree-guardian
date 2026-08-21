@@ -87,7 +87,7 @@ func run_test(loadout: BranchLoadoutService) -> void:
 			expected_candidate_ids.append(definition.branch_id)
 	expect(
 		actual_candidate_ids == expected_candidate_ids
-		and actual_candidate_ids == [&"strength_branch", &"blossom_branch"],
+		and actual_candidate_ids == [&"strength_branch", &"blossom_branch", &"poison_vine"],
 		"Candidate collection does not match registry order."
 	)
 
@@ -173,15 +173,15 @@ func run_test(loadout: BranchLoadoutService) -> void:
 
 	screen.call("select_slot", &"standard_slot_2")
 	expect(screen.call("open_branch_picker"), "Slot 2 picker did not open.")
-	screen.call("select_branch_candidate", &"strength_branch")
-	expect(screen.call("confirm_selected_branch_candidate"), "Duplicate Strength equip failed.")
-	await get_tree().process_frame
 	expect(
-		controller.get_runtime_branch(&"standard_slot_1").branch_id == &"strength_branch"
-		and controller.get_runtime_branch(&"standard_slot_2").branch_id == &"strength_branch"
-		and controller.get_runtime_branch(&"standard_slot_3").branch_id == &"strength_branch",
-		"Duplicate standard archetypes were blocked."
+		not screen.call("select_branch_candidate", &"strength_branch")
+		and not screen.call("confirm_selected_branch_candidate"),
+		"Upper candidate filtering offered or equipped Strength."
 	)
+	screen.call("select_branch_candidate", &"poison_vine")
+	expect(screen.call("confirm_selected_branch_candidate"), "Upper Slot 2 Poison Vine equip failed.")
+	await get_tree().process_frame
+	expect(controller.get_runtime_branch(&"standard_slot_2").branch_id == &"poison_vine", "Upper Slot 2 did not receive Poison Vine.")
 
 	screen.call("select_slot", &"apex_slot")
 	expect(
@@ -199,7 +199,7 @@ func run_test(loadout: BranchLoadoutService) -> void:
 		and screen.call("open_branch_picker"),
 		"TREE did not enable Standard editing during active gameplay."
 	)
-	screen.call("select_branch_candidate", &"strength_branch")
+	screen.call("select_branch_candidate", &"poison_vine")
 	var slot_4_before: CombatBranch = controller.get_runtime_branch(&"standard_slot_4")
 	expect(
 		screen.call("confirm_selected_branch_candidate"),
@@ -210,7 +210,7 @@ func run_test(loadout: BranchLoadoutService) -> void:
 	expect(
 		not is_instance_valid(slot_4_before)
 		and is_instance_valid(slot_4_after)
-		and slot_4_after.branch_id == &"strength_branch"
+		and slot_4_after.branch_id == &"poison_vine"
 		and slot_4_after.combat_enabled
 		and director.current_wave == live_wave
 		and not get_tree().paused,

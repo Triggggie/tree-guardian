@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BranchDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/branch_definition.gd" id="1_branch"]
+[ext_resource type="Script" path="res://scripts/definitions/targeting_profile.gd" id="2_targeting"]
+[ext_resource type="PackedScene" path="res://scenes/branches/poison_vine_branch.tscn" id="3_scene"]
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="4_upgrade"]
+[ext_resource type="Resource" path="res://resources/upgrades/poison_vine/venom_potency.tres" id="5_potency"]
+[ext_resource type="Resource" path="res://resources/upgrades/poison_vine/toxic_persistence.tres" id="6_persistence"]
+[ext_resource type="Resource" path="res://resources/upgrades/poison_vine/application_speed.tres" id="7_speed"]
+
+[sub_resource type="Resource" id="Resource_targeting"]
+script = ExtResource("2_targeting")
+
+[resource]
+script = ExtResource("1_branch")
+branch_id = &"poison_vine"
+display_name = "Poison Vine"
+description = "A venomous ranged branch that spreads stacking Poison and sustains damage across multiple enemies."
+standard_position_id = &"any_standard"
+branch_scene = ExtResource("3_scene")
+targeting_profile = SubResource("Resource_targeting")
+upgrades = Array[ExtResource("4_upgrade")]([ExtResource("5_potency"), ExtResource("6_persistence"), ExtResource("7_speed")])

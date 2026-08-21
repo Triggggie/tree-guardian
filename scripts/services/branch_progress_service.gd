@@ -511,7 +511,7 @@ func restore_persistence_state(stored_state: Dictionary) -> bool:
 			or purchased_talent_ids is not Array
 			or not is_instance_valid(definition)
 			or not definition.is_valid_definition()
-			or not BranchSlotRules.can_place_definition(
+			or not BranchSlotRules.is_category_compatible(
 				definition,
 				BranchSlotRules.get_slot_index(slot_id)
 			)

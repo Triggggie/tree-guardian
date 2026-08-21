@@ -198,3 +198,21 @@ func get_wave(
 		stage_id,
 		wave_id
 	)
+
+
+func get_status_effects() -> Array[StatusEffectDefinition]:
+	if registry == null:
+		return []
+
+	return registry.status_effects
+
+
+func get_status_effect(
+	status_effect_id: StringName
+) -> StatusEffectDefinition:
+	if registry == null:
+		return null
+
+	return registry.get_status_effect_definition(
+		status_effect_id
+	)

@@ -14,7 +14,9 @@ var failures: Array[String] = []
 
 
 func _ready() -> void:
+	BranchProgress.clear_runtime_progress_for_testing()
 	await run_test()
+	BranchProgress.clear_runtime_progress_for_testing()
 
 	if failures.is_empty():
 		print("STRENGTH BRANCH VISUAL SMOKE TEST PASS")

@@ -60,11 +60,12 @@ func test_definition_and_runtime() -> void:
 	var branches: Array[BranchDefinition] = GameContent.get_branches()
 	var definition: BranchDefinition = GameContent.get_branch(&"thorn_crown")
 	expect(
-		branches.size() == 3
+		branches.size() == 4
 		and branches[0].branch_id == &"strength_branch"
 		and branches[1].branch_id == &"blossom_branch"
-		and branches[2].branch_id == &"thorn_crown",
-		"Production Branch registry order is not Strength, Blossom, Thorn Crown."
+		and branches[2].branch_id == &"poison_vine"
+		and branches[3].branch_id == &"thorn_crown",
+		"Production Branch registry order is not Strength, Blossom, Poison Vine, Thorn Crown."
 	)
 	expect(
 		is_instance_valid(definition)

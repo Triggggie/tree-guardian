@@ -4,6 +4,9 @@ extends Resource
 
 const CATEGORY_STANDARD: StringName = &"standard"
 const CATEGORY_LEGENDARY: StringName = &"legendary"
+const STANDARD_POSITION_ANY: StringName = &"any_standard"
+const STANDARD_POSITION_LOWER: StringName = &"lower_standard"
+const STANDARD_POSITION_UPPER: StringName = &"upper_standard"
 const LEGENDARY_TIER_NONE: int = 0
 const LEGENDARY_TIER_1: int = 1
 const LEGENDARY_TIER_2: int = 2
@@ -23,6 +26,8 @@ var description: String = ""
 @export_category("Classification")
 
 @export var category_id: StringName = CATEGORY_STANDARD
+
+@export var standard_position_id: StringName = STANDARD_POSITION_ANY
 
 # Legacy authoring field retained for source/save compatibility only. Acquired
 # Legendary Tier is owned by BranchSeedService, not by this shared definition.
@@ -87,6 +92,14 @@ func is_legendary_branch() -> bool:
 	return category_id == CATEGORY_LEGENDARY
 
 
+func has_valid_standard_position() -> bool:
+	return standard_position_id in [
+		STANDARD_POSITION_ANY,
+		STANDARD_POSITION_LOWER,
+		STANDARD_POSITION_UPPER
+	]
+
+
 func get_legendary_tier() -> int:
 	return legendary_tier
 
@@ -132,6 +145,9 @@ func is_valid_definition() -> bool:
 		return false
 
 	if is_standard_branch() and legendary_tier != LEGENDARY_TIER_NONE:
+		return false
+
+	if is_standard_branch() and not has_valid_standard_position():
 		return false
 
 	if display_name.strip_edges().is_empty():

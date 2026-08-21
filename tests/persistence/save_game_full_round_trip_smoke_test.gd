@@ -16,9 +16,9 @@ func _ready() -> void:
 	expect(SaveGame.initialize(TEST_PATH), "Full round-trip initialize failed.")
 	expect(BranchLoadout.restore_persistence_state({
 		"standard_slot_1": "blossom_branch",
-		"standard_slot_2": "strength_branch",
+		"standard_slot_2": "poison_vine",
 		"standard_slot_3": "blossom_branch",
-		"standard_slot_4": "strength_branch",
+		"standard_slot_4": "poison_vine",
 		"apex_slot": "thorn_crown"
 	}, BranchSeeds), "Non-default Branch loadout fixture failed.")
 	var item := ItemInstance.new()
@@ -39,7 +39,7 @@ func _ready() -> void:
 	var controller := world.get_node("Entities/Tree/Systems/TreeBranchLoadoutController") as TreeBranchLoadoutController
 	expect(
 		controller.get_runtime_branch(&"standard_slot_1").branch_id == &"blossom_branch"
-		and controller.get_runtime_branch(&"standard_slot_2").branch_id == &"strength_branch"
+		and controller.get_runtime_branch(&"standard_slot_2").branch_id == &"poison_vine"
 		and controller.get_runtime_apex_branch().branch_id == &"thorn_crown",
 		"Runtime Branches did not reflect restored non-default loadout."
 	)

@@ -56,6 +56,11 @@ static func validate_registry(
 		errors
 	)
 
+	validate_status_effect_content(
+		registry,
+		errors
+	)
+
 	validate_branch_content(
 		registry,
 		errors
@@ -87,6 +92,29 @@ static func validate_registry(
 	)
 
 	return remove_duplicate_errors(errors)
+
+
+static func validate_status_effect_content(
+	registry: ContentRegistry,
+	errors: Array[String]
+) -> void:
+	for status_effect in registry.status_effects:
+		if not is_instance_valid(status_effect):
+			continue
+		if status_effect.status_effect_id != &"poison":
+			continue
+		if (
+			status_effect.is_permanent
+			or status_effect.stack_mode
+			!= StatusEffectDefinition.StackMode.STACK_INTENSITY
+			or status_effect.maximum_stacks != 3
+			or status_effect.base_duration <= 0.0
+			or status_effect.periodic_effect_id
+			!= StatusEffectDefinition.PERIODIC_DAMAGE
+			or status_effect.base_periodic_value <= 0.0
+			or status_effect.tick_interval <= 0.0
+		):
+			errors.append("Poison has invalid duration, tick, damage, or stacking data.")
 
 
 static func validate_enemy_content(
@@ -244,6 +272,16 @@ static func validate_branch_content(
 			!= BranchDefinition.LEGENDARY_TIER_NONE
 		):
 			errors.append("%s is standard and must use Tier 0." % branch_label)
+
+		if branch.is_standard_branch() and not branch.has_valid_standard_position():
+			errors.append("%s has invalid Standard position compatibility." % branch_label)
+
+		if (
+			branch.branch_id == &"strength_branch"
+			and branch.standard_position_id
+			!= BranchDefinition.STANDARD_POSITION_LOWER
+		):
+			errors.append("Strength Branch must be lower-standard compatible only.")
 
 		if not is_instance_valid(branch.branch_scene):
 			errors.append(

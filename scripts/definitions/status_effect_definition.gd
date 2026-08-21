@@ -2,6 +2,9 @@ class_name StatusEffectDefinition
 extends Resource
 
 
+const PERIODIC_DAMAGE: StringName = &"periodic_damage"
+
+
 enum StackMode {
 	REFRESH_DURATION,
 	ADD_DURATION,
@@ -52,6 +55,9 @@ var maximum_stacks: int = 1
 # Volitelný opakovaný efekt, například poison_damage.
 @export var periodic_effect_id: StringName = &""
 
+@export_range(0.0, 1000000000.0, 0.01)
+var base_periodic_value: float = 0.0
+
 @export_range(0.05, 3600.0, 0.05)
 var tick_interval: float = 1.0
 
@@ -69,6 +75,14 @@ func is_valid_definition() -> bool:
 	if maximum_stacks < 1:
 		return false
 
+	if stack_mode not in [
+		StackMode.REFRESH_DURATION,
+		StackMode.ADD_DURATION,
+		StackMode.STACK_INTENSITY,
+		StackMode.REPLACE
+	]:
+		return false
+
 	if has_invalid_or_duplicate_ids(
 		modifier_ids
 	):
@@ -76,8 +90,14 @@ func is_valid_definition() -> bool:
 
 	if (
 		periodic_effect_id != &""
-		and tick_interval <= 0.0
+		and (
+			tick_interval <= 0.0
+			or base_periodic_value <= 0.0
+		)
 	):
+		return false
+
+	if periodic_effect_id == &"" and base_periodic_value != 0.0:
 		return false
 
 	return true

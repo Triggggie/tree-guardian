@@ -157,7 +157,7 @@ func run_test(
 	var live_tree_health: float = float(tree_node.get("current_health"))
 	screen.call("select_slot", &"standard_slot_4")
 	expect(screen.call("open_branch_picker"), "Live Standard picker did not open.")
-	screen.call("select_branch_candidate", &"strength_branch")
+	screen.call("select_branch_candidate", &"poison_vine")
 	expect(
 		screen.call("confirm_selected_branch_candidate"),
 		"Live Standard replacement failed."
@@ -169,7 +169,7 @@ func run_test(
 	expect(
 		not is_instance_valid(old_blossom)
 		and is_instance_valid(live_standard)
-		and live_standard.branch_id == &"strength_branch"
+		and live_standard.branch_id == &"poison_vine"
 		and live_standard.get_slot_id() == &"standard_slot_4"
 		and live_standard.combat_enabled,
 		"Live Standard runtime replacement identity or combat state is wrong."

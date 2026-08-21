@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/upgrade_definition.gd" id="1_upgrade"]
+
+[resource]
+script = ExtResource("1_upgrade")
+upgrade_id = &"application_speed"
+display_name = "Application Speed"
+description = "Reduces the interval between Poison Vine attacks."
+effect_id = &"poison_vine_attack_interval_reduction"
+value_per_level = 0.08
+base_cost = 10
+cost_growth = 1.35
+maximum_level = 15

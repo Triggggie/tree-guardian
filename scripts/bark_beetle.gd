@@ -89,6 +89,7 @@ var death_tween: Tween
 var attack_visual_tween: Tween
 var attack_visual_active: bool = false
 var boss_ability_runtime: BossAbilityRuntime
+var status_effect_component: EnemyStatusEffectComponent
 
 
 func configure_from_definition(
@@ -173,6 +174,10 @@ func configure_stage_context(
 
 func _ready() -> void:
 	add_to_group("enemies")
+	status_effect_component = EnemyStatusEffectComponent.new()
+	status_effect_component.name = "StatusEffectComponent"
+	add_child(status_effect_component)
+	status_effect_component.initialize(self)
 
 	if not is_instance_valid(enemy_definition):
 		push_warning(
@@ -262,6 +267,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	clear_status_effects()
 	cancel_attack_visual()
 	cancel_boss_ability_runtime()
 	unregister_from_enemy_tracker()
@@ -363,6 +369,47 @@ func get_health_ratio() -> float:
 	if not is_instance_valid(health_component):
 		return 0.0
 	return health_component.get_health_ratio()
+
+
+func apply_status_effect(
+	status_effect_id: StringName,
+	source: Node,
+	stack_amount: int = 1,
+	periodic_value_override: float = -1.0,
+	duration_override: float = -1.0
+) -> bool:
+	if not is_targetable() or not is_instance_valid(status_effect_component):
+		return false
+	if (
+		is_instance_valid(enemy_definition)
+		and status_effect_id in enemy_definition.immune_status_effect_ids
+	):
+		return false
+	var definition: StatusEffectDefinition = GameContent.get_status_effect(status_effect_id)
+	return status_effect_component.apply_effect(
+		definition,
+		source,
+		stack_amount,
+		periodic_value_override,
+		duration_override
+	)
+
+
+func get_status_effect_stack_count(status_effect_id: StringName) -> int:
+	if not is_instance_valid(status_effect_component):
+		return 0
+	return status_effect_component.get_stack_count(status_effect_id)
+
+
+func get_status_effect_remaining_duration(status_effect_id: StringName) -> float:
+	if not is_instance_valid(status_effect_component):
+		return 0.0
+	return status_effect_component.get_remaining_duration(status_effect_id)
+
+
+func clear_status_effects() -> void:
+	if is_instance_valid(status_effect_component):
+		status_effect_component.clear_all_effects()
 
 
 func is_normal_enemy() -> bool:
@@ -772,6 +819,8 @@ func die(killer: Node = null) -> void:
 	):
 		killer.add_xp(xp_reward)
 
+	clear_status_effects()
+
 	var actual_essence_reward: int = (
 		get_actual_essence_reward()
 	)
@@ -926,6 +975,7 @@ func stop_combat() -> void:
 		return
 
 	combat_enabled = false
+	clear_status_effects()
 	cancel_attack_visual()
 	cancel_boss_ability_runtime()
 	attack_component.set_enabled(false)

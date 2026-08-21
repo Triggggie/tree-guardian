@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StatusEffectDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/definitions/status_effect_definition.gd" id="1_status"]
+
+[resource]
+script = ExtResource("1_status")
+status_effect_id = &"poison"
+display_name = "Poison"
+description = "Deals periodic damage based on its current stack count. Applications add a stack and refresh duration, up to three stacks."
+base_duration = 4.0
+stack_mode = 2
+maximum_stacks = 3
+periodic_effect_id = &"periodic_damage"
+base_periodic_value = 2.0
+tick_interval = 1.0

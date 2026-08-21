@@ -336,7 +336,7 @@ lane_scale_step = 0.02
 
 [node name="WaveDirector" type="Node" parent="." unique_id=1562890971]
 script = ExtResource("21_wave_director")
-debug_start_global_wave = 1
+debug_start_global_wave = 0
 
 [node name="WaveManager" type="Node" parent="." unique_id=300043025]
 script = ExtResource("5_wy0bs")
