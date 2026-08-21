@@ -43,6 +43,21 @@ func _ready() -> void:
 		and controller.get_runtime_apex_branch().branch_id == &"thorn_crown",
 		"Runtime Branches did not reflect restored non-default loadout."
 	)
+	for lower_slot_id: StringName in [
+		BranchSlotRules.STANDARD_SLOT_1_ID,
+		BranchSlotRules.STANDARD_SLOT_3_ID
+	]:
+		var restored_blossom: CombatBranch = controller.get_runtime_branch(lower_slot_id)
+		var restored_visual := restored_blossom.get_node("Visual") as BlossomBranchVisual
+		var restored_sprite := restored_visual.get_node("ProductionSprite") as Sprite2D
+		expect(
+			restored_visual.is_using_production_sprite()
+			and restored_sprite.visible
+			and restored_sprite.texture.resource_path
+			== "res://resources/branches/blossom/visuals/blossom_branch.png",
+			"Saved lower Blossom did not restore its production artwork in %s."
+			% lower_slot_id
+		)
 	expect(
 		Inventory.has_item(item.instance_id)
 		and Equipment.get_equipped_instance_id(&"bark") == item.instance_id,

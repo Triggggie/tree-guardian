@@ -2,16 +2,19 @@ class_name BlossomBranchVisual
 extends Node2D
 
 
-const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
+const LEFT_LAYOUT_ID: StringName = &"left"
+const RIGHT_LAYOUT_ID: StringName = &"right"
+
+const PRODUCTION_STAGE_LAYOUTS: Array[Dictionary] = [
 	{
-		BranchSlotRules.STANDARD_SLOT_2_ID: {
+		LEFT_LAYOUT_ID: {
 			&"position": Vector2(-24.0, -22.0),
 			&"scale": Vector2(0.32, 0.32),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
-		BranchSlotRules.STANDARD_SLOT_4_ID: {
+		RIGHT_LAYOUT_ID: {
 			&"position": Vector2(24.0, -22.0),
 			&"scale": Vector2(0.32, 0.32),
 			&"flip_h": false,
@@ -20,14 +23,14 @@ const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
 		}
 	},
 	{
-		BranchSlotRules.STANDARD_SLOT_2_ID: {
+		LEFT_LAYOUT_ID: {
 			&"position": Vector2(-24.0, -16.0),
 			&"scale": Vector2(0.41, 0.41),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
-		BranchSlotRules.STANDARD_SLOT_4_ID: {
+		RIGHT_LAYOUT_ID: {
 			&"position": Vector2(24.0, -16.0),
 			&"scale": Vector2(0.41, 0.41),
 			&"flip_h": false,
@@ -36,14 +39,14 @@ const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
 		}
 	},
 	{
-		BranchSlotRules.STANDARD_SLOT_2_ID: {
+		LEFT_LAYOUT_ID: {
 			&"position": Vector2(-30.0, -19.0),
 			&"scale": Vector2(0.51, 0.51),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
-		BranchSlotRules.STANDARD_SLOT_4_ID: {
+		RIGHT_LAYOUT_ID: {
 			&"position": Vector2(30.0, -19.0),
 			&"scale": Vector2(0.51, 0.51),
 			&"flip_h": false,
@@ -52,14 +55,14 @@ const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
 		}
 	},
 	{
-		BranchSlotRules.STANDARD_SLOT_2_ID: {
+		LEFT_LAYOUT_ID: {
 			&"position": Vector2(-54.0, -22.0),
 			&"scale": Vector2(0.6, 0.6),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
-		BranchSlotRules.STANDARD_SLOT_4_ID: {
+		RIGHT_LAYOUT_ID: {
 			&"position": Vector2(54.0, -22.0),
 			&"scale": Vector2(0.6, 0.6),
 			&"flip_h": false,
@@ -91,7 +94,7 @@ var mature_branch_level: int = 10
 var branch_level: int = 1
 var tree_growth_factor: float = 1.0
 var facing_direction: float = 1.0
-var uses_upper_production_sprite: bool = false
+var uses_production_sprite: bool = false
 
 
 @onready var production_sprite: Sprite2D = $ProductionSprite
@@ -104,18 +107,19 @@ func set_presentation_context(
 	var tree_stage: int = TreeGrowthVisual.resolve_stage_for_age(
 		tree_age
 	)
-	var stage_layout: Dictionary = UPPER_STAGE_LAYOUTS[
+	var stage_layout: Dictionary = PRODUCTION_STAGE_LAYOUTS[
 		tree_stage - TreeGrowthVisual.STAGE_1
 	]
+	var layout_side_id: StringName = get_layout_side_id(slot_id)
 	var slot_layout: Dictionary = stage_layout.get(
-		slot_id,
+		layout_side_id,
 		{}
 	) as Dictionary
 
-	uses_upper_production_sprite = not slot_layout.is_empty()
-	production_sprite.visible = uses_upper_production_sprite
+	uses_production_sprite = not slot_layout.is_empty()
+	production_sprite.visible = uses_production_sprite
 
-	if uses_upper_production_sprite:
+	if uses_production_sprite:
 		production_sprite.position = slot_layout[&"position"]
 		production_sprite.scale = slot_layout[&"scale"]
 		production_sprite.flip_h = bool(slot_layout[&"flip_h"])
@@ -125,8 +129,18 @@ func set_presentation_context(
 	queue_redraw()
 
 
-func is_using_upper_production_sprite() -> bool:
-	return uses_upper_production_sprite
+func get_layout_side_id(slot_id: StringName) -> StringName:
+	match slot_id:
+		BranchSlotRules.STANDARD_SLOT_1_ID, BranchSlotRules.STANDARD_SLOT_2_ID:
+			return LEFT_LAYOUT_ID
+		BranchSlotRules.STANDARD_SLOT_3_ID, BranchSlotRules.STANDARD_SLOT_4_ID:
+			return RIGHT_LAYOUT_ID
+
+	return &""
+
+
+func is_using_production_sprite() -> bool:
+	return uses_production_sprite
 
 
 func set_branch_level(
@@ -231,7 +245,7 @@ func get_visible_flower_count() -> int:
 
 
 func _draw() -> void:
-	if uses_upper_production_sprite:
+	if uses_production_sprite:
 		return
 
 	var current_length: float = (

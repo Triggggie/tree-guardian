@@ -806,6 +806,16 @@ Checkpoint date: 2026-08-21.
 3. Replace Poison Vine procedural placeholder visuals with final production art.
 4. Implement a Common Branch Seed/unlock system and migrate Poison Vine availability through that system without using Legendary Tier/pity semantics.
 
+### Blossom All-Standard-Mount Visual Compatibility
+
+Checkpoint date: 2026-08-21.
+
+- Blossom remains an `any_standard` gameplay archetype with unchanged healing, petal damage, talents, attack timing, targeting, and 650 range.
+- `BlossomBranchVisual` now resolves its existing production sprite through Tree stage plus left/right mount side for every valid Standard slot. Slots 1 and 2 share the authored left-facing stage layout; Slots 3 and 4 share the right-facing layout. The canonical upper/lower `BranchMount` positions continue to own physical attachment, so no duplicate Blossom scenes or gameplay implementations were added.
+- Lower-left, upper-left, lower-right, and upper-right Blossom instances all use `res://resources/branches/blossom/visuals/blossom_branch.png`; no valid Standard slot falls back to the old procedural branch drawing. Tree stages continue updating sprite position, scale, mirroring, rotation, and draw order without recreating the runtime Branch.
+- Regression coverage verifies all four slots across Ages 1, 40, 80, and 200, left/right mirroring, upper/lower replacement, Poison Vine visual isolation, lower-only Strength rejection, and SaveGame restoration of production Blossom art in both lower slots.
+- Manual rendered MainWorld verification remains required for final attachment, overlap, and composition quality in all four positions. Automated tests verify node/resource identity and transforms but do not establish final visual quality.
+
 ## 9. Known Gaps and Limitations
 
 - There is no active-run resume system; Save Foundation V1 persists stable player progression only.

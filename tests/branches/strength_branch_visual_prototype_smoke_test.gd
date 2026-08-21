@@ -161,28 +161,22 @@ func run_test() -> void:
 	)
 
 	expect(
-		loadout.equip_standard_branch(
+		not loadout.equip_standard_branch(
 			BranchSlotRules.STANDARD_SLOT_2_ID,
 			&"strength_branch"
 		),
-		"Could not equip the upper Strength validation fixture."
+		"Upper Standard slot accepted lower-only Strength."
 	)
 	await get_tree().process_frame
-	var upper_strength: CombatBranch = controller.get_runtime_branch(
+	var upper_blossom: CombatBranch = controller.get_runtime_branch(
 		BranchSlotRules.STANDARD_SLOT_2_ID
 	)
-	var upper_visual := upper_strength.get_node("Visual") as StrengthBranchVisual
+	var upper_visual := upper_blossom.get_node("Visual") as BlossomBranchVisual
 	expect(
-		not upper_visual.is_using_lower_production_sprite()
-		and not upper_visual.get_node("ProductionSprite").visible,
-		"An upper Strength slot incorrectly enabled the lower prototype."
-	)
-	expect(
-		is_equal_approx(
-			upper_visual.get_attack_presentation_angle_degrees(18.0),
-			18.0
-		),
-		"The lower prototype changed upper Strength attack presentation."
+		upper_blossom.branch_id == &"blossom_branch"
+		and upper_visual.is_using_production_sprite()
+		and upper_visual.get_node("ProductionSprite").visible,
+		"Rejected upper Strength replacement damaged the Blossom visual."
 	)
 
 	expect(
@@ -196,11 +190,16 @@ func run_test() -> void:
 	var lower_blossom: CombatBranch = controller.get_runtime_branch(
 		BranchSlotRules.STANDARD_SLOT_1_ID
 	)
+	var lower_blossom_sprite := lower_blossom.get_node(
+		"Visual/ProductionSprite"
+	) as Sprite2D
 	expect(
 		lower_blossom.branch_id == &"blossom_branch"
-		and lower_blossom.get_node_or_null("Visual/ProductionSprite") != null
-		and not lower_blossom.get_node("Visual/ProductionSprite").visible,
-		"A non-Strength lower slot received Strength artwork."
+		and is_instance_valid(lower_blossom_sprite)
+		and lower_blossom_sprite.visible
+		and lower_blossom_sprite.texture.resource_path
+		== "res://resources/branches/blossom/visuals/blossom_branch.png",
+		"Lower Blossom did not display its own production artwork."
 	)
 
 	expect(
