@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bb8ryy6qtqh2t"
-path="res://.godot/imported/blossom_branch.png-321e90b9344b29e5af58e0e914cf2df2.ctex"
+uid="uid://dnfsp2uovct37"
+path="res://.godot/imported/blossom_branch_puvodni.png-c2f945cbd7d829fe09a5967eb254e148.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://resources/branches/blossom/visuals/blossom_branch.png"
-dest_files=["res://.godot/imported/blossom_branch.png-321e90b9344b29e5af58e0e914cf2df2.ctex"]
+source_file="res://resources/branches/blossom/visuals/puvodni/blossom_branch_puvodni.png"
+dest_files=["res://.godot/imported/blossom_branch_puvodni.png-c2f945cbd7d829fe09a5967eb254e148.ctex"]
 
 [params]
 

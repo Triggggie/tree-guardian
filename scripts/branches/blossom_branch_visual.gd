@@ -5,15 +5,15 @@ extends Node2D
 const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
 	{
 		BranchSlotRules.STANDARD_SLOT_2_ID: {
-			&"position": Vector2(-23.0, -24.0),
-			&"scale": Vector2(0.28, 0.28),
+			&"position": Vector2(-21.0, -32.0),
+			&"scale": Vector2(0.3, 0.3),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
 		BranchSlotRules.STANDARD_SLOT_4_ID: {
-			&"position": Vector2(23.0, -24.0),
-			&"scale": Vector2(0.28, 0.28),
+			&"position": Vector2(21.0, -32.0),
+			&"scale": Vector2(0.3, 0.3),
 			&"flip_h": false,
 			&"rotation": 0.0,
 			&"z_index": 0
@@ -21,15 +21,15 @@ const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
 	},
 	{
 		BranchSlotRules.STANDARD_SLOT_2_ID: {
-			&"position": Vector2(-28.0, -31.0),
-			&"scale": Vector2(0.36, 0.36),
+			&"position": Vector2(-23.0, -34.0),
+			&"scale": Vector2(0.39, 0.39),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
 		BranchSlotRules.STANDARD_SLOT_4_ID: {
-			&"position": Vector2(28.0, -31.0),
-			&"scale": Vector2(0.36, 0.36),
+			&"position": Vector2(23.0, -34.0),
+			&"scale": Vector2(0.39, 0.39),
 			&"flip_h": false,
 			&"rotation": 0.0,
 			&"z_index": 0
@@ -37,15 +37,15 @@ const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
 	},
 	{
 		BranchSlotRules.STANDARD_SLOT_2_ID: {
-			&"position": Vector2(-39.0, -40.0),
-			&"scale": Vector2(0.46, 0.46),
+			&"position": Vector2(-32.0, -43.0),
+			&"scale": Vector2(0.49, 0.49),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
 		BranchSlotRules.STANDARD_SLOT_4_ID: {
-			&"position": Vector2(39.0, -40.0),
-			&"scale": Vector2(0.46, 0.46),
+			&"position": Vector2(32.0, -43.0),
+			&"scale": Vector2(0.49, 0.49),
 			&"flip_h": false,
 			&"rotation": 0.0,
 			&"z_index": 0
@@ -53,15 +53,15 @@ const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
 	},
 	{
 		BranchSlotRules.STANDARD_SLOT_2_ID: {
-			&"position": Vector2(-51.0, -48.0),
-			&"scale": Vector2(0.55, 0.55),
+			&"position": Vector2(-50.0, -52.0),
+			&"scale": Vector2(0.58, 0.58),
 			&"flip_h": true,
 			&"rotation": 0.0,
 			&"z_index": 0
 		},
 		BranchSlotRules.STANDARD_SLOT_4_ID: {
-			&"position": Vector2(51.0, -48.0),
-			&"scale": Vector2(0.55, 0.55),
+			&"position": Vector2(50.0, -52.0),
+			&"scale": Vector2(0.58, 0.58),
 			&"flip_h": false,
 			&"rotation": 0.0,
 			&"z_index": 0

@@ -8,17 +8,17 @@ const MAIN_WORLD_SCENE: PackedScene = preload(
 const TEST_AGES: Array[int] = [1, 40, 80, 200]
 
 const EXPECTED_POSITIONS: Array[Vector2] = [
-	Vector2(23.0, -24.0),
-	Vector2(28.0, -31.0),
-	Vector2(39.0, -40.0),
-	Vector2(51.0, -48.0)
+	Vector2(21.0, -32.0),
+	Vector2(23.0, -34.0),
+	Vector2(32.0, -43.0),
+	Vector2(50.0, -52.0)
 ]
 
 const EXPECTED_SCALES: Array[Vector2] = [
-	Vector2(0.28, 0.28),
-	Vector2(0.36, 0.36),
-	Vector2(0.46, 0.46),
-	Vector2(0.55, 0.55)
+	Vector2(0.3, 0.3),
+	Vector2(0.39, 0.39),
+	Vector2(0.49, 0.49),
+	Vector2(0.58, 0.58)
 ]
 
 
