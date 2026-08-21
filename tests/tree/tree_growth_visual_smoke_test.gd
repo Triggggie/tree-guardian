@@ -37,8 +37,8 @@ const EXPECTED_TEXTURE_PATHS: Array[String] = [
 const EXPECTED_POSITIONS: Array[Vector2] = [
 	Vector2(2.0, -124.0),
 	Vector2(2.775, -127.65),
-	Vector2(-0.8, -150.4),
-	Vector2(0.0, -159.075)
+	Vector2(0.8, -150.4),
+	Vector2(1.575, -159.075)
 ]
 
 const EXPECTED_SCALES: Array[Vector2] = [
@@ -67,8 +67,8 @@ const BRANCH_MOUNT_OFFSETS: Dictionary = {
 const OPAQUE_CENTERS_X: Array[float] = [
 	127.0,
 	126.5,
-	128.5,
-	128.0
+	127.5,
+	127.0
 ]
 
 const OPAQUE_BOTTOMS_Y: Array[float] = [

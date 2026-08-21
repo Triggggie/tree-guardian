@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cps2baqnexehv"
-path="res://.godot/imported/guardian_tree_stage_2.png-f3734795603fe88f44144a15afd769dd.ctex"
+uid="uid://bqmqajvinylw8"
+path="res://.godot/imported/blossom_branch.png-321e90b9344b29e5af58e0e914cf2df2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://resources/tree/growth/guardian_tree_stage_2.png"
-dest_files=["res://.godot/imported/guardian_tree_stage_2.png-f3734795603fe88f44144a15afd769dd.ctex"]
+source_file="res://resources/branches/blossom/visuals/blossom_branch.png"
+dest_files=["res://.godot/imported/blossom_branch.png-321e90b9344b29e5af58e0e914cf2df2.ctex"]
 
 [params]
 

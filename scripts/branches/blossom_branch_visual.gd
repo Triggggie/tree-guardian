@@ -2,6 +2,74 @@ class_name BlossomBranchVisual
 extends Node2D
 
 
+const UPPER_STAGE_LAYOUTS: Array[Dictionary] = [
+	{
+		BranchSlotRules.STANDARD_SLOT_2_ID: {
+			&"position": Vector2(-23.0, -24.0),
+			&"scale": Vector2(0.28, 0.28),
+			&"flip_h": true,
+			&"rotation": 0.0,
+			&"z_index": 0
+		},
+		BranchSlotRules.STANDARD_SLOT_4_ID: {
+			&"position": Vector2(23.0, -24.0),
+			&"scale": Vector2(0.28, 0.28),
+			&"flip_h": false,
+			&"rotation": 0.0,
+			&"z_index": 0
+		}
+	},
+	{
+		BranchSlotRules.STANDARD_SLOT_2_ID: {
+			&"position": Vector2(-28.0, -31.0),
+			&"scale": Vector2(0.36, 0.36),
+			&"flip_h": true,
+			&"rotation": 0.0,
+			&"z_index": 0
+		},
+		BranchSlotRules.STANDARD_SLOT_4_ID: {
+			&"position": Vector2(28.0, -31.0),
+			&"scale": Vector2(0.36, 0.36),
+			&"flip_h": false,
+			&"rotation": 0.0,
+			&"z_index": 0
+		}
+	},
+	{
+		BranchSlotRules.STANDARD_SLOT_2_ID: {
+			&"position": Vector2(-39.0, -40.0),
+			&"scale": Vector2(0.46, 0.46),
+			&"flip_h": true,
+			&"rotation": 0.0,
+			&"z_index": 0
+		},
+		BranchSlotRules.STANDARD_SLOT_4_ID: {
+			&"position": Vector2(39.0, -40.0),
+			&"scale": Vector2(0.46, 0.46),
+			&"flip_h": false,
+			&"rotation": 0.0,
+			&"z_index": 0
+		}
+	},
+	{
+		BranchSlotRules.STANDARD_SLOT_2_ID: {
+			&"position": Vector2(-51.0, -48.0),
+			&"scale": Vector2(0.55, 0.55),
+			&"flip_h": true,
+			&"rotation": 0.0,
+			&"z_index": 0
+		},
+		BranchSlotRules.STANDARD_SLOT_4_ID: {
+			&"position": Vector2(51.0, -48.0),
+			&"scale": Vector2(0.55, 0.55),
+			&"flip_h": false,
+			&"rotation": 0.0,
+			&"z_index": 0
+		}
+	}
+]
+
+
 @export_category("Visual Growth")
 
 @export_range(2, 50, 1)
@@ -23,6 +91,42 @@ var mature_branch_level: int = 10
 var branch_level: int = 1
 var tree_growth_factor: float = 1.0
 var facing_direction: float = 1.0
+var uses_upper_production_sprite: bool = false
+
+
+@onready var production_sprite: Sprite2D = $ProductionSprite
+
+
+func set_presentation_context(
+	slot_id: StringName,
+	tree_age: int
+) -> void:
+	var tree_stage: int = TreeGrowthVisual.resolve_stage_for_age(
+		tree_age
+	)
+	var stage_layout: Dictionary = UPPER_STAGE_LAYOUTS[
+		tree_stage - TreeGrowthVisual.STAGE_1
+	]
+	var slot_layout: Dictionary = stage_layout.get(
+		slot_id,
+		{}
+	) as Dictionary
+
+	uses_upper_production_sprite = not slot_layout.is_empty()
+	production_sprite.visible = uses_upper_production_sprite
+
+	if uses_upper_production_sprite:
+		production_sprite.position = slot_layout[&"position"]
+		production_sprite.scale = slot_layout[&"scale"]
+		production_sprite.flip_h = bool(slot_layout[&"flip_h"])
+		production_sprite.rotation = float(slot_layout[&"rotation"])
+		production_sprite.z_index = int(slot_layout[&"z_index"])
+
+	queue_redraw()
+
+
+func is_using_upper_production_sprite() -> bool:
+	return uses_upper_production_sprite
 
 
 func set_branch_level(
@@ -127,6 +231,9 @@ func get_visible_flower_count() -> int:
 
 
 func _draw() -> void:
+	if uses_upper_production_sprite:
+		return
+
 	var current_length: float = (
 		get_current_length()
 	)

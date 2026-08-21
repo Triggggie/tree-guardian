@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b8l36tqxbumxp"
-path="res://.godot/imported/guardian_tree_stage_1_puvodni.png-857ba3bddb73f94fd5d2703a81e66db4.ctex"
+uid="uid://dpgf7kahjhcv2"
+path="res://.godot/imported/guardian_tree_stage_4_puvodni.png-e0c3f08f6304a197f0e27a7b61e39b81.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://resources/tree/growth/guardian_tree_stage_1_puvodni.png"
-dest_files=["res://.godot/imported/guardian_tree_stage_1_puvodni.png-857ba3bddb73f94fd5d2703a81e66db4.ctex"]
+source_file="res://resources/tree/growth/puvodni/guardian_tree_stage_4_puvodni.png"
+dest_files=["res://.godot/imported/guardian_tree_stage_4_puvodni.png-e0c3f08f6304a197f0e27a7b61e39b81.ctex"]
 
 [params]
 

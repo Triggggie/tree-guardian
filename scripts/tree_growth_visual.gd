@@ -23,8 +23,8 @@ const TREE_TEXTURES: Array[Texture2D] = [
 const STAGE_POSITIONS: Array[Vector2] = [
 	Vector2(2.0, -124.0),
 	Vector2(2.775, -127.65),
-	Vector2(-0.8, -150.4),
-	Vector2(0.0, -159.075)
+	Vector2(0.8, -150.4),
+	Vector2(1.575, -159.075)
 ]
 
 const STAGE_SCALES: Array[Vector2] = [

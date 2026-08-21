@@ -198,7 +198,8 @@ func run_test() -> void:
 	)
 	expect(
 		lower_blossom.branch_id == &"blossom_branch"
-		and lower_blossom.get_node_or_null("Visual/ProductionSprite") == null,
+		and lower_blossom.get_node_or_null("Visual/ProductionSprite") != null
+		and not lower_blossom.get_node("Visual/ProductionSprite").visible,
 		"A non-Strength lower slot received Strength artwork."
 	)
 
