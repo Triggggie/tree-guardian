@@ -11,7 +11,7 @@ const POISON_STATUS_ID: StringName = &"poison"
 @export var base_direct_damage: float = 4.0
 @export var base_attack_interval: float = 1.8
 @export var minimum_attack_interval: float = 0.60
-@export var base_attack_range: float = 190.0
+@export var base_attack_range: float = 650.0
 @export_range(0, 8, 1)
 var target_lane_index: int = 3
 

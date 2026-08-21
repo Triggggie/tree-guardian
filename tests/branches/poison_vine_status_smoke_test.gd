@@ -4,6 +4,9 @@ extends Node
 const POISON_VINE_SCENE: PackedScene = preload(
 	"res://scenes/branches/poison_vine_branch.tscn"
 )
+const BLOSSOM_SCENE: PackedScene = preload(
+	"res://scenes/branches/blossom_branch.tscn"
+)
 
 
 class MockTree:
@@ -88,6 +91,7 @@ var failures: Array[String] = []
 func _ready() -> void:
 	test_content_and_slot_compatibility()
 	await test_mounts_progress_and_runtime_isolation()
+	await test_ranged_acquisition_matches_blossom()
 	await test_direct_hit_stacking_ticks_and_cleanup()
 	await test_targeting_priority()
 
@@ -210,6 +214,55 @@ func test_mounts_progress_and_runtime_isolation() -> void:
 	await get_tree().process_frame
 
 
+func test_ranged_acquisition_matches_blossom() -> void:
+	var poison_probe := POISON_VINE_SCENE.instantiate() as CombatBranch
+	var blossom_probe := BLOSSOM_SCENE.instantiate() as CombatBranch
+	expect(
+		is_equal_approx(
+			float(poison_probe.get("base_attack_range")),
+			float(blossom_probe.get("ranged_attack_range"))
+		),
+		"Poison Vine nominal range does not match Blossom's practical ranged baseline."
+	)
+	expect(
+		is_equal_approx(float(poison_probe.get("base_attack_range")), 650.0),
+		"Poison Vine ranged baseline changed from 650."
+	)
+	poison_probe.free()
+	blossom_probe.free()
+
+	var representative_mount_positions: Dictionary = {
+		1: Vector2(-48.0, -113.0),
+		2: Vector2(-44.0, -197.0),
+		3: Vector2(48.0, -113.0),
+		4: Vector2(44.0, -197.0)
+	}
+	for slot_index in range(1, 5):
+		var fixture := await create_combat_fixture(slot_index)
+		var branch := fixture.get_node("Tree/PoisonVine") as CombatBranch
+		branch.position = representative_mount_positions[slot_index]
+		var facing_direction: float = branch.get_facing_direction()
+		var approaching_enemy := create_enemy(
+			fixture,
+			"ApproachingSlot%d" % slot_index,
+			branch.global_position + Vector2(facing_direction * 600.0, 0.0),
+			500.0
+		)
+		approaching_enemy.lane_index = 3
+		var acquired_target: Node2D = branch.call("find_poison_target") as Node2D
+		expect(
+			acquired_target == approaching_enemy,
+			"Poison Vine in Standard slot %d did not acquire an approaching enemy at Blossom-like range."
+			% slot_index
+		)
+		expect(
+			abs(approaching_enemy.global_position.x - branch.global_position.x) > 500.0,
+			"Poison Vine slot %d range fixture collapsed into melee distance."
+			% slot_index
+		)
+		await cleanup_fixture(fixture)
+
+
 func test_direct_hit_stacking_ticks_and_cleanup() -> void:
 	var fixture := await create_combat_fixture()
 	var branch := fixture.get_node("Tree/PoisonVine") as CombatBranch
@@ -272,7 +325,7 @@ func test_targeting_priority() -> void:
 	await cleanup_fixture(fixture)
 
 
-func create_combat_fixture() -> Node2D:
+func create_combat_fixture(slot_index: int = 3) -> Node2D:
 	var fixture := Node2D.new()
 	fixture.name = "CombatFixture"
 	var progress := BranchProgressService.new()
@@ -284,8 +337,8 @@ func create_combat_fixture() -> Node2D:
 	fixture.add_child(tree_node)
 	var branch := POISON_VINE_SCENE.instantiate() as CombatBranch
 	branch.name = "PoisonVine"
-	branch.slot_index = 3
-	branch.facing_side = 1
+	branch.slot_index = slot_index
+	branch.facing_side = 0 if slot_index in [1, 2] else 1
 	branch.branch_progress_service = progress
 	branch.process_mode = Node.PROCESS_MODE_DISABLED
 	tree_node.add_child(branch)
